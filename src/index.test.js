@@ -1,5 +1,4 @@
 const ChluIPFS = require('./index');
-const ipfsUtils = require('./utils/ipfs');
 
 describe('ChluIPFS', () => {
     test('constructor', () => {

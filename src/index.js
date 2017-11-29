@@ -1,5 +1,5 @@
 const ipfsUtils = require('./utils/ipfs');
-const OrbitDB = require('orbit-db');
+//const OrbitDB = require('orbit-db');
 
 const constant = {
     types: {
@@ -13,7 +13,7 @@ const constant = {
             pubsub: true
         }
     }
-}
+};
 
 class ChluIPFS {
 
@@ -38,13 +38,7 @@ class ChluIPFS {
         }
         if (options.ipfsModule) this.ipfs = options.ipfsModule;
     }
-
-    /**
-     * Prepares internal components for use
-     * 
-     * @returns promise
-     * @memberof ChluIPFS
-     */
+    
     async start(){
         this.ipfs = await this.utils.createIPFS();
         /*
