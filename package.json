@@ -1,0 +1,22 @@
+{
+  "name": "chlu-ipfs-experiments",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "bin": {
+    "chlu-ipfs": "src/nodejs/bin.js"
+  },
+  "scripts": {
+    "test": "jest",
+    "test-watch": "jest --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ipfs": "^0.26.0",
+    "orbit-db": "^0.18.0"
+  },
+  "devDependencies": {
+    "jest": "^21.2.1"
+  }
+}
