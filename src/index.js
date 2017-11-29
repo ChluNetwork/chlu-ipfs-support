@@ -77,6 +77,30 @@ class ChluIPFS {
         }
         return exported;
     }
+
+    async importData() {
+        throw new Error('not implemented');
+    }
+
+    async getVendorKeys(ipnsName) {
+        throw new Error('not implemented');
+    }
+    
+    async publishKeys(publicEncKey, publicSigKey) {
+        throw new Error('not implemented');
+    }
+
+    listenForReviewUpdates(handler) {
+        throw new Error('not implemented');
+    }
+
+    listenForEvents(handler) {
+        throw new Error('not implemented');
+    }
+
+    publishUpdatedReview(updatedReview) {
+        throw new Error('not implemented');
+    }
 }
 
 module.exports = Object.assign(ChluIPFS, constant);
