@@ -1,7 +1,7 @@
-# Chlu-IPFS
+# Chlu IPFS Support
 
-This is a work in progress implementation of the IPFS Module of Chlu.
+This is a work in progress implementation of the IPFS integration of [Chlu](https://chlu.io).
 
 ## Usage
 
-WIP.
+See CONTRIBUTING
