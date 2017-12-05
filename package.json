@@ -6,10 +6,10 @@
   "scripts": {
     "test": "jest",
     "test-watch": "jest --watch",
-    "lint": "eslint src"
+    "lint": "eslint src tests bin"
   },
   "bin": {
-    "chlu-service-node": "src/chlu-service-node.js"
+    "chlu-service-node": "bin/chlu-service-node.js"
   },
   "author": "Enrico Fasoli (fazo96)",
   "license": "MIT",

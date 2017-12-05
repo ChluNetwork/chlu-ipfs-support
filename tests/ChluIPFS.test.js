@@ -6,7 +6,7 @@ jest.mock('brorand', () => {
     return jest.fn(n => crypto.randomBytes(n));
 });
 
-const ChluIPFS = require('./index');
+const ChluIPFS = require('../src/ChluIPFS');
 
 describe('ChluIPFS', () => {
     test('constructor', () => {
@@ -30,27 +30,6 @@ describe('ChluIPFS', () => {
         expect(start).toBeTruthy();
         const stop = await chluIpfs.stop();
         expect(stop).toBeTruthy();
-    });
-    
-    test('storeReviewRecord', async () => {
-        const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ';
-        const put = jest.fn().mockReturnValue({ multihash });
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
-        chluIpfs.ipfs = { object: { put } };
-        // Mock broadcast: fake a response so that the call can complete
-        const broadcast = jest.fn(message => {
-            const obj = JSON.parse(message);
-            expect(obj.type).toEqual(ChluIPFS.eventTypes.wroteReviewRecord);
-            expect(obj.multihash).toEqual(multihash);
-            setTimeout(() => {
-                chluIpfs.events.emit(ChluIPFS.eventTypes.pinned + '_' + obj.multihash);
-            }, 100);
-        });
-        chluIpfs.room = { broadcast };
-        const result = await chluIpfs.storeReviewRecord(Buffer.from('example'));
-        expect(result).toEqual(multihash);
-        expect(put).toBeCalled();
-        expect(broadcast).toBeCalled();
     });
 
     test('exportData', async () => {

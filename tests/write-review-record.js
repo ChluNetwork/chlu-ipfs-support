@@ -1,4 +1,5 @@
-const ChluIPFS = require('../index.js');
+#!/usr/bin/env node
+const ChluIPFS = require('../src/index.js');
 const Repo = require('ipfs-repo');
 const repo = new Repo('/tmp/ipfs-repo');
 
@@ -12,11 +13,11 @@ async function main(){
     console.log('Writing a mock Review Record and awaiting response');
     const reviewRecord = Buffer.from('Mock Review Record: ' + String(Math.random() + Date.now()));
     try {
-        customerNode.room.on('peer joined', (peer) => {
+        customerNode.instance.room.on('peer joined', (peer) => {
             console.log('Peer joined the room', peer);
         });
     
-        customerNode.room.on('peer left', (peer) => {
+        customerNode.instance.room.on('peer left', (peer) => {
             console.log('Peer left...', peer);
         });
         await customerNode.storeReviewRecord(reviewRecord);

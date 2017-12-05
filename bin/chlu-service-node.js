@@ -1,21 +1,19 @@
 #!/usr/bin/env node
-const ChluIPFS = require('./index.js');
+const ChluIPFS = require('../src/index.js');
 
 let serviceNode = null;
 
 async function main(){
     serviceNode = new ChluIPFS({ type: ChluIPFS.types.service });
     console.log('Creating Chlu Experimental Service Node');
-    console.log('Starting Chlu IPFS');
+    console.log('Starting Chlu IPFS Service Node');
     await serviceNode.start();
-    console.log('Starting Service Node');
-    await serviceNode.runServiceNode();
 
-    serviceNode.room.on('peer joined', (peer) => {
+    serviceNode.instance.room.on('peer joined', (peer) => {
         console.log('Peer joined the room', peer);
     });
 
-    serviceNode.room.on('peer left', (peer) => {
+    serviceNode.instance.room.on('peer left', (peer) => {
         console.log('Peer left...', peer);
     });
 }
