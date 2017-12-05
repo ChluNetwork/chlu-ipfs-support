@@ -1,18 +1,22 @@
 {
   "name": "chlu-ipfs-support",
   "version": "0.1.0",
-  "description": "",
+  "description": "Libraries providing IPFS integration for Chlu",
   "main": "src/index.js",
   "scripts": {
     "test": "jest",
     "test-watch": "jest --watch",
     "lint": "eslint src"
   },
-  "author": "",
-  "license": "ISC",
+  "bin": {
+    "chlu-service-node": "src/chlu-service-node.js"
+  },
+  "author": "Enrico Fasoli (fazo96)",
+  "license": "MIT",
   "dependencies": {
-    "ipfs": "^0.26.0",
-    "orbit-db": "^0.18.0"
+    "ipfs": "~0.27.0",
+    "ipfs-pubsub-room": "~1.0.1",
+    "orbit-db": "~0.18.0"
   },
   "devDependencies": {
     "eslint": "^4.12.0",

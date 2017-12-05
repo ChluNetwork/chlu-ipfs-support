@@ -11,7 +11,11 @@ async function createIPFS(options) {
 
 function multihashToString(multihash) {
     if (typeof multihash === 'string') return multihash;
-    return multihashes.toB58String(multihashes);
+    return multihashes.toB58String(multihash);
 }
 
-module.exports = { createIPFS, multihashToString };
+function encodeMessage(msg){
+    return Buffer.from(JSON.stringify(msg));
+}
+
+module.exports = { createIPFS, multihashToString, encodeMessage };
