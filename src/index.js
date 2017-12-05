@@ -66,7 +66,7 @@ class ChluIPFS {
         this.room = Room(this.ipfs, 'chlu-experimental');
         // handle events
         this.room.on('message', message => this.handleMessage(message));
-        // wait for room subscription'before returning
+        // wait for room subscription before returning
         await new Promise(resolve => {
             this.room.on('subscribed', () => resolve());
         });
@@ -95,7 +95,7 @@ class ChluIPFS {
         if (this.ipfs.pin) {
             await this.ipfs.pin.add(multihash, { recursive: true });
         } else {
-            // TODO: Bad!!! fix!!!!
+            // TODO: Chlu service node need to be able to pin, so we should support using go-ipfs
             console.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively');
             await this.ipfs.object.get(multihash);
         }
@@ -117,6 +117,7 @@ class ChluIPFS {
         const dagNode = await this.ipfs.object.put(reviewRecord);
         const multihash = this.utils.multihashToString(dagNode.multihash);
         // Broadcast request for pin, then wait for response
+        // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
         await new Promise(fullfill => {
             this.events.once(constant.eventTypes.pinned + '_' + multihash, () => fullfill());
             this.room.broadcast(this.utils.encodeMessage({ type: constant.eventTypes.wroteReviewRecord, multihash }));
@@ -168,12 +169,7 @@ class ChluIPFS {
     runServiceNode() {
         this.room.on('message', async message => {
             // parse messages
-            let obj = null;
-            try {
-                obj = JSON.parse(message.data.toString());
-            } catch(exception) {
-                obj = {};
-            }
+            const obj = this.utils.decodeMessage(message);
             // handle ReviewRecord: pin hash
             if (obj.type === constant.eventTypes.wroteReviewRecord && typeof obj.multihash === 'string') {
                 console.log('Pinning ReviewRecord', obj.multihash);
