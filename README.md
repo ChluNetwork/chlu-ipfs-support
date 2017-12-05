@@ -8,7 +8,7 @@ See [CONTRIBUTING.md](https://github.com/ChluNetwork/chlu-ipfs-support/blob/mast
 
 __Note__: this has only been tested in Node but is supposed to work in the browser using Webpack. Please check out the js-ipfs information about running in the browser through Webpack for additional information.
 
-This module has not been release to NPM yet. You can however install it and import/require it, but it's still WIP. Check out [index.js]() to see the available API calls, and the tests for examples.
+This module has not been release to NPM yet. You can however install it and import/require it, but it's still WIP. Check out [index.js](https://github.com/ChluNetwork/chlu-ipfs-support/blob/master/src/index.js) to see the available API calls, and the tests for examples.
 
 You can install this module globally and use `chlu-service-node` to run a Chlu Service Node.
 
