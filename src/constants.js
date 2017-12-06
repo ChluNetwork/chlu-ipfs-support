@@ -11,7 +11,9 @@ module.exports = {
         pinning: 'PINNING',
         pinned: 'PINNED',
         wroteReviewRecord: 'WROTE_REVIEW_RECORD',
-        updatedReview: 'UPDATED_REVIEW'
+        updatedReview: 'UPDATED_REVIEW',
+        customerReviews: 'CUSTOMER_REVIEWS',
+        replicated: 'REPLICATED'
     },
     customerDbName: 'chlu-experimental-customer-review-updates',
     pubsubRoom: 'chlu-experimental'
