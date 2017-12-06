@@ -12,6 +12,8 @@ This module has not been release to NPM yet. You can however install it and impo
 
 You can install this module globally and use `chlu-service-node` to run a Chlu Service Node.
 
+If you are in development mode, you can pass an option `mock: true` when initializing the class to get a fake API that returns example data.
+
 ### Undocumented differences from the protocol
 
 This is a collection of features and design choices not compatible with the Chlu Protocol. They exist to allow this to work before the protocol is finalized.
