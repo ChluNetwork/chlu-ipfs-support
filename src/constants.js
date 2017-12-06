@@ -13,4 +13,4 @@ module.exports = {
         wroteReviewRecord: 'WROTE_REVIEW_RECORD',
         updatedReview: 'UPDATED_REVIEW'
     }
-}
+};

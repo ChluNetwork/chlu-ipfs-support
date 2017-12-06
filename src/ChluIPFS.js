@@ -3,6 +3,7 @@ const OrbitDB = require('orbit-db');
 const Room = require('ipfs-pubsub-room');
 const EventEmitter = require('events');
 const constants = require('./constants');
+const logger = require('./utils/logger');
 
 const defaultIPFSOptions = {
     EXPERIMENTAL: {
@@ -42,25 +43,33 @@ class ChluIPFS {
     }
     
     async start(){
-        this.ipfs = await this.utils.createIPFS(this.ipfsOptions);
+        if (!this.ipfs) {
+            this.ipfs = await this.utils.createIPFS(this.ipfsOptions );
+        }
         // OrbitDB setup
-        this.orbitDb = new OrbitDB(this.ipfs, this.orbitDbDirectory);
-        if (this.type === constants.types.customer) {
+        if (!this.orbitDb) {
+            this.orbitDb = new OrbitDB(this.ipfs, this.orbitDbDirectory);
+        }
+        if (this.type === constants.types.customer && !this.db) {
             this.db = await this.orbitDb.feed('chlu-experimental-customer-review-updates');
         }
         // PubSub setup
-        this.room = Room(this.ipfs, 'chlu-experimental');
-        // handle events
-        this.room.on('message', message => this.handleMessage(message));
-        // wait for room subscription before returning
-        await new Promise(resolve => {
-            this.room.on('subscribed', () => resolve());
-        });
+        if (!this.room) {
+            this.room = Room(this.ipfs, 'chlu-experimental');
+            // handle events
+            this.room.on('message', message => this.handleMessage(message));
+            // wait for room subscription
+            await new Promise(resolve => {
+                this.room.on('subscribed', () => resolve());
+            });
+        }
         // If customer, also wait for at least one peer to join the room (TODO: review this)
         if (this.type === constants.types.customer) {
-            await new Promise(resolve => {
-                this.room.on('peer joined', () => resolve());
-            });
+            if (this.room.getPeers().length === 0) {
+                await new Promise(resolve => {
+                    this.room.on('peer joined', () => resolve());
+                });
+            }
         } else if (this.type === constants.types.service) {
             this.startServiceNode();
         }
@@ -68,7 +77,7 @@ class ChluIPFS {
     }
 
     async stop() {
-        await this.room.leave();
+        // leaving the pubsub room is already handled by the library on IPFS stop
         if (this.db) await this.db.close();
         await this.ipfs.stop();
         this.db = undefined;
@@ -84,7 +93,7 @@ class ChluIPFS {
             await this.ipfs.pin.add(multihash, { recursive: true });
         } else {
             // TODO: Chlu service node need to be able to pin, so we should support using go-ipfs
-            console.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively');
+            logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
             await this.ipfs.object.get(multihash);
         }
         // broadcast successful pin
@@ -141,7 +150,7 @@ class ChluIPFS {
     }
 
     handleMessage(message) {
-        console.log('pubsub message:', message.data.toString());
+        logger.debug('pubsub message:', message.data.toString());
         try {
             const obj = JSON.parse(message.data.toString());
             this.events.emit(obj.type || constants.eventTypes.unknown, obj);
@@ -150,7 +159,7 @@ class ChluIPFS {
                 this.events.emit(constants.eventTypes.pinned + '_' + obj.multihash);
             }
         } catch(exception) {
-            console.log('Message was not JSON encoded');
+            logger.warn('Message was not JSON encoded');
         }
     }
 
@@ -160,11 +169,12 @@ class ChluIPFS {
             const obj = this.utils.decodeMessage(message);
             // handle ReviewRecord: pin hash
             if (obj.type === constants.eventTypes.wroteReviewRecord && typeof obj.multihash === 'string') {
-                console.log('Pinning ReviewRecord', obj.multihash);
+                logger.info('Pinning ReviewRecord', obj.multihash);
                 try {
                     await this.pin(obj.multihash);
+                    logger.info('Pinned ReviewRecord', obj.multihash);
                 } catch(exception){
-                    console.log('Pin Error:', exception.message);
+                    logger.error('Pin Error:', exception.message);
                 }
             }
         });
