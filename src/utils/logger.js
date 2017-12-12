@@ -1,9 +1,17 @@
-const winston = require('winston');
+module.exports = {
+    debug(msg) {
+        console.log('[DEBUG] ' + msg);
+    },
 
-module.exports = winston.createLogger({
-    level: 'info',
-    format: winston.format.json(),
-    transports: [
-        new winston.transports.Console({ format: winston.format.simple() })
-    ]
-});
+    info(msg) {
+        console.log('[INFO] ' + msg);
+    },
+    
+    warn(msg) {
+        console.warn('[WARNING] ' + msg);
+    },
+    
+    error(msg) {
+        console.error('[ERROR] ' + msg);
+    }
+};

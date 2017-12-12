@@ -1,9 +1,9 @@
 const expect = require('chai').expect;
 
-const ChluIPFS = require('../src/ChluIPFS.js');
-const utils = require('./utils/ipfs');
+const ChluIPFS = require('../../src/ChluIPFS.js');
+const utils = require('../utils/ipfs');
 const rimraf = require('rimraf');
-const logger = require('./utils/logger');
+const logger = require('../utils/logger');
 
 const serviceNodeRepo = '/tmp/chlu-service-node-repo';
 const customerRepo = '/tmp/chlu-customer-repo';
