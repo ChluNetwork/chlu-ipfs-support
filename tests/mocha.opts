@@ -1,0 +1,1 @@
+tests --timeout 15000 --exit

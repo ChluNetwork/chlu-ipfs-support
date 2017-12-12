@@ -3,7 +3,7 @@ const OrbitDB = require('orbit-db');
 const Room = require('ipfs-pubsub-room');
 const EventEmitter = require('events');
 const constants = require('./constants');
-const logger = require('./utils/logger');
+const defaultLogger = require('./utils/logger');
 
 const defaultIPFSOptions = {
     EXPERIMENTAL: {
@@ -40,6 +40,7 @@ class ChluIPFS {
         }
         this.utils = ipfsUtils;
         this.events = new EventEmitter();
+        this.logger = options.logger || defaultLogger;
     }
     
     async start(){
@@ -87,9 +88,10 @@ class ChluIPFS {
     }
 
     async stop() {
-        // leaving the pubsub room is already handled by the library on IPFS stop
-        if (this.db) await this.db.close();
+        this.room.leave();
+        await this.orbitDb.stop();
         await this.ipfs.stop();
+        this.orbitDb = undefined;
         this.db = undefined;
         this.room = undefined;
         this.orbitDb = undefined;
@@ -103,7 +105,7 @@ class ChluIPFS {
             await this.ipfs.pin.add(multihash, { recursive: true });
         } else {
             // TODO: Chlu service node need to be able to pin, so we should support using go-ipfs
-            logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
+            this.logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
             await this.ipfs.object.get(multihash);
         }
         // broadcast successful pin
@@ -157,19 +159,19 @@ class ChluIPFS {
 
     async publishUpdatedReview(updatedReview) {
         // TODO: check format, check is customer
-        logger.debug('Adding updated review');
+        this.logger.debug('Adding updated review');
         await new Promise(async fullfill => {
             const address = this.getOrbitDBAddress();
             this.events.once(constants.eventTypes.replicated + '_' + address, () => fullfill());
             await this.db.add(updatedReview);
             this.broadcastReviewUpdates();
-            logger.debug('Waiting for remote replication');
+            this.logger.debug('Waiting for remote replication');
         });
-        logger.debug('Done');
+        this.logger.debug('Done');
     }
 
     handleMessage(message) {
-        logger.debug('pubsub message: ' + message.data.toString());
+        this.logger.debug('pubsub message: ' + message.data.toString());
         try {
             const obj = JSON.parse(message.data.toString());
             this.events.emit(obj.type || constants.eventTypes.unknown, obj);
@@ -182,15 +184,15 @@ class ChluIPFS {
                 this.events.emit(constants.eventTypes.replicated + '_' + obj.address);
             }
         } catch(exception) {
-            logger.warn('Message was not JSON encoded');
+            this.logger.warn('Message was not JSON encoded');
         }
     }
 
     async replicate(address) {
-        logger.info('Replicating ' + address);
+        this.logger.info('Replicating ' + address);
         this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicating, address }));
         if (!this.dbs[address]) {
-            logger.debug('Initializing local copy of ' + address);
+            this.logger.debug('Initializing local copy of ' + address);
             this.dbs[address] = await this.orbitDb.feed(address);
             //await this.dbs[address].load();
         }
@@ -198,7 +200,7 @@ class ChluIPFS {
             this.dbs[address].events.on('replicated', fullfill);
         });
         this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicated, address }));
-        logger.info('Replicated ' + address);
+        this.logger.info('Replicated ' + address);
     }
 
     startServiceNode() {
@@ -207,12 +209,12 @@ class ChluIPFS {
             const obj = this.utils.decodeMessage(message);
             // handle ReviewRecord: pin hash
             if (obj.type === constants.eventTypes.wroteReviewRecord && typeof obj.multihash === 'string') {
-                logger.info('Pinning ReviewRecord ' + obj.multihash);
+                this.logger.info('Pinning ReviewRecord ' + obj.multihash);
                 try {
                     await this.pin(obj.multihash);
-                    logger.info('Pinned ReviewRecord ' + obj.multihash);
+                    this.logger.info('Pinned ReviewRecord ' + obj.multihash);
                 } catch(exception){
-                    logger.error('Pin Error: ' + exception.message);
+                    this.logger.error('Pin Error: ' + exception.message);
                 }
             }
             // handle OrbitDB: replicate
@@ -221,7 +223,7 @@ class ChluIPFS {
                 try {
                     this.replicate(obj.address);
                 } catch(exception){
-                    logger.error('OrbitDB Replication Error: ' + exception.message);
+                    this.logger.error('OrbitDB Replication Error: ' + exception.message);
                 }
             }
         });

@@ -1,19 +1,11 @@
+const chai = require('chai');
+const expect = chai.expect;
+
 const ChluIPFS = require('../src/ChluIPFS.mock');
 
-// Mock timing module so that the tests don't have to wait
-jest.mock('../src/utils/timing', () => {
-    return {
-        milliseconds: jest.fn(() => new Promise(fullfill => fullfill()))
-    };
-});
-const timing = require('../src/utils/timing');
-
 describe('ChluIPFS Mock API', () => {
-    beforeEach(() => {
-        timing.milliseconds.mockClear();
-    });
 
-    test('fake constructor', () => {
+    it('fake constructor', () => {
         let type = ChluIPFS.types.customer;
         new ChluIPFS({ type });
         type = ChluIPFS.types.vendor;
@@ -21,58 +13,51 @@ describe('ChluIPFS Mock API', () => {
         type = ChluIPFS.types.marketplace;
         new ChluIPFS({ type });
         type = 'anything else';
-        expect(() => new ChluIPFS({ type })).toThrow();
+        expect(() => new ChluIPFS({ type })).to.throw();
     });
 
-    test('fake start', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.marketplace });
+    it('fake start', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.marketplace, fakeWait: false });
         const start = await chluIpfs.start();
-        expect(timing.milliseconds).toHaveBeenCalled();
-        expect(start).toBeTruthy();
+        expect(start).to.be.true;
     });
 
-    test('fake stop', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.marketplace });
+    it('fake stop', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.marketplace, fakeWait: false });
         const stop = await chluIpfs.stop();
-        expect(timing.milliseconds).toHaveBeenCalled();
-        expect(stop).toBeTruthy();
+        expect(stop).to.be.true;
     });
 
-    test('fake exportData', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+    it('fake exportData', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, fakeWait: false });
         const exported = await chluIpfs.exportData();
-        expect(timing.milliseconds).toHaveBeenCalled();
-        expect(exported.customerDbKeys).toEqual({
+        expect(exported.customerDbKeys).to.deep.equal({
             pub: 'examplePublicKey',
             priv: 'examplePrivateKey'
         });
     });
     
-    test('fake importData', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+    it('fake importData', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, fakeWait: false });
         const result = await chluIpfs.importData();
-        expect(timing.milliseconds).toHaveBeenCalled();
-        expect(result).toBeUndefined();
+        expect(result).to.be.undefined;
     });
     
-    test('fake getVendorKeys', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+    it('fake getVendorKeys', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, fakeWait: false });
         const keys = await chluIpfs.getVendorKeys('fakeipnsname');
-        expect(timing.milliseconds).toHaveBeenCalled();
-        expect(keys).toEqual({ pubenc: 'mockedpubenckey', pubsig: 'mockedpubsigkey' });
+        expect(keys).to.deep.equal({ pubenc: 'mockedpubenckey', pubsig: 'mockedpubsigkey' });
     });
     
-    test('fake publishKeys', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+    it('fake publishKeys', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, fakeWait: false });
         const result = await chluIpfs.publishKeys();
-        expect(timing.milliseconds).toHaveBeenCalled();
-        expect(result).toEqual('fakekeysmultihash');
+        expect(result).to.equal('fakekeysmultihash');
     });
     
-    test('fake publishUpdatedReviews', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+    it('fake publishUpdatedReviews', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, fakeWait: false });
         const result = await chluIpfs.publishUpdatedReview();
-        expect(timing.milliseconds).toHaveBeenCalled();
-        expect(result).toBeUndefined();
+        expect(result).to.be.undefined;
     });
 });

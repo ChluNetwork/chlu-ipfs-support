@@ -1,38 +1,32 @@
-
-// due to https://github.com/indutny/brorand/pull/5 brorand does not work in this env so we need to mock it
-// this is used by OrbitDB to generate keys
-jest.mock('brorand', () => {
-    const crypto = require('crypto');
-    return jest.fn(n => crypto.randomBytes(n));
-});
+const expect = require('chai').expect;
 
 const ChluIPFS = require('../src/ChluIPFS');
 
 describe('ChluIPFS', () => {
-    test('constructor', () => {
+    it('constructor', () => {
         let type = ChluIPFS.types.customer;
         let chluIpfs = new ChluIPFS({ type });
-        expect(chluIpfs.type).toBe(type);
+        expect(chluIpfs.type).to.equal(type);
         type = ChluIPFS.types.vendor;
         chluIpfs = new ChluIPFS({ type });
-        expect(chluIpfs.type).toBe(type);
+        expect(chluIpfs.type).to.equal(type);
         type = ChluIPFS.types.marketplace;
         chluIpfs = new ChluIPFS({ type });
-        expect(chluIpfs.type).toBe(type);
+        expect(chluIpfs.type).to.equal(type);
         type = 'anything else';
-        expect(() => new ChluIPFS({ type })).toThrow();
+        expect(() => new ChluIPFS({ type })).to.throw();
     });
 
-    test('exportData', async () => {
+    it('exportData', async () => {
         const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
         chluIpfs.db = {
             keystore: {
-                exportPublicKey: jest.fn(() => 'examplePublicKey'),
-                exportPrivateKey: jest.fn(() => 'examplePrivateKey')
+                exportPublicKey: () => 'examplePublicKey',
+                exportPrivateKey: () => 'examplePrivateKey'
             }
         };
         const exported = await chluIpfs.exportData();
-        expect(exported.customerDbKeys).toEqual({
+        expect(exported.customerDbKeys).to.deep.equal({
             pub: 'examplePublicKey',
             priv: 'examplePrivateKey'
         });
