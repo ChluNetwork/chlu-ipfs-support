@@ -12,5 +12,7 @@ module.exports = {
         pinned: 'PINNED',
         wroteReviewRecord: 'WROTE_REVIEW_RECORD',
         updatedReview: 'UPDATED_REVIEW'
-    }
+    },
+    customerDbName: 'chlu-experimental-customer-review-updates',
+    pubsubRoom: 'chlu-experimental'
 };

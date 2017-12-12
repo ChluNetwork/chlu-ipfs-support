@@ -51,11 +51,11 @@ class ChluIPFS {
             this.orbitDb = new OrbitDB(this.ipfs, this.orbitDbDirectory);
         }
         if (this.type === constants.types.customer && !this.db) {
-            this.db = await this.orbitDb.feed('chlu-experimental-customer-review-updates');
+            this.db = await this.orbitDb.feed(constants.customerDbName);
         }
         // PubSub setup
         if (!this.room) {
-            this.room = Room(this.ipfs, 'chlu-experimental');
+            this.room = Room(this.ipfs, constants.pubsubRoom);
             // handle events
             this.room.on('message', message => this.handleMessage(message));
             // wait for room subscription
