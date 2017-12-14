@@ -8,20 +8,29 @@ class ChluIPFS {
             throw new Error('Invalid type');
         }
         this.type = options.type;
+        if (options.fakeWait !== undefined) {
+            this.fakeWait = options.fakeWait;
+        } else {
+            this.fakeWait = true;
+        }
+    }
+
+    async _wait(ms) {
+        if (this.fakeWait) await time.milliseconds(ms);
     }
     
     async start(){
-        await time.milliseconds(1000);
+        await this._wait(1000);
         return true;
     }
 
     async stop(){
-        await time.milliseconds(1000);
+        await this._wait(1000);
         return true;
     }
 
     async pin(){
-        await time.milliseconds(3000);
+        await this._wait(3000);
     }
 
     getOrbitDBAddress(){
@@ -29,12 +38,12 @@ class ChluIPFS {
     }
 
     async storeReviewRecord(){
-        await time.milliseconds(3000);
+        await this._wait(3000);
         return 'mockedRRmultihash';
     }
 
     async exportData() {
-        await time.milliseconds(1000);
+        await this._wait(1000);
         if (this.type === constants.types.customer) {
             return {
                 customerDbKeys: {
@@ -47,21 +56,21 @@ class ChluIPFS {
     }
 
     async importData() {
-        await time.milliseconds(1000);
+        await this._wait(1000);
     }
 
     async getVendorKeys() {
-        await time.milliseconds(5000);
+        await this._wait(5000);
         return { pubenc: 'mockedpubenckey', pubsig: 'mockedpubsigkey' };
     }
     
     async publishKeys() {
-        await time.milliseconds(3000);
+        await this._wait(3000);
         return 'fakekeysmultihash';
     }
 
     async publishUpdatedReview() {
-        await time.milliseconds(5000);
+        await this._wait(5000);
     }
 }
 

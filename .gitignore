@@ -1,3 +1,4 @@
 /node_modules
 /orbitdb
-/coverage
+/.nyc_output
+./tests/bundle.js

@@ -1,10 +1,10 @@
 module.exports = {
-    debug(msg) {
-        console.log('[DEBUG] ' + msg);
+    debug() {
+        // ignore
     },
 
-    info(msg) {
-        console.log('[INFO] ' + msg);
+    info() {
+        // ignore
     },
     
     warn(msg) {
