@@ -27,7 +27,7 @@ class ChluIPFS {
             store: String(Math.random() + Date.now())
         };
         // TODO: review persisting data in orbitDb. we don't need persistence in the browser but it would help.
-        this.orbitDbDirectory = options.orbitDbDirectory || '../orbit-db';
+        this.orbitDbDirectory = options.orbitDbDirectory || '../orbitdb';
         this.ipfsOptions = Object.assign(
             {},
             defaultIPFSOptions,
@@ -70,10 +70,20 @@ class ChluIPFS {
                     this.room.on('peer joined', () => resolve());
                 });
             }
+            // Broadcast my review updates DB
+            this.broadcastReviewUpdates();
         } else if (this.type === constants.types.service) {
+            this.dbs = {};
             this.startServiceNode();
         }
         return true;
+    }
+
+    broadcastReviewUpdates(){
+        this.room.broadcast(this.utils.encodeMessage({
+            type: constants.eventTypes.customerReviews,
+            address: this.getOrbitDBAddress()
+        }));
     }
 
     async stop() {
@@ -145,12 +155,21 @@ class ChluIPFS {
         throw new Error('not implemented');
     }
 
-    publishUpdatedReview() {
-        throw new Error('not implemented');
+    async publishUpdatedReview(updatedReview) {
+        // TODO: check format, check is customer
+        logger.debug('Adding updated review');
+        await new Promise(async fullfill => {
+            const address = this.getOrbitDBAddress();
+            this.events.once(constants.eventTypes.replicated + '_' + address, () => fullfill());
+            await this.db.add(updatedReview);
+            this.broadcastReviewUpdates();
+            logger.debug('Waiting for remote replication');
+        });
+        logger.debug('Done');
     }
 
     handleMessage(message) {
-        logger.debug('pubsub message:', message.data.toString());
+        logger.debug('pubsub message: ' + message.data.toString());
         try {
             const obj = JSON.parse(message.data.toString());
             this.events.emit(obj.type || constants.eventTypes.unknown, obj);
@@ -158,9 +177,28 @@ class ChluIPFS {
                 // Emit internal PINNED event
                 this.events.emit(constants.eventTypes.pinned + '_' + obj.multihash);
             }
+            if (obj.type === constants.eventTypes.replicated) {
+                // Emit internal REPLICATED event
+                this.events.emit(constants.eventTypes.replicated + '_' + obj.address);
+            }
         } catch(exception) {
             logger.warn('Message was not JSON encoded');
         }
+    }
+
+    async replicate(address) {
+        logger.info('Replicating ' + address);
+        this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicating, address }));
+        if (!this.dbs[address]) {
+            logger.debug('Initializing local copy of ' + address);
+            this.dbs[address] = await this.orbitDb.feed(address);
+            //await this.dbs[address].load();
+        }
+        await new Promise(fullfill => {
+            this.dbs[address].events.on('replicated', fullfill);
+        });
+        this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicated, address }));
+        logger.info('Replicated ' + address);
     }
 
     startServiceNode() {
@@ -169,12 +207,21 @@ class ChluIPFS {
             const obj = this.utils.decodeMessage(message);
             // handle ReviewRecord: pin hash
             if (obj.type === constants.eventTypes.wroteReviewRecord && typeof obj.multihash === 'string') {
-                logger.info('Pinning ReviewRecord', obj.multihash);
+                logger.info('Pinning ReviewRecord ' + obj.multihash);
                 try {
                     await this.pin(obj.multihash);
-                    logger.info('Pinned ReviewRecord', obj.multihash);
+                    logger.info('Pinned ReviewRecord ' + obj.multihash);
                 } catch(exception){
-                    logger.error('Pin Error:', exception.message);
+                    logger.error('Pin Error: ' + exception.message);
+                }
+            }
+            // handle OrbitDB: replicate
+            const isOrbitDb = obj.type === constants.eventTypes.customerReviews || obj.type === constants.eventTypes.updatedReview;
+            if (isOrbitDb && typeof obj.address === 'string') {
+                try {
+                    this.replicate(obj.address);
+                } catch(exception){
+                    logger.error('OrbitDB Replication Error: ' + exception.message);
                 }
             }
         });
