@@ -6,17 +6,19 @@
   "scripts": {
     "test": "jest",
     "test-watch": "jest --watch",
-    "lint": "eslint src"
+    "test-coverage": "jest --coverage",
+    "lint": "eslint src tests bin"
   },
   "bin": {
-    "chlu-service-node": "src/chlu-service-node.js"
+    "chlu-service-node": "bin/chlu-service-node.js"
   },
   "author": "Enrico Fasoli (fazo96)",
   "license": "MIT",
   "dependencies": {
     "ipfs": "~0.27.0",
     "ipfs-pubsub-room": "~1.0.1",
-    "orbit-db": "~0.18.0"
+    "orbit-db": "~0.18.0",
+    "winston": "^3.0.0-rc1"
   },
   "devDependencies": {
     "eslint": "^4.12.0",
@@ -37,8 +39,18 @@
       "jest": true
     },
     "rules": {
-      "quotes": 0,
-      "no-console": 1,
+      "indent": [
+        "error",
+        4
+      ],
+      "quotes": [
+        "error",
+        "single",
+        {
+          "avoidEscape": true
+        }
+      ],
+      "no-console": 0,
       "no-debugger": 1,
       "no-var": 1,
       "semi": [
