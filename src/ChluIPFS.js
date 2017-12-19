@@ -53,15 +53,17 @@ class ChluIPFS {
         }
         if (this.type === constants.types.customer && !this.db) {
             this.db = await this.orbitDb.feed(constants.customerDbName);
+            this.listenToDBEvents(this.db);
         }
         // PubSub setup
         if (!this.room) {
             this.room = Room(this.ipfs, constants.pubsubRoom);
-            // handle events
+            // Handle events
+            this.listenToRoomEvents(this.room);
             this.room.on('message', message => this.handleMessage(message));
             // wait for room subscription
             await new Promise(resolve => {
-                this.room.on('subscribed', () => resolve());
+                this.room.once('subscribed', () => resolve());
             });
         }
         // If customer, also wait for at least one peer to join the room (TODO: review this)
@@ -167,11 +169,10 @@ class ChluIPFS {
             this.broadcastReviewUpdates();
             this.logger.debug('Waiting for remote replication');
         });
-        this.logger.debug('Done');
+        this.logger.debug('Done publishing review update');
     }
 
     handleMessage(message) {
-        this.logger.debug('pubsub message: ' + message.data.toString());
         try {
             const obj = JSON.parse(message.data.toString());
             this.events.emit(obj.type || constants.eventTypes.unknown, obj);
@@ -184,7 +185,7 @@ class ChluIPFS {
                 this.events.emit(constants.eventTypes.replicated + '_' + obj.address);
             }
         } catch(exception) {
-            this.logger.warn('Message was not JSON encoded');
+            this.logger.warn('Error while decoding PubSub message');
         }
     }
 
@@ -194,10 +195,12 @@ class ChluIPFS {
         if (!this.dbs[address]) {
             this.logger.debug('Initializing local copy of ' + address);
             this.dbs[address] = await this.orbitDb.feed(address);
+            this.listenToDBEvents(this.dbs[address]);
             //await this.dbs[address].load();
         }
         await new Promise(fullfill => {
-            this.dbs[address].events.on('replicated', fullfill);
+            this.logger.debug('Waiting for next replication of ' + address);
+            this.dbs[address].events.once('replicated', fullfill);
         });
         this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicated, address }));
         this.logger.info('Replicated ' + address);
@@ -226,6 +229,31 @@ class ChluIPFS {
                     this.logger.error('OrbitDB Replication Error: ' + exception.message);
                 }
             }
+        });
+    }
+
+    listenToDBEvents(db){
+        db.events.on('replicated', () => this.logger.debug('OrbitDB Event: Replicated'));
+        db.events.on('replicate', () => this.logger.debug('OrbitDB Event: Replicate'));
+        db.events.on('replicate.progress', () => this.logger.debug('OrbitDB Event: Replicate Progress'));
+        db.events.on('ready', () => this.logger.debug('OrbitDB Event: Ready'));
+        db.events.on('write', () => this.logger.debug('OrbitDB Event: Write'));
+        db.events.on('load', () => this.logger.debug('OrbitDB Event: Load'));
+        db.events.on('load.progress', () => this.logger.debug('OrbitDB Event: Load Progress'));
+    }
+
+    listenToRoomEvents(room){
+        room.on('peer joined', peer => {
+            this.logger.debug('Peer joined the pubsub room', peer);
+        });
+        room.on('peer left', peer => {
+            this.logger.debug('Peer left the pubsub room', peer);
+        });
+        room.on('subscribed', () => {
+            this.logger.debug('Connected to the pubsub room');
+        });
+        room.on('message', message => {
+            this.logger.debug('PubSub Message from ' + message.from + ': ' + message.data.toString());
         });
     }
 }

@@ -13,6 +13,7 @@ module.exports = {
         wroteReviewRecord: 'WROTE_REVIEW_RECORD',
         updatedReview: 'UPDATED_REVIEW',
         customerReviews: 'CUSTOMER_REVIEWS',
+        replicating: 'REPLICATING',
         replicated: 'REPLICATED'
     },
     customerDbName: 'chlu-experimental-customer-review-updates',

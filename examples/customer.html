@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <title>ChluIPFS Customer Example</title>
+    </head>
+    <body>
+
+        <!-- ChluIPFS requires ipfs-js and orbit-db but does not include them in the prebuilt browser script -->
+        <!-- we can easily include them before loading ChluIPFS thanks to the unpkg CDN -->
+
+        <!-- Currently using non minified version of IPFS due to this issue https://github.com/ipfs/js-ipfs/issues/1136 -->
+        <!-- IPFS -->
+        <script src="https://unpkg.com/ipfs@0.27.5/dist/index.js"></script>
+        <!-- OrbitDB -->
+        <script src="https://unpkg.com/orbit-db@0.18.12/dist/orbitdb.min.js"></script>
+        <script src="../dist/ChluIPFS.min.js"></script>
+        <script>
+            // Utility function to output strings to the web page
+            function log(str) {
+                document.body.innerHTML += str + '<br>';
+            }
+
+            // Custom logger that writes to the web page
+            // This object can be passed to ChluIPFS and it will be used
+            // to write debug, info and warn messages. This way we can track
+            // what our ChluIPFS node is doing
+            const logger = {
+                debug: str => log('[DEBUG] ' + str),
+                info: str => log('[INFO] ' + str),
+                warn: str => log('[WARN] ' + str),
+            }
+
+            // Here we start our ChluIPFS instance
+            async function main(){
+                const type = ChluIPFS.types.customer;
+                log("Starting " + type);
+                var chluIpfs = window.chluIpfs = new ChluIPFS({ type, logger });
+                await chluIpfs.start();
+            };
+
+            log("Libraries loaded");
+            main()
+                .then(() => log('Started'))
+                .catch(err => log('[ERROR] ' + e.message));
+        </script>
+    </body>
+</html>

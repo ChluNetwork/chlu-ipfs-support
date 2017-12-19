@@ -12,7 +12,7 @@ describe('Customer and Service Node interoperability', () => {
 
     before(async () => {    
         serviceNode = new ChluIPFS({ type: ChluIPFS.types.service, logger });
-        customerNode = new ChluIPFS({ type: ChluIPFS.types.customer, logger});
+        customerNode = new ChluIPFS({ type: ChluIPFS.types.customer, logger });
 
         serviceNode.ipfs = await utils.createIPFS({ repo: serviceNodeRepo });
         customerNode.ipfs = await utils.createIPFS({ repo: customerRepo });
@@ -39,7 +39,7 @@ describe('Customer and Service Node interoperability', () => {
     });
 
     it('handles review updates', async () => {
-        const reviewUpdate = { value: 'mockreviewupdate' };
+        const reviewUpdate = { value: 'mockreviewupdate' + Math.random()*1000 + Date.now() };
         await customerNode.publishUpdatedReview(reviewUpdate);
         const address = customerNode.getOrbitDBAddress();
         const customerFeedItems = customerNode.db.iterator().collect();
