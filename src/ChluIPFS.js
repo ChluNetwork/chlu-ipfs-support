@@ -54,6 +54,7 @@ class ChluIPFS {
         if (this.type === constants.types.customer && !this.db) {
             this.db = await this.orbitDb.feed(constants.customerDbName);
             this.listenToDBEvents(this.db);
+            await this.db.load();
         }
         // PubSub setup
         if (!this.room) {
@@ -196,7 +197,7 @@ class ChluIPFS {
             this.logger.debug('Initializing local copy of ' + address);
             this.dbs[address] = await this.orbitDb.feed(address);
             this.listenToDBEvents(this.dbs[address]);
-            //await this.dbs[address].load();
+            await this.dbs[address].load();
         }
         await new Promise(fullfill => {
             this.logger.debug('Waiting for next replication of ' + address);
@@ -233,13 +234,21 @@ class ChluIPFS {
     }
 
     listenToDBEvents(db){
-        db.events.on('replicated', () => this.logger.debug('OrbitDB Event: Replicated'));
-        db.events.on('replicate', () => this.logger.debug('OrbitDB Event: Replicate'));
-        db.events.on('replicate.progress', () => this.logger.debug('OrbitDB Event: Replicate Progress'));
+        db.events.on('replicated', address => {
+            this.logger.debug('OrbitDB Event: Replicated ' + address);
+        });
+        db.events.on('replicate', address => {
+            this.logger.debug('OrbitDB Event: Replicate ' + address);
+        });
+        db.events.on('replicate.progress', (address, hash, entry, progress) => {
+            this.logger.debug('OrbitDB Event: Replicate Progress ' + progress + ' for address ' + address);
+        });
         db.events.on('ready', () => this.logger.debug('OrbitDB Event: Ready'));
         db.events.on('write', () => this.logger.debug('OrbitDB Event: Write'));
         db.events.on('load', () => this.logger.debug('OrbitDB Event: Load'));
-        db.events.on('load.progress', () => this.logger.debug('OrbitDB Event: Load Progress'));
+        db.events.on('load.progress', (address, hash, entry, progress, total) => {
+            this.logger.debug('OrbitDB Event: Load Progress ' + progress + '/' + total + ' for address ' + address);
+        });
     }
 
     listenToRoomEvents(room){
