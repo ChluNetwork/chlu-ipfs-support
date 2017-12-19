@@ -1,6 +1,8 @@
 const expect = require('chai').expect;
 
 const ChluIPFS = require('../src/ChluIPFS');
+const IpfsApi = require('ipfs-api');
+const ipfsUtils = require('./utils/ipfs');
 
 describe('ChluIPFS', () => {
     it('constructor', () => {
@@ -30,5 +32,17 @@ describe('ChluIPFS', () => {
             pub: 'examplePublicKey',
             priv: 'examplePrivateKey'
         });
+    });
+
+    it.only('can use either js-ipfs or js-ipfs-api', async () => {
+        let options = {
+            type: ChluIPFS.types.customer,
+            useIpfsApi: true
+        };
+        let chluIpfs = new ChluIPFS(options);
+        chluIpfs.utils.createIPFSAPI = ipfsUtils.getDisposableGoIpfs;
+        await chluIpfs.start();
+        expect(chluIpfs.ipfs).to.be.instanceof(IpfsApi);
+        await chluIpfs.stop();
     });
 });

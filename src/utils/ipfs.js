@@ -1,12 +1,18 @@
-const IPFS = require('ipfs');
 const multihashes = require('multihashes');
-  
+
 async function createIPFS(options) {
     return await new Promise(fullfill => {
+        const IPFS = require('ipfs');
         const node = new IPFS(options);
 
         node.on('ready', () => fullfill(node));
     });
+}
+
+function createIPFSAPI(options) {
+    const IpfsApi = require('ipfs-api');
+    const node = IpfsApi(options);
+    return node;
 }
 
 function multihashToString(multihash) {
@@ -32,4 +38,10 @@ function decodeMessage(msg){
     }
 }
 
-module.exports = { createIPFS, multihashToString, encodeMessage, decodeMessage };
+module.exports = {
+    createIPFS,
+    createIPFSAPI,
+    multihashToString,
+    encodeMessage,
+    decodeMessage
+};
