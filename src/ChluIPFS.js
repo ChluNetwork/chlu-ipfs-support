@@ -34,6 +34,8 @@ class ChluIPFS {
             additionalOptions,
             options.ipfs || {}
         );
+        this.ipfsApiOptions = options.ipfsApiOptions || {};
+        this.useIpfsApi = options.useIpfsApi || false;
         this.type = options.type;
         if (Object.values(constants.types).indexOf(this.type) < 0) {
             throw new Error('Invalid type');
@@ -45,7 +47,11 @@ class ChluIPFS {
     
     async start(){
         if (!this.ipfs) {
-            this.ipfs = await this.utils.createIPFS(this.ipfsOptions );
+            if (this.useIpfsApi) {
+                this.ipfs = await this.utils.createIPFSAPI(this.ipfsApiOptions);
+            } else {
+                this.ipfs = await this.utils.createIPFS(this.ipfsOptions);
+            }
         }
         // OrbitDB setup
         if (!this.orbitDb) {

@@ -1,4 +1,5 @@
 const ipfsUtils = require('../../src/utils/ipfs');
+const ipfsdCtl = require('ipfsd-ctl');
 
 module.exports = {
     async createIPFS(options) {
@@ -22,6 +23,11 @@ module.exports = {
             }
         };
         return await ipfsUtils.createIPFS(Object.assign({}, defaults, options));
+    },
+    async getDisposableGoIpfs(){
+        return await new Promise((fullfill, reject) => {
+            ipfsdCtl.disposableApi((err, node) => err ? reject(err) : fullfill(node));
+        });
     },
     async connect(ipfs1, ipfs2){
         await ipfs2.swarm.connect(ipfs1._peerInfo.multiaddrs._multiaddrs[0].toString());
