@@ -1,13 +1,21 @@
 module.exports = function (config) {
     config.set({
-        browsers: [ 'Chrome' ],
-        // karma only needs to know about the test bundle
+        browsers: [ 'Firefox' ],
         files: [
             { pattern: 'tests/*.test.js', watched: true }
         ],
+        client: {
+            mocha: {
+                opts: 'tests/mocha.opts'
+            }
+        },
+        phantomjsLauncher: {
+            // Have phantomjs exit if a ResourceError is encountered (useful if karma exits without killing phantom)
+            exitOnResourceError: true
+        },
         frameworks: [ 'mocha', 'chai' ],
         plugins: [
-            'karma-chrome-launcher',
+            'karma-firefox-launcher',
             'karma-chai',
             'karma-mocha',
             'karma-sourcemap-loader',
