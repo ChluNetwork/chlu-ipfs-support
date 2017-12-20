@@ -1,10 +1,10 @@
 
 module.exports = {
     types: {
-        customer: 'CUSTOMER',
-        vendor: 'VENDOR',
-        marketplace: 'MARKETPLACE',
-        service: 'SERVICE'
+        customer: 'customer',
+        vendor: 'vendor',
+        marketplace: 'marketplace',
+        service: 'service'
     },
     eventTypes: {
         unknown: 'UNKNOWN',

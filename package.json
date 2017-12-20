@@ -24,7 +24,7 @@
   "dependencies": {
     "ipfs": "~0.27.0",
     "ipfs-pubsub-room": "~1.0.1",
-    "orbit-db": "~0.18.0"
+    "orbit-db": "~0.18.12"
   },
   "devDependencies": {
     "chai": "^4.1.2",
