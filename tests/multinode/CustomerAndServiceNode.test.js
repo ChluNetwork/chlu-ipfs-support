@@ -19,12 +19,14 @@ describe('Customer and Service Node interoperability', () => {
         serviceNode = new ChluIPFS({
             type: ChluIPFS.types.service,
             logger: logger('Service'),
-            directory: serviceNodeDir
+            directory: serviceNodeDir,
+            enablePersistence: false
         });
         customerNode = new ChluIPFS({
             type: ChluIPFS.types.customer,
             logger: logger('Customer'),
-            directory: customerDir
+            directory: customerDir,
+            enablePersistence: false
         });
 
         serviceNode.ipfs = await utils.createIPFS({ repo: serviceNode.ipfsOptions.repo });

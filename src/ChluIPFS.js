@@ -25,6 +25,11 @@ class ChluIPFS {
     constructor(options = {}){
         this.utils = ipfsUtils;
         this.storage = storageUtils;
+        if (typeof options.enablePersistence === 'undefined') {
+            this.enablePersistence = true;
+        } else {
+            this.enablePersistence = options.enablePersistence;
+        }
         this.directory = options.directory || this.storage.getDefaultDirectory();
         const additionalOptions = {
             repo: this.utils.getDefaultRepoPath(this.directory)
@@ -214,53 +219,68 @@ class ChluIPFS {
         return db;
     }
 
-    async replicate(address) {
-        this.logger.info('Replicating ' + address);
-        this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicating, address }));
+    async openDbForReplication(address) {
         if (!this.dbs[address]) {
             this.dbs[address] = await this.openDb(address);
+            // Make sure this DB address does not get lost
+            await this.persistData();
         }
+        return this.dbs[address];
+    }
+
+    async replicate(address) {
+        this.logger.info('Replicating ' + address);
+        const db = await this.openDbForReplication(address);
+        this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicating, address }));
         await new Promise(fullfill => {
             this.logger.debug('Waiting for next replication of ' + address);
-            this.dbs[address].events.once('replicated', fullfill);
-            this.dbs[address].events.once('ready', fullfill);
+            db.events.once('replicated', fullfill);
+            db.events.once('ready', fullfill);
         });
         this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicated, address }));
         this.logger.info('Replicated ' + address);
     }
 
     async persistData() {
-        const data = {};
-        if (this.type === constants.types.customer) {
-            // Customer OrbitDB Address
-            data.orbitDbAddress = this.getOrbitDBAddress();
-        } else if (this.type === constants.types.service) {
-            // Service Node Synced OrbitDB addresses
-            data.orbitDbAddresses = Object.keys(this.dbs);
+        if (this.enablePersistence) {
+            const data = {};
+            if (this.type === constants.types.customer) {
+                // Customer OrbitDB Address
+                data.orbitDbAddress = this.getOrbitDBAddress();
+            } else if (this.type === constants.types.service) {
+                // Service Node Synced OrbitDB addresses
+                data.orbitDbAddresses = Object.keys(this.dbs);
+            }
+            this.logger.debug('Saving persisted data');
+            await this.storage.save(this.directory, data, this.type);
+            this.logger.debug('Saved persisted data');
+        } else {
+            this.logger.debug('Not persisting data, persistence disabled');
         }
-        this.logger.debug('Saving persisted data');
-        await storageUtils.save(this.directory, data, this.type);
-        this.logger.debug('Saved persisted data');
     }
 
     async loadPersistedData() {
-        this.logger.debug('Loading persisted data');
-        const data = await storageUtils.load(this.directory, this.type);
-        this.logger.debug('Loaded persisted data');
-        if (this.type === constants.types.service) {
-            // Open known OrbitDBs so that we can seed them
-            const addresses = data.orbitDbAddresses || [];
-            this.logger.debug('Opening ' + addresses.length + ' OrbitDBs');
-            for(const address of addresses) {
-                this.dbs[address] = await this.openDb(address);
+        if (this.enablePersistence) {
+            this.logger.debug('Loading persisted data');
+            const data = await this.storage.load(this.directory, this.type);
+            this.logger.debug('Loaded persisted data');
+            if (this.type === constants.types.service) {
+                // Open known OrbitDBs so that we can seed them
+                const addresses = data.orbitDbAddresses || [];
+                this.logger.debug('Opening ' + addresses.length + ' OrbitDBs');
+                for(const address of addresses) {
+                    this.dbs[address] = await this.openDb(address);
+                }
+                this.logger.debug('Opened all persisted OrbitDBs');
             }
-            this.logger.debug('Opened all persisted OrbitDBs');
-        }
-        if (this.type === constants.types.customer && data.orbitDbAddress) {
-            // Open previously created Customer Review Update DB
-            this.logger.debug('Opening existing Customer OrbitDB');
-            this.db = await this.openDb(data.orbitDbAddress);
-            this.logger.debug('Opened existing Customer OrbitDB');
+            if (this.type === constants.types.customer && data.orbitDbAddress) {
+                // Open previously created Customer Review Update DB
+                this.logger.debug('Opening existing Customer OrbitDB');
+                this.db = await this.openDb(data.orbitDbAddress);
+                this.logger.debug('Opened existing Customer OrbitDB');
+            }
+        } else {
+            this.logger.debug('Not loading persisted data, persistence disabled');
         }
     }
 

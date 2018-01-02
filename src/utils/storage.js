@@ -30,6 +30,7 @@ async function load(directory = getDefaultDirectory(), type) {
 async function save(directory = getDefaultDirectory(), data, type) {
     const string = JSON.stringify(data);
     if (env.isNode()) {
+        if (!fs.existsSync(directory)) fs.mkdirSync(directory);
         const file = path.join(directory, type + '.json');
         await new Promise((fullfill, reject) => {
             fs.writeFile(file, string, err => err ? reject(err) : fullfill());
