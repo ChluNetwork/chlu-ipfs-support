@@ -3,7 +3,7 @@ const fs = require('fs');
 const env = require('./env');
 
 function getDefaultDirectory() {
-    return path.join(process.env.HOME, '.chlu');
+    return path.join(process.env.HOME || '.', '.chlu');
 }
 
 async function load(directory = getDefaultDirectory(), type) {
@@ -35,7 +35,7 @@ async function save(directory = getDefaultDirectory(), data, type) {
             fs.writeFile(file, string, err => err ? reject(err) : fullfill());
         });
     } else {
-        const string = localStorage.setItem('chlu-' + type + '-data', string);
+        localStorage.setItem('chlu-' + type + '-data', string);
     }
 }
 

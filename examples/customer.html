@@ -40,7 +40,10 @@
             log("Libraries loaded");
             main()
                 .then(() => log('Started'))
-                .catch(err => log('[ERROR] ' + err.message));
+                .catch(err => {
+                    log('[ERROR] ' + err.message);
+                    log(err.stack);
+                });
         </script>
     </body>
 </html>
