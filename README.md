@@ -6,15 +6,28 @@ See [CONTRIBUTING.md](https://github.com/ChluNetwork/chlu-ipfs-support/blob/mast
 
 ## Usage
 
-This module has not been release to NPM yet. You can however install it and import/require it, but it's still WIP. Check out [index.js](https://github.com/ChluNetwork/chlu-ipfs-support/blob/master/src/index.js) to see the available API calls, and the tests for examples.
+This module has not been release to NPM yet. Check out [index.js](https://github.com/ChluNetwork/chlu-ipfs-support/blob/master/src/index.js) to see the exposed API calls.
 
-You can install this module globally and use `chlu-service-node` to run a Chlu Service Node.
+### In Node
 
 If you are in development mode, you can pass an option `mock: true` when initializing the class to get a fake API that returns example data.
 
-### Browser
+### In the Browser
 
-You can use this module from the browser through webpack. Check out [this example](https://github.com/ipfs/js-ipfs/tree/master/examples/browser-webpack) for the additional configuration needed by js-ipfs.
+You can require/import this module from the browser through Webpack. Check out [this example](https://github.com/ipfs/js-ipfs/tree/master/examples/browser-webpack) for the additional configuration needed by js-ipfs.
+
+If you don't have webpack, we also have a prebuilt minified version of the library that you can include in a `<script>` tag. Check out the [examples](https://github.com/ChluNetwork/chlu-ipfs-support/blob/master/examples).
+
+### In Electron
+
+This is not supported right now, however everything should work if you follow the browser instructions and only run ChluIPFS in the renderer process of electron.
+Keep in mind that you will run into the same limitations of running ChluIPFS in the browser, and that this is not tested.
+
+### Running a Service Node
+
+You can install this module globally and use `chlu-service-node` to run a (barebones) Chlu Service Node. The binary will probably be moved in a different repository in the future.
+
+In the examples folder you can find out how to run a Service Node in a browser tab although this won't be a good idea outside of testing.
 
 ### Undocumented differences from the protocol
 
