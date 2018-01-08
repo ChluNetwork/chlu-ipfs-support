@@ -8,7 +8,7 @@ describe('Customer APIs', () => {
     it('storeReviewRecord', async () => {
         const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ';
         const put = sinon.stub().returns({ multihash });
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false });
         chluIpfs.ipfs = { object: { put } };
         // Mock broadcast: fake a response so that the call can complete
         const broadcast = sinon.stub().callsFake(message => {
