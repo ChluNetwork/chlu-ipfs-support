@@ -28,6 +28,11 @@ class ChluIPFS {
         await this._wait(1000);
         return true;
     }
+    
+    async switchType(type){
+        await this._wait(1000);
+        this.type = type;
+    }
 
     async pin(){
         await this._wait(3000);

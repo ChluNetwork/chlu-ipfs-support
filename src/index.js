@@ -24,6 +24,10 @@ class ChluIPFSAPI {
         return await this.instance.stop();
     }
 
+    async switchType(newType) {
+        return await this.instance.switchType(newType);
+    }
+
     async pin(multihash){
         return await this.instance.pin(multihash);
     }

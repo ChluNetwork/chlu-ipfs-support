@@ -102,13 +102,6 @@ class ChluIPFS {
         return true;
     }
 
-    broadcastReviewUpdates(){
-        this.room.broadcast(this.utils.encodeMessage({
-            type: constants.eventTypes.customerReviews,
-            address: this.getOrbitDBAddress()
-        }));
-    }
-
     async stop() {
         await this.persistData();
         this.room.leave();
@@ -119,6 +112,34 @@ class ChluIPFS {
         this.orbitDb = undefined;
         this.room = undefined;
         this.ipfs = undefined;
+    }
+
+    async switchType(newType) {
+        if (this.type !== newType) {
+            await this.persistData();
+            if (this.type === constants.types.customer) {
+                if (this.db) await this.db.close();
+                this.db = undefined;
+            }
+            if (this.type === constants.types.service) {
+                if (this.room) {
+                    this.room.removeListener('message', this.serviceNodeRoomMessageListener);
+                }
+                if (this.dbs) {
+                    await Promise.all(Object.values(this.dbs).map(db => db.close()));
+                }
+                this.dbs = {};
+            }
+            this.type = newType;
+            await this.loadPersistedData();
+        }
+    }
+
+    broadcastReviewUpdates(){
+        this.room.broadcast(this.utils.encodeMessage({
+            type: constants.eventTypes.customerReviews,
+            address: this.getOrbitDBAddress()
+        }));
     }
 
     async pin(multihash){
@@ -285,7 +306,7 @@ class ChluIPFS {
     }
 
     startServiceNode() {
-        this.room.on('message', async message => {
+        this.serviceNodeRoomMessageListener = async message => {
             // parse messages
             const obj = this.utils.decodeMessage(message);
             // handle ReviewRecord: pin hash
@@ -307,7 +328,8 @@ class ChluIPFS {
                     this.logger.error('OrbitDB Replication Error: ' + exception.message);
                 }
             }
-        });
+        }
+        this.room.on('message', this.serviceNodeRoomMessageListener);
     }
 
     listenToDBEvents(db){

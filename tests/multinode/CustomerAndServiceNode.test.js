@@ -15,7 +15,7 @@ const customerDir = testDir + '/chlu-customer';
 describe('Customer and Service Node interoperability', () => {
     let customerNode, serviceNode;
 
-    before(async () => {    
+    beforeEach(async () => {    
         serviceNode = new ChluIPFS({
             type: ChluIPFS.types.service,
             logger: logger('Service'),
@@ -38,17 +38,16 @@ describe('Customer and Service Node interoperability', () => {
             await utils.connect(serviceNode.ipfs, customerNode.ipfs);
         }
     
-        await serviceNode.start();
-        await customerNode.start();
+        await Promise.all([serviceNode.start(), customerNode.start()]);
     });
 
-    after(async () => {
-        // Disabled due uncatchable errors being thrown in the test environment
-        //await customerNode.stop();
-        //await serviceNode.stop();
+    afterEach(async () => {
+        await Promise.all([customerNode.stop(), serviceNode.stop()]);
         if (env.isNode()) {
             rimraf.sync(testDir);
         }
+        customerNode = undefined;
+        serviceNode = undefined;
     });
 
     it('handles review records', async () => {

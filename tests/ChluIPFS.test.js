@@ -1,6 +1,8 @@
 const expect = require('chai').expect;
+const sinon = require('sinon');
 
 const ChluIPFS = require('../src/ChluIPFS');
+const logger = require('./utils/logger');
 
 describe('ChluIPFS', () => {
     it('constructor', () => {
@@ -30,5 +32,46 @@ describe('ChluIPFS', () => {
             pub: 'examplePublicKey',
             priv: 'examplePrivateKey'
         });
+    });
+
+    it('starts and stops', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.service, enablePersistence: false, logger: logger('Service') });
+        await chluIpfs.start();
+        expect(chluIpfs.ipfs).to.not.be.undefined;
+        await chluIpfs.stop();
+        expect(chluIpfs.ipfs).to.be.undefined;
+    });
+
+    it('switches type correctly from service node', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.service, enablePersistence: false, logger: logger('Service') });
+        const fakeDb = {
+            close: sinon.stub().resolves()
+        };
+        chluIpfs.dbs = {
+            first: fakeDb
+        };
+        chluIpfs.room = {
+            removeListener: sinon.stub()
+        };
+        chluIpfs.serviceNodeRoomMessageListener = 'test';
+        expect(chluIpfs.type).to.equal(ChluIPFS.types.service);
+        await chluIpfs.switchType(ChluIPFS.types.customer);
+        expect(chluIpfs.type).to.equal(ChluIPFS.types.customer);
+        expect(chluIpfs.dbs).to.deep.equal({});
+        expect(fakeDb.close.called).to.be.true;
+        expect(chluIpfs.room.removeListener.calledWith('message', chluIpfs.serviceNodeRoomMessageListener));
+    });
+
+    it('switches type correctly from customer', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
+        const fakeDb = {
+            close: sinon.stub().resolves()
+        };
+        chluIpfs.db = fakeDb;
+        expect(chluIpfs.type).to.equal(ChluIPFS.types.customer);
+        await chluIpfs.switchType(ChluIPFS.types.vendor);
+        expect(chluIpfs.type).to.equal(ChluIPFS.types.vendor);
+        expect(chluIpfs.db).to.be.undefined;
+        expect(fakeDb.close.called).to.be.true;
     });
 });
