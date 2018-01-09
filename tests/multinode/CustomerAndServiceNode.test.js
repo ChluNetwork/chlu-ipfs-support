@@ -60,7 +60,7 @@ describe('Customer and Service Node interoperability', () => {
         // check hash validity
         expect(hash).to.be.a('string').that.is.not.empty;
         // the service node should already have pinned the hash
-        expect(serviceNode.pin.calledWith(hash)).to.be.true;
+        expect(serviceNode.pin.called).to.be.true;
         serviceNode.pin.restore();
     });
 

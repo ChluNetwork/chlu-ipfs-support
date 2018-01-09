@@ -95,8 +95,6 @@ class ChluIPFS {
             }
             // Broadcast my review updates DB
             //this.broadcastReviewUpdates();
-        } else if (this.type === constants.types.service) {
-            this.startServiceNode();
         }
 
         return true;
@@ -132,9 +130,6 @@ class ChluIPFS {
                 this.dbs = {};
             }
             this.type = newType;
-            if (newType === constants.types.service && !this.serviceNodeRoomMessageListener) {
-                this.startServiceNode();
-            }
             await this.loadPersistedData();
         }
     }
@@ -234,24 +229,25 @@ class ChluIPFS {
                 this.events.emit(constants.eventTypes.replicated + '_' + obj.address);
             }
 
-            // Service node stuff
-
-            const isOrbitDb = obj.type === constants.eventTypes.customerReviews || obj.type === constants.eventTypes.updatedReview;
-            // handle ReviewRecord: pin hash
-            if (obj.type === constants.eventTypes.wroteReviewRecord && typeof obj.multihash === 'string') {
-                this.logger.info('Pinning ReviewRecord ' + obj.multihash);
-                try {
-                    await this.pin(obj.multihash);
-                    this.logger.info('Pinned ReviewRecord ' + obj.multihash);
-                } catch(exception){
-                    this.logger.error('Pin Error: ' + exception.message);
-                }
-            } else if (isOrbitDb && typeof obj.address === 'string') {
-                // handle OrbitDB: replicate
-                try {
-                    this.replicate(obj.address);
-                } catch(exception){
-                    this.logger.error('OrbitDB Replication Error: ' + exception.message);
+            if (this.type === constants.types.service) {
+                // Service node stuff
+                const isOrbitDb = obj.type === constants.eventTypes.customerReviews || obj.type === constants.eventTypes.updatedReview;
+                // handle ReviewRecord: pin hash
+                if (obj.type === constants.eventTypes.wroteReviewRecord && typeof obj.multihash === 'string') {
+                    this.logger.info('Pinning ReviewRecord ' + obj.multihash);
+                    try {
+                        await this.pin(obj.multihash);
+                        this.logger.info('Pinned ReviewRecord ' + obj.multihash);
+                    } catch(exception){
+                        this.logger.error('Pin Error: ' + exception.message);
+                    }
+                } else if (isOrbitDb && typeof obj.address === 'string') {
+                    // handle OrbitDB: replicate
+                    try {
+                        this.replicate(obj.address);
+                    } catch(exception){
+                        this.logger.error('OrbitDB Replication Error: ' + exception.message);
+                    }
                 }
             }
         } catch(exception) {
@@ -331,14 +327,6 @@ class ChluIPFS {
         } else {
             this.logger.debug('Not loading persisted data, persistence disabled');
         }
-    }
-
-    startServiceNode() {
-        this.serviceNodeRoomMessageListener = async message => {
-            // parse messages
-            const obj = this.utils.decodeMessage(message);
-        }
-        this.room.on('message', this.serviceNodeRoomMessageListener);
     }
 
     listenToDBEvents(db){
