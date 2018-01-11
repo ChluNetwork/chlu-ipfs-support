@@ -28,6 +28,12 @@ describe('ChluIPFS Mock API', () => {
         expect(stop).to.be.true;
     });
 
+    it('fake switchType', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.marketplace, fakeWait: false });
+        await chluIpfs.switchType(ChluIPFS.types.customer);
+        expect(chluIpfs.type).to.equal(ChluIPFS.types.customer);
+    });
+
     it('fake exportData', async () => {
         const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, fakeWait: false });
         const exported = await chluIpfs.exportData();
