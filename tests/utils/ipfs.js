@@ -27,4 +27,4 @@ module.exports = {
         await ipfs2.swarm.connect(ipfs1._peerInfo.multiaddrs._multiaddrs[0].toString());
         await ipfs1.swarm.connect(ipfs2._peerInfo.multiaddrs._multiaddrs[0].toString());
     }
-}
+};

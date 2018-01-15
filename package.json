@@ -2,7 +2,7 @@
   "name": "chlu-ipfs-support",
   "version": "0.1.0",
   "description": "Libraries providing IPFS integration for Chlu",
-  "main": "lib/index.js",
+  "main": "dist/ChluIPFS.min.js",
   "engines": {
     "node": ">=8.0.0",
     "npm": ">=5.6.0"
@@ -25,13 +25,21 @@
   "author": "Enrico Fasoli (fazo96)",
   "license": "MIT",
   "dependencies": {
+    "babel-runtime": "^6.26.0",
     "ipfs": "~0.27.6",
     "ipfs-pubsub-room": "~1.1.5",
     "orbit-db": "~0.19.2"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
-    "babel-preset-env": "1.6.1",
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-plugin-transform-es3-member-expression-literals": "^6.22.0",
+    "babel-plugin-transform-es3-property-literals": "^6.22.0",
+    "babel-plugin-transform-flow-strip-types": "^6.22.0",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-preset-env": "^1.6.1",
     "chai": "^4.1.2",
     "clean-webpack-plugin": "^0.1.17",
     "eslint": "^4.12.0",
