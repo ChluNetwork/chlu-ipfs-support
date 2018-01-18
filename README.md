@@ -14,9 +14,13 @@ If you are in development mode, you can pass an option `mock: true` when initial
 
 ### In the Browser
 
-You can require/import this module from the browser through Webpack. Check out [this example](https://github.com/ipfs/js-ipfs/tree/master/examples/browser-webpack) for the additional configuration needed by js-ipfs.
+You can require/import this module from the browser through Webpack, look at the Webpack configuration of this project to figure out what you need.
+By default webpack will load the prebuilt minified library to avoid issues in front-end projects.
 
-If you don't have webpack, we also have a prebuilt minified version of the library that you can include in a `<script>` tag. Check out the [examples](https://github.com/ChluNetwork/chlu-ipfs-support/blob/master/examples).
+If you don't have webpack and want to load this in another way, we also have a prebuilt minified version of the library that you can include in a `<script>` tag.
+Check out the [examples](https://github.com/ChluNetwork/chlu-ipfs-support/blob/master/examples).
+
+Keep in mind that the prebuilt minified library includes every dependency, and also works as a commonjs or amd module.
 
 ### In Electron
 

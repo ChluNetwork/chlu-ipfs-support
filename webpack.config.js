@@ -8,15 +8,42 @@ module.exports = {
     output: {
         filename: 'ChluIPFS.min.js',
         path: path.resolve(__dirname, 'dist'),
-        library: 'ChluIPFS'
+        library: 'ChluIPFS',
+        libraryTarget: 'umd'
     },
-    externals: {
-        ipfs: 'Ipfs',
-        'orbit-db': 'OrbitDB'
-    },
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: [
+                            ['babel-preset-env', {
+                                targets: {
+                                    browsers: ['last 2 versions', 'safari >= 7'],
+                                    node: '6'
+                                }
+                            }]
+                        ],
+                        plugins: [
+                            ['transform-runtime', {
+                                'polyfill': false,
+                                'regenerator': true
+                            }]
+                        ]
+                    }
+                }
+            }
+        ]
+    }, 
     plugins: [
         new CleanWebpackPlugin(['dist']),
-        new UglifyJSPlugin(),
+        new UglifyJSPlugin({
+            uglifyOptions: {
+                ecma: 5
+            }
+        }),
         new webpack.DefinePlugin({
             'process.env.NODE_ENV': JSON.stringify('production')
         })
