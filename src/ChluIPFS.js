@@ -1,4 +1,5 @@
 const ipfsUtils = require('./utils/ipfs');
+const protons = require('protons');
 const storageUtils = require('./utils/storage');
 const OrbitDB = require('orbit-db');
 const Room = require('ipfs-pubsub-room');
@@ -167,9 +168,20 @@ class ChluIPFS {
     }
 
     async storeReviewRecord(reviewRecord){
-        // TODO: check format, check is customer
+        if (this.type !== constants.types.customer) {
+            throw new Error('Not a customer');
+        }
+        let buffer;
+        if (Buffer.isBuffer(reviewRecord)) {
+            buffer = reviewRecord;
+        } else if (typeof reviewRecord === 'object') {
+            const messages = protons(require('./utils/protobuf'));
+            buffer = messages.ReviewRecord.encode(reviewRecord);
+        } else {
+            throw new Error('Unrecognised reviewRecord type: either pass a protobuf encoded buffer or an object');
+        }
         // write thing to ipfs
-        const dagNode = await this.ipfs.object.put(reviewRecord);
+        const dagNode = await this.ipfs.object.put(buffer);
         const multihash = this.utils.multihashToString(dagNode.multihash);
         // Broadcast request for pin, then wait for response
         // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
