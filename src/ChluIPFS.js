@@ -168,8 +168,15 @@ class ChluIPFS {
         if (this.type !== constants.types.customer) {
             throw new Error('Not a customer');
         }
-        const messages = protons(require('./utils/protobuf'));
-        const buffer = messages.ReviewRecord.encode(reviewRecord);
+        let buffer;
+        if (Buffer.isBuffer(reviewRecord)) {
+            buffer = reviewRecord;
+        } else if (typeof reviewRecord === 'object') {
+            const messages = protons(require('./utils/protobuf'));
+            buffer = messages.ReviewRecord.encode(reviewRecord);
+        } else {
+            throw new Error('Unrecognised reviewRecord type: either pass a protobuf encoded buffer or an object');
+        }
         // write thing to ipfs
         const dagNode = await this.ipfs.object.put(buffer);
         const multihash = this.utils.multihashToString(dagNode.multihash);
