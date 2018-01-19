@@ -1,6 +1,7 @@
 const expect = require('chai').expect;
 
 const ChluIPFS = require('../../src/ChluIPFS.js');
+const { getFakeReviewRecord } = require('../utils/protobuf');
 const utils = require('../utils/ipfs');
 const env = require('../../src/utils/env');
 const rimraf = require('rimraf');
@@ -52,7 +53,7 @@ describe('Customer and Service Node interoperability', () => {
 
     it('handles review records', async () => {
         // Create fake review record
-        const reviewRecord = Buffer.from('Mock Review Record: ' + String(Math.random() + Date.now()));
+        const reviewRecord = await getFakeReviewRecord();
         // Spy on pinning activity on the service node
         sinon.spy(serviceNode, 'pin');
         // store review record and await for completion

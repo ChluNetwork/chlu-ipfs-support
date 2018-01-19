@@ -2,6 +2,7 @@ const expect = require('chai').expect;
 const sinon = require('sinon');
 
 const ChluIPFS = require('../src/ChluIPFS');
+const { getFakeReviewRecord } = require('./utils/protobuf');
 
 describe('Customer APIs', () => {
 
@@ -20,7 +21,8 @@ describe('Customer APIs', () => {
             }, 100);
         });
         chluIpfs.room = { broadcast };
-        const result = await chluIpfs.storeReviewRecord(Buffer.from('example'));
+        const reviewRecord = await getFakeReviewRecord();
+        const result = await chluIpfs.storeReviewRecord(reviewRecord);
         expect(result).to.equal(multihash);
         expect(put.called).to.be.true;
         expect(broadcast.called).to.be.true;

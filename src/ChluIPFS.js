@@ -1,4 +1,5 @@
 const ipfsUtils = require('./utils/ipfs');
+const protons = require('protons');
 const storageUtils = require('./utils/storage');
 const OrbitDB = require('orbit-db');
 const Room = require('ipfs-pubsub-room');
@@ -164,9 +165,13 @@ class ChluIPFS {
     }
 
     async storeReviewRecord(reviewRecord){
-        // TODO: check format, check is customer
+        if (this.type !== constants.types.customer) {
+            throw new Error('Not a customer');
+        }
+        const messages = protons(require('./utils/protobuf'));
+        const buffer = messages.ReviewRecord.encode(reviewRecord);
         // write thing to ipfs
-        const dagNode = await this.ipfs.object.put(reviewRecord);
+        const dagNode = await this.ipfs.object.put(buffer);
         const multihash = this.utils.multihashToString(dagNode.multihash);
         // Broadcast request for pin, then wait for response
         // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
