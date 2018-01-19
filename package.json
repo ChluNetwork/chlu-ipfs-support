@@ -25,7 +25,7 @@
   "author": "Enrico Fasoli (fazo96)",
   "license": "MIT",
   "dependencies": {
-    "ipfs": "~0.27.6",
+    "ipfs": "~0.27.7",
     "ipfs-pubsub-room": "~1.1.5",
     "orbit-db": "~0.19.2"
   },
