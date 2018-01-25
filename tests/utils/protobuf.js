@@ -1,14 +1,21 @@
 
 function getFakeReviewRecord() {
     return {
+        currency_symbol: 'USD',
+        amount: 100013,
+        customer_address: 'customer_address',
+        vendor_address: 'vendor_address',
+        review_text: 'it was a really nice item',
+        rating: 4,
+        detailed_review: [],
         popr: {
             item_id: 'item_id',
             invoice_id: 'invoice_id',
             customer_id: 'customer_id',
-            created_at: 'created_at',
-            expires_at: 'expires_at',
-            currency_symbol: '$',
-            amount: 1000.13,
+            created_at: 12345,
+            expires_at: 34567,
+            currency_symbol: 'USD',
+            amount: 100013,
             marketplace_url: 'chlu.io',
             marketplace_vendor_url: 'chlu.io',
             key_location: '/ipfs/url',
@@ -24,12 +31,6 @@ function getFakeReviewRecord() {
             ],
             signature: '-'
         },
-        currency_symbol: '$',
-        amount: 1000.13,
-        customer_address: 'customer_address',
-        vendor_address: 'vendor_address',
-        review_text: 'it was a really nice item',
-        rating: 4,
         chlu_version: 0,
         hash: '-'
     };
