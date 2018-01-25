@@ -167,6 +167,15 @@ class ChluIPFS {
         }
     }
 
+    async readReviewRecord(multihash) {
+        const dagNode = await this.ipfs.object.get(this.utils.multihashToBuffer(multihash));
+        const buffer = dagNode.Data;
+        const messages = protons(require('../src/utils/protobuf'));
+        const reviewRecord = messages.ReviewRecord.decode(buffer);
+        // TODO: validate
+        return reviewRecord;
+    }
+
     async storeReviewRecord(reviewRecord){
         if (this.type !== constants.types.customer) {
             throw new Error('Not a customer');

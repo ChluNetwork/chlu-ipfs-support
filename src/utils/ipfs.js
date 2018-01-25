@@ -16,6 +16,11 @@ function multihashToString(multihash) {
     return multihashes.toB58String(multihash);
 }
 
+function multihashToBuffer(multihash) {
+    if (Buffer.isBuffer(multihash)) return multihash;
+    return multihashes.fromB58String(multihash);
+}
+
 function encodeMessage(msg){
     return Buffer.from(JSON.stringify(msg));
 }
@@ -57,6 +62,7 @@ function getDefaultOrbitDBPath(directory = storage.getDefaultDirectory()) {
 module.exports = {
     createIPFS,
     multihashToString,
+    multihashToBuffer,
     encodeMessage,
     decodeMessage,
     getDefaultRepoPath,
