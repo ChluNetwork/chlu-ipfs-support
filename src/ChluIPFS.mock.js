@@ -1,5 +1,6 @@
 const constants = require('./constants');
 const time = require('./utils/timing');
+const { getFakeReviewRecord } = require('../tests/utils/protobuf');
 
 class ChluIPFS {
 
@@ -40,6 +41,11 @@ class ChluIPFS {
 
     getOrbitDBAddress(){
         return 'mockedorbitdbaddress';
+    }
+
+    async readReviewRecord(){
+        await this._wait(3000);
+        return await getFakeReviewRecord();
     }
 
     async storeReviewRecord(){
