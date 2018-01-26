@@ -79,10 +79,6 @@ class ChluIPFS {
         await this._wait(3000);
         return 'fakekeysmultihash';
     }
-
-    async publishUpdatedReview() {
-        await this._wait(5000);
-    }
 }
 
 module.exports = Object.assign(ChluIPFS, constants);

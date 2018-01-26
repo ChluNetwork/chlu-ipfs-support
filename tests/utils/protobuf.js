@@ -31,6 +31,7 @@ function getFakeReviewRecord() {
             ],
             signature: '-'
         },
+        orbitDb: '/orbitdb/ipfshash/chlu-experimental-customer-review-updates',
         chlu_version: 0,
         hash: '-'
     };

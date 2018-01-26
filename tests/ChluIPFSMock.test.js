@@ -72,10 +72,4 @@ describe('ChluIPFS Mock API', () => {
         const result = await chluIpfs.publishKeys();
         expect(result).to.equal('fakekeysmultihash');
     });
-    
-    it('fake publishUpdatedReviews', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, fakeWait: false });
-        const result = await chluIpfs.publishUpdatedReview();
-        expect(result).to.be.undefined;
-    });
 });
