@@ -32,12 +32,12 @@ class ChluIPFSAPI {
         return await this.instance.pin(multihash);
     }
 
-    async readReviewRecord(multihash){
-        return await this.instance.readReviewRecord(multihash);
+    async readReviewRecord(multihash, notifyUpdate = null){
+        return await this.instance.readReviewRecord(multihash, notifyUpdate);
     }
 
-    async storeReviewRecord(reviewRecord){
-        return await this.instance.storeReviewRecord(reviewRecord);
+    async storeReviewRecord(reviewRecord, previousVersionMultihash = null){
+        return await this.instance.storeReviewRecord(reviewRecord, previousVersionMultihash);
     }
 
     async exportData() {
@@ -54,10 +54,6 @@ class ChluIPFSAPI {
     
     async publishKeys(publicEncKey, publicSigKey) {
         return await this.instance.publishKeys(publicEncKey, publicSigKey);
-    }
-
-    async publishUpdatedReview(updatedReview) {
-        return await this.instance.publishUpdatedReview(updatedReview);
     }
 }
 

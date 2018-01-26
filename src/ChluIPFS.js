@@ -99,7 +99,7 @@ class ChluIPFS {
                 });
             }
             // Broadcast my review updates DB
-            //this.broadcastReviewUpdates();
+            this.broadcastReviewUpdates();
         }
 
         return true;
@@ -170,36 +170,98 @@ class ChluIPFS {
         }
     }
 
-    async readReviewRecord(multihash) {
-        this.utils.validateMultihash(multihash);
+    async getLastReviewRecordUpdate(db, multihash) {
+        this.logger.debug('Checking for review updates for ' + multihash);
+        let dbValue = multihash, updatedMultihash = multihash, path = [multihash];
+        while (dbValue) {
+            dbValue = await db.get(dbValue);
+            if (typeof dbValue === 'string') {
+                if (path.indexOf(dbValue) < 0) {
+                    updatedMultihash = dbValue;
+                    path.push(dbValue);
+                    this.logger.debug('Found forward pointer from ' + multihash + ' to ' + updatedMultihash);
+                } else {
+                    throw new Error('Recursive references detected in this OrbitDB: ' + db.address.toString())
+                }
+            }
+        }
+        if (multihash != updatedMultihash) {
+            this.logger.debug(multihash + ' updates to ' + updatedMultihash);
+            return updatedMultihash;
+        } else {
+            this.logger.debug('no updates found for ' + multihash);
+        }
+    }
+
+    async notifyIfReviewIsUpdated(db, multihash, notifyUpdate) {
+        const updatedMultihash = await this.getLastReviewRecordUpdate(db, multihash);
+        if (updatedMultihash) {
+            // TODO: Check that the update is valid first
+            notifyUpdate(multihash, updatedMultihash);
+        }
+    }
+
+    async findLastReviewRecordUpdate(multihash, notifyUpdate) {
+        const reviewRecord = await this.getReviewRecord(multihash);
+        if (reviewRecord.orbitDb) {
+            const db = await this.openDbForReplication(reviewRecord.orbitDb);
+            db.events.once('replicated', () => this.notifyIfReviewIsUpdated(db, multihash, notifyUpdate));
+            this.notifyIfReviewIsUpdated(db, multihash, notifyUpdate);
+        }
+    }
+
+    async getReviewRecord(multihash){
         const dagNode = await this.ipfs.object.get(this.utils.multihashToBuffer(multihash));
-        const buffer = dagNode.Data;
-        const reviewRecord = protobuf.ReviewRecord.decode(buffer);
-        // TODO: validate
+        const buffer = dagNode.data;
+        const messages = protons(require('../src/utils/protobuf'));
+        const reviewRecord = messages.ReviewRecord.decode(buffer);
         return reviewRecord;
     }
 
-    async storeReviewRecord(reviewRecord){
+    async readReviewRecord(multihash, notifyUpdate = null) {
+        this.utils.validateMultihash(multihash);
+        const reviewRecord = await this.getReviewRecord(multihash);
+        // TODO validate
+        if (notifyUpdate) this.findLastReviewRecordUpdate(multihash, notifyUpdate);
+        return reviewRecord;
+    }
+
+    async storeReviewRecord(reviewRecord, previousVersionMultihash = null){
         if (this.type !== constants.types.customer) {
             throw new Error('Not a customer');
         }
-        let buffer;
-        if (Buffer.isBuffer(reviewRecord)) {
-            buffer = reviewRecord;
-        } else if (typeof reviewRecord === 'object') {
-            buffer = protobuf.ReviewRecord.encode(reviewRecord);
-        } else {
-            throw new Error('Unrecognised reviewRecord type: either pass a protobuf encoded buffer or an object');
-        }
+        reviewRecord.orbitDb = this.getOrbitDBAddress();
+        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
+        // TODO validate
         // write thing to ipfs
         const dagNode = await this.ipfs.object.put(buffer);
         const multihash = this.utils.multihashToString(dagNode.multihash);
         // Broadcast request for pin, then wait for response
         // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
-        await new Promise(fullfill => {
+        let tasksToAwait = [];
+        tasksToAwait.push(new Promise(fullfill => {
             this.events.once(constants.eventTypes.pinned + '_' + multihash, () => fullfill());
             this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.wroteReviewRecord, multihash }));
+        }));
+        if (previousVersionMultihash) {
+            // This is a review update
+            tasksToAwait.push(this.setForwardPointerForReviewRecord(previousVersionMultihash, multihash));
+        }
+        await Promise.all(tasksToAwait);
+        return multihash;
+    }
+
+    async setForwardPointerForReviewRecord(previousVersionMultihash, multihash) {
+        this.logger.debug('Setting forward pointer for ' + previousVersionMultihash + ' to ' + multihash);
+        // TODO: verify that the update is valid
+        await new Promise(async fullfill => {
+            const address = this.getOrbitDBAddress();
+            this.events.once(constants.eventTypes.replicated + '_' + address, () => fullfill());
+            await this.db.set(previousVersionMultihash, multihash);
+            this.broadcastReviewUpdates();
+            this.logger.debug('Waiting for remote replication');
         });
+        this.logger.debug('Done setting forward pointer, the db has been replicated remotely');
         return multihash;
     }
 
@@ -224,19 +286,6 @@ class ChluIPFS {
     
     async publishKeys() {
         throw new Error('not implemented');
-    }
-
-    async publishUpdatedReview(updatedReview) {
-        // TODO: check format, check is customer
-        this.logger.debug('Adding updated review');
-        await new Promise(async fullfill => {
-            const address = this.getOrbitDBAddress();
-            this.events.once(constants.eventTypes.replicated + '_' + address, () => fullfill());
-            await this.db.add(updatedReview);
-            this.broadcastReviewUpdates();
-            this.logger.debug('Waiting for remote replication');
-        });
-        this.logger.debug('Done publishing review update');
     }
 
     async handleMessage(message) {
@@ -283,7 +332,7 @@ class ChluIPFS {
 
     async openDb(address) {
         this.logger.debug('Opening ' + address);
-        const db = await this.orbitDb.feed(address);
+        const db = await this.orbitDb.kvstore(address);
         this.listenToDBEvents(db);
         await db.load();
         this.logger.debug('Opened ' + address);

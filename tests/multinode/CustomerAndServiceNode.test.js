@@ -66,12 +66,22 @@ describe('Customer and Service Node interoperability', () => {
     });
 
     it('handles review updates', async () => {
-        const reviewUpdate = { value: 'mockreviewupdate' + Math.random()*1000 + Date.now() };
-        await customerNode.publishUpdatedReview(reviewUpdate);
-        const address = customerNode.getOrbitDBAddress();
-        const customerFeedItems = customerNode.db.iterator().collect();
-        expect(customerFeedItems[0].payload.value).to.deep.equal(reviewUpdate);
-        const serviceNodeFeedItems = serviceNode.dbs[address].iterator().collect();
-        expect(serviceNodeFeedItems[0].payload.value).to.deep.equal(reviewUpdate);
+        // Create fake review record
+        const reviewRecord = await getFakeReviewRecord();
+        // Now create a fake update
+        const reviewUpdate = await getFakeReviewRecord();
+        reviewUpdate.review_text = 'Actually it broke after just a week!';
+        reviewUpdate.rating = 1;
+        // Store the original review
+        const multihash = await customerNode.storeReviewRecord(reviewRecord);
+        // Store the update
+        const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, multihash);
+        // Now try to fetch it from the service node while checking for updates
+        await new Promise(fullfill => {
+            serviceNode.readReviewRecord(multihash, (originalHash, newHash) => {
+                expect(newHash).to.deep.equal(updatedMultihash);
+                fullfill();
+            });
+        });
     });
 });

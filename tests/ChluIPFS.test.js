@@ -87,7 +87,7 @@ describe('ChluIPFS', () => {
         const buffer = protobuf.ReviewRecord.encode(fakeReviewRecord);
         const ipfs = {
             object: {
-                get: sinon.stub().resolves({ Data: buffer })
+                get: sinon.stub().resolves({ data: buffer })
             }
         };
         const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });

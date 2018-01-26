@@ -38,7 +38,8 @@ module.exports = `
         repeated DetailedReview detailed_review = 7;
         required PoPR popr = 8;
         required uint32 chlu_version = 9;
-        required string hash = 10;
+        required string orbitDb = 10;
+        required string hash = 11;
     }
 
     message PaymentRecord {
