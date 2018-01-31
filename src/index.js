@@ -32,6 +32,10 @@ class ChluIPFSAPI {
         return await this.instance.pin(multihash);
     }
 
+    async readReviewRecord(multihash){
+        return await this.instance.readReviewRecord(multihash);
+    }
+
     async storeReviewRecord(reviewRecord){
         return await this.instance.storeReviewRecord(reviewRecord);
     }

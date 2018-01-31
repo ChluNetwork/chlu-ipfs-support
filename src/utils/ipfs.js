@@ -11,9 +11,40 @@ async function createIPFS(options) {
     });
 }
 
+function isValidMultihash(multihash) {
+    if (Buffer.isBuffer(multihash)){
+        try {
+            multihashes.toB58String(multihash);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    } else if (typeof multihash === 'string'){
+        try {
+            multihashes.fromB58String(multihash);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
+
+function validateMultihash(multihash) {
+    if (!isValidMultihash(multihash)) throw new Error('The given multihash is not valid');
+}
+
 function multihashToString(multihash) {
+    validateMultihash(multihash);
     if (typeof multihash === 'string') return multihash;
     return multihashes.toB58String(multihash);
+}
+
+function multihashToBuffer(multihash) {
+    validateMultihash(multihash);
+    if (Buffer.isBuffer(multihash)) return multihash;
+    return multihashes.fromB58String(multihash);
 }
 
 function encodeMessage(msg){
@@ -56,7 +87,10 @@ function getDefaultOrbitDBPath(directory = storage.getDefaultDirectory()) {
 
 module.exports = {
     createIPFS,
+    isValidMultihash,
+    validateMultihash,
     multihashToString,
+    multihashToBuffer,
     encodeMessage,
     decodeMessage,
     getDefaultRepoPath,

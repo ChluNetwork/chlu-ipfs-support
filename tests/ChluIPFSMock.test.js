@@ -43,6 +43,18 @@ describe('ChluIPFS Mock API', () => {
         });
     });
     
+    it('fake storeReviewRecord', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, fakeWait: false });
+        const result = await chluIpfs.storeReviewRecord();
+        expect(result).to.not.be.undefined;
+    });
+    
+    it('fake readReviewRecord', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, fakeWait: false });
+        const result = await chluIpfs.readReviewRecord();
+        expect(result).to.not.be.undefined;
+    });
+    
     it('fake importData', async () => {
         const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, fakeWait: false });
         const result = await chluIpfs.importData();
