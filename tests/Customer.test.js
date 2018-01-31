@@ -3,6 +3,7 @@ const sinon = require('sinon');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const protons = require('protons');
+const protobuf = protons(require('../src/utils/protobuf'));
 const { getFakeReviewRecord } = require('./utils/protobuf');
 
 describe('Customer APIs', () => {
@@ -42,7 +43,7 @@ describe('Customer APIs', () => {
 
     it('storeReviewRecord handles buffer', async () => {
         const reviewRecord = await getFakeReviewRecord();
-        const buffer = protons(require('../src/utils/protobuf')).ReviewRecord.encode(reviewRecord);
+        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
         await chluIpfs.storeReviewRecord(buffer);
         const actual = chluIpfs.ipfs.object.put.args[0][0];
         expect(buffer == actual).to.be.true; // check reference

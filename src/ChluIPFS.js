@@ -6,6 +6,7 @@ const Room = require('ipfs-pubsub-room');
 const EventEmitter = require('events');
 const constants = require('./constants');
 const defaultLogger = require('./utils/logger');
+const protobuf = protons(require('../src/utils/protobuf'));
 
 const defaultIPFSOptions = {
     EXPERIMENTAL: {
@@ -146,9 +147,11 @@ class ChluIPFS {
     }
 
     async pin(multihash){
+        this.utils.validateMultihash(multihash);
         // broadcast start of pin process
         await this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.pinning, multihash }));
         if (this.ipfs.pin) {
+            // TODO: check that the multihash evaluates to valid Chlu data
             await this.ipfs.pin.add(multihash, { recursive: true });
         } else {
             // TODO: Chlu service node need to be able to pin, so we should support using go-ipfs
@@ -168,10 +171,10 @@ class ChluIPFS {
     }
 
     async readReviewRecord(multihash) {
+        this.utils.validateMultihash(multihash);
         const dagNode = await this.ipfs.object.get(this.utils.multihashToBuffer(multihash));
         const buffer = dagNode.Data;
-        const messages = protons(require('../src/utils/protobuf'));
-        const reviewRecord = messages.ReviewRecord.decode(buffer);
+        const reviewRecord = protobuf.ReviewRecord.decode(buffer);
         // TODO: validate
         return reviewRecord;
     }
@@ -184,8 +187,7 @@ class ChluIPFS {
         if (Buffer.isBuffer(reviewRecord)) {
             buffer = reviewRecord;
         } else if (typeof reviewRecord === 'object') {
-            const messages = protons(require('./utils/protobuf'));
-            buffer = messages.ReviewRecord.encode(reviewRecord);
+            buffer = protobuf.ReviewRecord.encode(reviewRecord);
         } else {
             throw new Error('Unrecognised reviewRecord type: either pass a protobuf encoded buffer or an object');
         }
