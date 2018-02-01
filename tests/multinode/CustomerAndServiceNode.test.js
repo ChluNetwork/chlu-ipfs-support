@@ -13,8 +13,20 @@ const testDir = '/tmp/chlu-test-' + Date.now() + Math.random();
 const serviceNodeDir = testDir + '/chlu-service-node';
 const customerDir = testDir + '/chlu-customer';
 
-describe('Customer and Service Node integration', () => {
-    let customerNode, serviceNode;
+describe('Customer and Service Node integration', function() {
+    let customerNode, serviceNode, server;
+
+    before(async () => {
+        if (env.isNode()) {
+            server = await require('../utils/nodejs').startRendezvousServer();
+        }
+    });
+
+    after(async () => {
+        if (env.isNode()) {
+            await server.stop();
+        }
+    });
 
     beforeEach(async () => {    
         serviceNode = new ChluIPFS({
@@ -33,19 +45,19 @@ describe('Customer and Service Node integration', () => {
         serviceNode.ipfs = await utils.createIPFS({ repo: serviceNode.ipfsOptions.repo });
         customerNode.ipfs = await utils.createIPFS({ repo: customerNode.ipfsOptions.repo });
 
-        if (env.isNode()) {
-            // Connect the peers manually to speed up test times
-            // In the browser it doesn't work since they can only connect via WebSocket relay and not directly
-            await utils.connect(serviceNode.ipfs, customerNode.ipfs);
-        }
+        // Connect the peers manually to speed up test times
+        await utils.connect(serviceNode.ipfs, customerNode.ipfs);
     
         await Promise.all([serviceNode.start(), customerNode.start()]);
     });
 
     afterEach(async () => {
+        const indexedDBName = customerNode.orbitDbDirectory;
         await Promise.all([customerNode.stop(), serviceNode.stop()]);
         if (env.isNode()) {
             rimraf.sync(testDir);
+        } else {
+            indexedDB.deleteDatabase(indexedDBName);
         }
         customerNode = undefined;
         serviceNode = undefined;

@@ -9,25 +9,7 @@ const EventEmitter = require('events');
 const constants = require('./constants');
 const defaultLogger = require('./utils/logger');
 
-const defaultIPFSOptions = {
-    EXPERIMENTAL: {
-        pubsub: true
-    },
-    config: {
-        Addresses: {
-            Swarm: [
-                // Enable WebSocketStar transport
-                '/dns4/replicator.chlu.io/tcp/13579/ws/p2p-websocket-star/',
-                '/dns4/ws-star.discovery.libp2p.io/tcp/443/wss/p2p-websocket-star',
-                '/dns4/ws-star-signal-1.servep2p.com/tcp/443/wss/p2p-websocket-star',
-                '/dns4/ws-star-signal-2.servep2p.com/tcp/443/wss/p2p-websocket-star'
-            ]
-        }
-    }
-};
-
 class ChluIPFS {
-
     constructor(options = {}){
         this.utils = ipfsUtils;
         this.storage = storageUtils;
@@ -43,7 +25,7 @@ class ChluIPFS {
         this.orbitDbDirectory = options.orbitDbDirectory || this.utils.getDefaultOrbitDBPath(this.directory);
         this.ipfsOptions = Object.assign(
             {},
-            defaultIPFSOptions,
+            constants.defaultIPFSOptions,
             additionalOptions,
             options.ipfs || {}
         );

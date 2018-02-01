@@ -2,6 +2,7 @@ const IPFS = require('ipfs');
 const multihashes = require('multihashes');
 const path = require('path');  
 const storage = require('./storage');
+const env = require('./env');
 
 async function createIPFS(options) {
     return await new Promise(fullfill => {
@@ -52,18 +53,18 @@ function getDefaultRepoPath(directory = storage.getDefaultDirectory()) {
     // in short, IPFS upgrades change the format of the repo
     // in js-ipfs, it's not currently possible to upgrade a repo
     // if we try to load an old repo from a new js-ipfs, it crashes
-    if (typeof window === 'undefined') {
+    if (env.isNode()) {
         return path.join(directory, 'ipfs-repo-v6');
     } else {
-        return 'chlu-ipfs-repo-v6';
+        return directory + 'chlu-ipfs-repo-v6';
     }
 }
 
 function getDefaultOrbitDBPath(directory = storage.getDefaultDirectory()) {
-    if (typeof window === 'undefined') {
+    if (env.isNode()) {
         return path.join(directory, 'orbit-db');
     } else {
-        return 'chlu-orbit-db';
+        return directory + 'chlu-orbit-db';
     }
 }
 

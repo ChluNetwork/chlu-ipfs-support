@@ -1,17 +1,17 @@
+const { startRendezvousServer } = require('./tests/utils/nodejs');
+const webpack = require('webpack');
+
 module.exports = function (config) {
+    startRendezvousServer();
     config.set({
         browsers: [ 'Firefox' ],
         files: [
-            { pattern: 'tests/*.test.js', watched: true }
+            { pattern: 'tests/**/*.test.js', watched: true }
         ],
         client: {
             mocha: {
                 opts: 'tests/mocha.opts'
             }
-        },
-        phantomjsLauncher: {
-            // Have phantomjs exit if a ResourceError is encountered (useful if karma exits without killing phantom)
-            exitOnResourceError: true
         },
         frameworks: [ 'mocha', 'chai' ],
         plugins: [
@@ -23,7 +23,7 @@ module.exports = function (config) {
         ],
         // run the bundle through the webpack and sourcemap plugins
         preprocessors: {
-            'tests/*.test.js': [ 'webpack', 'sourcemap' ]
+            'tests/**/*.test.js': [ 'webpack', 'sourcemap' ]
         },
         reporters: [ 'dots' ],
         // webpack config object
@@ -34,11 +34,15 @@ module.exports = function (config) {
                 fs: 'empty',
                 net: 'empty',
                 tls: 'empty'
-            }
+            },
+            plugins: [
+                new webpack.IgnorePlugin(/\/nodejs(\.js)?$/)
+            ]
         },
         webpackMiddleware: {
             noInfo: true,
-        }
+        },
+        browserNoActivityTimeout: 120000
     });
 };
   

@@ -3,6 +3,8 @@ const sinon = require('sinon');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
+const utils = require('./utils/ipfs');
+const env = require('../src/utils/env');
 
 describe('ChluIPFS', () => {
     it('constructor', () => {
@@ -35,11 +37,20 @@ describe('ChluIPFS', () => {
     });
 
     it('starts and stops', async () => {
+        let server;
+        if (env.isNode()) {
+            server = await require('./utils/nodejs').startRendezvousServer();
+        }
         const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.service, enablePersistence: false, logger: logger('Service') });
+        // Use the test IPFS configuration to avoid depending on an internet connection
+        chluIpfs.ipfs = await utils.createIPFS();
         await chluIpfs.start();
         expect(chluIpfs.ipfs).to.not.be.undefined;
         await chluIpfs.stop();
         expect(chluIpfs.ipfs).to.be.undefined;
+        if (env.isNode()) {
+            await server.stop();
+        }
     });
 
     it('switches type correctly from service node', async () => {
