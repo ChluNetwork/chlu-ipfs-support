@@ -20,7 +20,7 @@ describe('Persistence', () => {
         const orbitDbAddress = 'fakeOrbitDBAddress';
         api.getOrbitDBAddress = sinon.stub().returns(orbitDbAddress);
         api.storage.save = sinon.stub().resolves();
-        await api.persistData();
+        await api.persistence.persistData();
         const expected = { orbitDbAddress };
         expect(api.storage.save.calledWith(api.directory, expected, api.type)).to.be.true;
     });
@@ -35,7 +35,7 @@ describe('Persistence', () => {
         const orbitDbAddresses = [ 'fakeOrbitDBAddress1', 'fakeOrbitDBAddress2', 'fakeOrbitDBAddress3' ];
         api.orbitDb.dbs = dbs;
         api.storage.save = sinon.stub().resolves();
-        await api.persistData();
+        await api.persistence.persistData();
         const expected = { orbitDbAddresses };
         expect(api.storage.save.calledWith(api.directory, expected, api.type)).to.be.true;
     });
@@ -56,7 +56,7 @@ describe('Persistence', () => {
         const fakeDb = { address: 'fakeOrbitDbAddress', id: 1 };
         api.storage.load = sinon.stub().resolves(data);
         api.orbitDb.openDb = sinon.stub().resolves(fakeDb);
-        await api.loadPersistedData();
+        await api.persistence.loadPersistedData();
         expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
         expect(api.orbitDb.openDb.calledWith(fakeDb.address)).to.be.true;
         expect(api.orbitDb.db).to.deep.equal(fakeDb);
@@ -69,7 +69,7 @@ describe('Persistence', () => {
         const data = { orbitDbAddresses };
         api.storage.load = sinon.stub().resolves(data);
         api.orbitDb.openDb = sinon.stub().resolves(fakeDb);
-        await api.loadPersistedData();
+        await api.persistence.loadPersistedData();
         expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
         expect(api.orbitDb.openDb.firstCall.calledWith(orbitDbAddresses[0])).to.be.true;
         expect(api.orbitDb.openDb.secondCall.calledWith(orbitDbAddresses[1])).to.be.true;
@@ -80,14 +80,14 @@ describe('Persistence', () => {
     it('skips loading if disabled', async () => {
         const api = new ChluIPFS({ type: ChluIPFS.types.service, directory, enablePersistence: false, logger: logger('Service') });
         api.storage.load = sinon.stub().resolves({});
-        await api.loadPersistedData();
+        await api.persistence.loadPersistedData();
         expect(api.storage.load.called).to.be.false;
     });
     
     it('skips saving if disabled', async () => {
         const api = new ChluIPFS({ type: ChluIPFS.types.service, directory, enablePersistence: false, logger: logger('Service') });
         api.storage.save = sinon.stub().resolves();
-        await api.persistData();
+        await api.persistence.persistData();
         expect(api.storage.save.called).to.be.false;
     });
 });
