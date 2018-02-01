@@ -6,7 +6,7 @@ const logger = require('./utils/logger');
 
 const directory = '/tmp/chlu-test-' + Date.now() + Math.random();
 
-describe('Persistence', () => {
+describe('Persistence module', () => {
     it('saves and loads in this environment', async () => {
         const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
         const data = { hello: 'world' };
