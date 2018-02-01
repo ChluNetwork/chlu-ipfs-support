@@ -6,7 +6,7 @@ const protons = require('protons');
 const protobuf = protons(require('../src/utils/protobuf'));
 const { getFakeReviewRecord } = require('./utils/protobuf');
 
-describe('Customer APIs', () => {
+describe('Customer', () => {
 
     let chluIpfs, multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
 

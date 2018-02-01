@@ -13,7 +13,7 @@ const testDir = '/tmp/chlu-test-' + Date.now() + Math.random();
 const serviceNodeDir = testDir + '/chlu-service-node';
 const customerDir = testDir + '/chlu-customer';
 
-describe('Customer and Service Node interoperability', () => {
+describe('Customer and Service Node integration', () => {
     let customerNode, serviceNode;
 
     beforeEach(async () => {    
