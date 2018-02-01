@@ -32,22 +32,14 @@ describe('Customer APIs', () => {
         chluIpfs.room.broadcast.resetHistory();
     });
 
-    it('storeReviewRecord handles a plain javascript object', async () => {
+    it('stores ReviewRecords', async () => {
         const reviewRecord = await getFakeReviewRecord();
         const result = await chluIpfs.storeReviewRecord(reviewRecord);
         const actual = chluIpfs.ipfs.object.put.args[0][0];
         expect(result).to.equal(multihash);
         expect(chluIpfs.ipfs.object.put.called).to.be.true;
         expect(chluIpfs.room.broadcast.called).to.be.true;
-        expect(Buffer.isBuffer(actual)).to.be.true;
-    });
-
-    it('storeReviewRecord handles buffer', async () => {
-        const reviewRecord = await getFakeReviewRecord();
-        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
-        await chluIpfs.storeReviewRecord(buffer);
-        const actual = chluIpfs.ipfs.object.put.args[0][0];
-        expect(buffer == actual).to.be.true; // check reference
+        expect(protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
     });
 
 });
