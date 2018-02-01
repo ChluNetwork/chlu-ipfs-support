@@ -55,14 +55,14 @@ describe('Customer and Service Node interoperability', () => {
         // Create fake review record
         const reviewRecord = await getFakeReviewRecord();
         // Spy on pinning activity on the service node
-        sinon.spy(serviceNode, 'pin');
+        sinon.spy(serviceNode.pinning, 'pin');
         // store review record and await for completion
         const hash = await customerNode.storeReviewRecord(reviewRecord);
         // check hash validity
         expect(hash).to.be.a('string').that.is.not.empty;
         // the service node should already have pinned the hash
-        expect(serviceNode.pin.called).to.be.true;
-        serviceNode.pin.restore();
+        expect(serviceNode.pinning.pin.called).to.be.true;
+        serviceNode.pinning.pin.restore();
     });
 
     it('handles review updates', async () => {

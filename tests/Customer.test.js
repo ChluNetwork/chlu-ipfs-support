@@ -16,8 +16,7 @@ describe('Customer APIs', () => {
         chluIpfs.db = { address: { toString: () => 'example' } };
         chluIpfs.ipfs = { object: { put } };
         // Mock broadcast: fake a response so that the call can complete
-        const broadcast = sinon.stub().callsFake(message => {
-            const obj = JSON.parse(message);
+        const broadcast = sinon.stub().callsFake(obj => {
             expect(obj.type).to.equal(ChluIPFS.eventTypes.wroteReviewRecord);
             expect(obj.multihash).to.equal(multihash);
             setTimeout(() => {

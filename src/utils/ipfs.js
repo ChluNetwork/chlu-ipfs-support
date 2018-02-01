@@ -47,24 +47,6 @@ function multihashToBuffer(multihash) {
     return multihashes.fromB58String(multihash);
 }
 
-function encodeMessage(msg){
-    return Buffer.from(JSON.stringify(msg));
-}
-
-function decodeMessage(msg){
-    let str;
-    if (msg.data) {
-        str = msg.data.toString();
-    } else {
-        str = msg;
-    }
-    try {
-        return JSON.parse(str);
-    } catch(exception) {
-        return null;
-    }
-}
-
 function getDefaultRepoPath(directory = storage.getDefaultDirectory()) {
     // the versioning is required due to https://github.com/ipfs/js-ipfs/issues/1115
     // in short, IPFS upgrades change the format of the repo
@@ -91,8 +73,6 @@ module.exports = {
     validateMultihash,
     multihashToString,
     multihashToBuffer,
-    encodeMessage,
-    decodeMessage,
     getDefaultRepoPath,
     getDefaultOrbitDBPath
 };
