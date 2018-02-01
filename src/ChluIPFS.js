@@ -148,18 +148,23 @@ class ChluIPFS {
 
     async pin(multihash){
         this.utils.validateMultihash(multihash);
+        // TODO: check that the multihash evaluates to valid Chlu data
         // broadcast start of pin process
         await this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.pinning, multihash }));
-        if (this.ipfs.pin) {
-            // TODO: check that the multihash evaluates to valid Chlu data
-            await this.ipfs.pin.add(multihash, { recursive: true });
-        } else {
-            // TODO: Chlu service node need to be able to pin, so we should support using go-ipfs
-            this.logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
-            await this.ipfs.object.get(multihash);
+        try {
+            if (this.ipfs.pin) {
+                await this.ipfs.pin.add(multihash, { recursive: true });
+            } else {
+                // TODO: Chlu service node need to be able to pin, so we should support using go-ipfs
+                this.logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
+                await this.ipfs.object.get(multihash);
+            }
+            // broadcast successful pin
+            await this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.pinned, multihash }));
+        } catch (error) {
+            this.logger.error('IPFS Pin Error: ' + error.message);
+            return;
         }
-        // broadcast successful pin
-        await this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.pinned, multihash }));
     }
 
     getOrbitDBAddress(){
@@ -257,7 +262,11 @@ class ChluIPFS {
         await new Promise(async fullfill => {
             const address = this.getOrbitDBAddress();
             this.events.once(constants.eventTypes.replicated + '_' + address, () => fullfill());
-            await this.db.set(previousVersionMultihash, multihash);
+            try {
+                await this.db.set(previousVersionMultihash, multihash);
+            } catch (error) {
+                this.logger.error('OrbitDB Error: ' + error.message || error);
+            }
             this.broadcastReviewUpdates();
             this.logger.debug('Waiting for remote replication');
         });
@@ -332,10 +341,15 @@ class ChluIPFS {
 
     async openDb(address) {
         this.logger.debug('Opening ' + address);
-        const db = await this.orbitDb.kvstore(address);
-        this.listenToDBEvents(db);
-        await db.load();
-        this.logger.debug('Opened ' + address);
+        let db;
+        try {
+            db = await this.orbitDb.kvstore(address);
+            this.listenToDBEvents(db);
+            await db.load();
+            this.logger.debug('Opened ' + address);
+        } catch (error) {
+            this.logger.error('Coud not Open ' + address + ': ' + error.message || error);
+        }
         return db;
     }
 
@@ -343,7 +357,7 @@ class ChluIPFS {
         if (!this.dbs[address]) {
             this.dbs[address] = await this.openDb(address);
             // Make sure this DB address does not get lost
-            await this.persistData();
+            if (this.dbs[address]) await this.persistData();
         }
         return this.dbs[address];
     }
@@ -351,14 +365,16 @@ class ChluIPFS {
     async replicate(address) {
         this.logger.info('Replicating ' + address);
         const db = await this.openDbForReplication(address);
-        this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicating, address }));
-        await new Promise(fullfill => {
-            this.logger.debug('Waiting for next replication of ' + address);
-            db.events.once('replicated', fullfill);
-            db.events.once('ready', fullfill);
-        });
-        this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicated, address }));
-        this.logger.info('Replicated ' + address);
+        if (db) {
+            this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicating, address }));
+            await new Promise(fullfill => {
+                this.logger.debug('Waiting for next replication of ' + address);
+                db.events.once('replicated', fullfill);
+                db.events.once('ready', fullfill);
+            });
+            this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicated, address }));
+            this.logger.info('Replicated ' + address);
+        }
     }
 
     async persistData() {
@@ -372,7 +388,11 @@ class ChluIPFS {
                 data.orbitDbAddresses = Object.keys(this.dbs);
             }
             this.logger.debug('Saving persisted data');
-            await this.storage.save(this.directory, data, this.type);
+            try {
+                await this.storage.save(this.directory, data, this.type);
+            } catch (error) {
+                this.logger.error('Could not write data: ' + error.message || error);
+            }
             this.logger.debug('Saved persisted data');
         } else {
             this.logger.debug('Not persisting data, persistence disabled');
@@ -397,7 +417,7 @@ class ChluIPFS {
                 // Open previously created Customer Review Update DB
                 this.logger.debug('Opening existing Customer OrbitDB');
                 this.db = await this.openDb(data.orbitDbAddress);
-                this.logger.debug('Opened existing Customer OrbitDB');
+                if (this.db) this.logger.debug('Opened existing Customer OrbitDB');
             }
         } else {
             this.logger.debug('Not loading persisted data, persistence disabled');
@@ -434,6 +454,9 @@ class ChluIPFS {
         });
         room.on('message', message => {
             this.logger.debug('PubSub Message from ' + message.from + ': ' + message.data.toString());
+        });
+        room.on('error', error => {
+            this.logger.error('PubSub Room Error: ' + error.message || error);
         });
     }
 }
