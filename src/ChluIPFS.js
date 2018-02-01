@@ -2,8 +2,8 @@ const ipfsUtils = require('./utils/ipfs');
 const Pinning = require('./modules/pinning');
 const Room = require('./modules/room');
 const ReviewRecords = require('./modules/reviewrecords');
+const DB = require('./modules/orbitdb');
 const storageUtils = require('./utils/storage');
-const OrbitDB = require('orbit-db');
 const EventEmitter = require('events');
 const constants = require('./constants');
 const defaultLogger = require('./utils/logger');
@@ -52,8 +52,8 @@ class ChluIPFS {
         }
         this.events = new EventEmitter();
         this.logger = options.logger || defaultLogger;
-        this.dbs = {};
         // Modules
+        this.orbitDb = new DB(this);
         this.pinning = new Pinning(this);
         this.room = new Room(this);
         this.reviewRecords = new ReviewRecords(this);
@@ -66,24 +66,17 @@ class ChluIPFS {
             this.ipfs = await this.utils.createIPFS(this.ipfsOptions);
             this.logger.debug('Initialized IPFS');
         }
-        if (!this.orbitDb) {
-            this.logger.debug('Initializing OrbitDB with directory ' + this.orbitDbDirectory);
-            this.orbitDb = new OrbitDB(this.ipfs, this.orbitDbDirectory);
-            this.logger.debug('Initialized OrbitDB with directory ' + this.orbitDbDirectory);
-        }
 
+        await this.orbitDb.start();
         await this.room.start();
 
         // Load previously persisted data
         await this.loadPersistedData();
 
-        // Create Customer Review Updates DB if not already loaded
-        if (this.type === constants.types.customer && !this.db) {
-            this.db = await this.openDb(constants.customerDbName);
+        if (this.type === constants.types.customer && !this.orbitDb.getPersonalDBAddress()) {
+            await this.orbitDb.openPersonalOrbitDB(constants.customerDbName);
+            await this.persistData();
         }
-
-        // Save data
-        await this.persistData();
 
         // If customer, also wait for at least one peer to join the room (TODO: review this)
         if (this.type === constants.types.customer) {
@@ -100,9 +93,6 @@ class ChluIPFS {
         await this.orbitDb.stop();
         await this.room.stop();
         await this.ipfs.stop();
-        this.db = undefined;
-        this.dbs = {};
-        this.orbitDb = undefined;
         this.ipfs = undefined;
     }
 
@@ -125,11 +115,7 @@ class ChluIPFS {
     }
 
     getOrbitDBAddress(){
-        if (this.type === constants.types.customer) {
-            return this.db.address.toString();
-        } else {
-            throw new Error('Not a customer');
-        }
+        return this.orbitDb.getPersonalDBAddress();
     }
 
     async readReviewRecord(multihash, notifyUpdate = null) {
@@ -163,44 +149,6 @@ class ChluIPFS {
         throw new Error('not implemented');
     }
 
-    async openDb(address) {
-        this.logger.debug('Opening ' + address);
-        let db;
-        try {
-            db = await this.orbitDb.kvstore(address);
-            this.listenToDBEvents(db);
-            await db.load();
-            this.logger.debug('Opened ' + address);
-        } catch (error) {
-            this.logger.error('Coud not Open ' + address + ': ' + error.message || error);
-        }
-        return db;
-    }
-
-    async openDbForReplication(address) {
-        if (!this.dbs[address]) {
-            this.dbs[address] = await this.openDb(address);
-            // Make sure this DB address does not get lost
-            if (this.dbs[address]) await this.persistData();
-        }
-        return this.dbs[address];
-    }
-
-    async replicate(address) {
-        this.logger.info('Replicating ' + address);
-        const db = await this.openDbForReplication(address);
-        if (db) {
-            this.room.broadcast({ type: constants.eventTypes.replicating, address });
-            await new Promise(fullfill => {
-                this.logger.debug('Waiting for next replication of ' + address);
-                db.events.once('replicated', fullfill);
-                db.events.once('ready', fullfill);
-            });
-            this.room.broadcast({ type: constants.eventTypes.replicated, address });
-            this.logger.info('Replicated ' + address);
-        }
-    }
-
     async persistData() {
         if (this.enablePersistence) {
             const data = {};
@@ -209,7 +157,7 @@ class ChluIPFS {
                 data.orbitDbAddress = this.getOrbitDBAddress();
             } else if (this.type === constants.types.service) {
                 // Service Node Synced OrbitDB addresses
-                data.orbitDbAddresses = Object.keys(this.dbs);
+                data.orbitDbAddresses = Object.keys(this.orbitDb.dbs);
             }
             this.logger.debug('Saving persisted data');
             try {
@@ -230,40 +178,12 @@ class ChluIPFS {
             this.logger.debug('Loaded persisted data');
             if (this.type === constants.types.service) {
                 // Open known OrbitDBs so that we can seed them
-                const addresses = data.orbitDbAddresses || [];
-                this.logger.debug('Opening ' + addresses.length + ' OrbitDBs');
-                for(const address of addresses) {
-                    this.dbs[address] = await this.openDb(address);
-                }
-                this.logger.debug('Opened all persisted OrbitDBs');
+                if (data.orbitDbAddresses) await this.orbitDb.openDbs(data.orbitDbAddresses);
             }
-            if (this.type === constants.types.customer && data.orbitDbAddress) {
-                // Open previously created Customer Review Update DB
-                this.logger.debug('Opening existing Customer OrbitDB');
-                this.db = await this.openDb(data.orbitDbAddress);
-                if (this.db) this.logger.debug('Opened existing Customer OrbitDB');
-            }
+            if (data.orbitDbAddress) await this.orbitDb.openPersonalOrbitDB(data.orbitDbAddress);
         } else {
             this.logger.debug('Not loading persisted data, persistence disabled');
         }
-    }
-
-    listenToDBEvents(db){
-        db.events.on('replicated', address => {
-            this.logger.debug('OrbitDB Event: Replicated ' + address);
-        });
-        db.events.on('replicate', address => {
-            this.logger.debug('OrbitDB Event: Replicate ' + address);
-        });
-        db.events.on('replicate.progress', (address, hash, entry, progress) => {
-            this.logger.debug('OrbitDB Event: Replicate Progress ' + progress + ' for address ' + address);
-        });
-        db.events.on('ready', () => this.logger.debug('OrbitDB Event: Ready'));
-        db.events.on('write', () => this.logger.debug('OrbitDB Event: Write'));
-        db.events.on('load', () => this.logger.debug('OrbitDB Event: Load'));
-        db.events.on('load.progress', (address, hash, entry, progress, total) => {
-            this.logger.debug('OrbitDB Event: Load Progress ' + progress + '/' + total + ' for address ' + address);
-        });
     }
 
 }
