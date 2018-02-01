@@ -27,7 +27,7 @@
   "dependencies": {
     "ipfs": "~0.27.7",
     "ipfs-pubsub-room": "~1.1.5",
-    "orbit-db": "~0.19.2",
+    "orbit-db": "~0.19.4",
     "protons": "~1.0.1"
   },
   "devDependencies": {

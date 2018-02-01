@@ -1,12 +1,12 @@
 const ipfsUtils = require('./utils/ipfs');
-const protons = require('protons');
+const Pinning = require('./modules/pinning');
+const Room = require('./modules/room');
+const ReviewRecords = require('./modules/reviewrecords');
 const storageUtils = require('./utils/storage');
 const OrbitDB = require('orbit-db');
-const Room = require('ipfs-pubsub-room');
 const EventEmitter = require('events');
 const constants = require('./constants');
 const defaultLogger = require('./utils/logger');
-const protobuf = protons(require('../src/utils/protobuf'));
 
 const defaultIPFSOptions = {
     EXPERIMENTAL: {
@@ -53,6 +53,10 @@ class ChluIPFS {
         this.events = new EventEmitter();
         this.logger = options.logger || defaultLogger;
         this.dbs = {};
+        // Modules
+        this.pinning = new Pinning(this);
+        this.room = new Room(this);
+        this.reviewRecords = new ReviewRecords(this);
     }
     
     async start(){
@@ -68,17 +72,7 @@ class ChluIPFS {
             this.logger.debug('Initialized OrbitDB with directory ' + this.orbitDbDirectory);
         }
 
-        // PubSub setup
-        if (!this.room) {
-            this.room = Room(this.ipfs, constants.pubsubRoom);
-            // Handle events
-            this.listenToRoomEvents(this.room);
-            this.room.on('message', message => this.handleMessage(message));
-            // wait for room subscription
-            await new Promise(resolve => {
-                this.room.once('subscribed', () => resolve());
-            });
-        }
+        await this.room.start();
 
         // Load previously persisted data
         await this.loadPersistedData();
@@ -93,13 +87,9 @@ class ChluIPFS {
 
         // If customer, also wait for at least one peer to join the room (TODO: review this)
         if (this.type === constants.types.customer) {
-            if (this.room.getPeers().length === 0) {
-                await new Promise(resolve => {
-                    this.room.on('peer joined', () => resolve());
-                });
-            }
+            await this.room.waitForAnyPeer();
             // Broadcast my review updates DB
-            this.broadcastReviewUpdates();
+            this.room.broadcastReviewUpdates();
         }
 
         return true;
@@ -107,13 +97,12 @@ class ChluIPFS {
 
     async stop() {
         await this.persistData();
-        this.room.leave();
         await this.orbitDb.stop();
+        await this.room.stop();
         await this.ipfs.stop();
         this.db = undefined;
         this.dbs = {};
         this.orbitDb = undefined;
-        this.room = undefined;
         this.ipfs = undefined;
     }
 
@@ -125,10 +114,6 @@ class ChluIPFS {
                 this.db = undefined;
             }
             if (this.type === constants.types.service) {
-                if (this.room) {
-                    this.room.removeListener('message', this.serviceNodeRoomMessageListener);
-                    this.serviceNodeRoomMessageListener = undefined;
-                }
                 if (this.dbs) {
                     await Promise.all(Object.values(this.dbs).map(db => db.close()));
                 }
@@ -136,34 +121,6 @@ class ChluIPFS {
             }
             this.type = newType;
             await this.loadPersistedData();
-        }
-    }
-
-    broadcastReviewUpdates(){
-        this.room.broadcast(this.utils.encodeMessage({
-            type: constants.eventTypes.customerReviews,
-            address: this.getOrbitDBAddress()
-        }));
-    }
-
-    async pin(multihash){
-        this.utils.validateMultihash(multihash);
-        // TODO: check that the multihash evaluates to valid Chlu data
-        // broadcast start of pin process
-        await this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.pinning, multihash }));
-        try {
-            if (this.ipfs.pin) {
-                await this.ipfs.pin.add(multihash, { recursive: true });
-            } else {
-                // TODO: Chlu service node need to be able to pin, so we should support using go-ipfs
-                this.logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
-                await this.ipfs.object.get(multihash);
-            }
-            // broadcast successful pin
-            await this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.pinned, multihash }));
-        } catch (error) {
-            this.logger.error('IPFS Pin Error: ' + error.message);
-            return;
         }
     }
 
@@ -175,103 +132,12 @@ class ChluIPFS {
         }
     }
 
-    async getLastReviewRecordUpdate(db, multihash) {
-        this.logger.debug('Checking for review updates for ' + multihash);
-        let dbValue = multihash, updatedMultihash = multihash, path = [multihash];
-        while (dbValue) {
-            dbValue = await db.get(dbValue);
-            if (typeof dbValue === 'string') {
-                if (path.indexOf(dbValue) < 0) {
-                    updatedMultihash = dbValue;
-                    path.push(dbValue);
-                    this.logger.debug('Found forward pointer from ' + multihash + ' to ' + updatedMultihash);
-                } else {
-                    throw new Error('Recursive references detected in this OrbitDB: ' + db.address.toString())
-                }
-            }
-        }
-        if (multihash != updatedMultihash) {
-            this.logger.debug(multihash + ' updates to ' + updatedMultihash);
-            return updatedMultihash;
-        } else {
-            this.logger.debug('no updates found for ' + multihash);
-        }
-    }
-
-    async notifyIfReviewIsUpdated(db, multihash, notifyUpdate) {
-        const updatedMultihash = await this.getLastReviewRecordUpdate(db, multihash);
-        if (updatedMultihash) {
-            // TODO: Check that the update is valid first
-            notifyUpdate(multihash, updatedMultihash);
-        }
-    }
-
-    async findLastReviewRecordUpdate(multihash, notifyUpdate) {
-        const reviewRecord = await this.getReviewRecord(multihash);
-        if (reviewRecord.orbitDb) {
-            const db = await this.openDbForReplication(reviewRecord.orbitDb);
-            db.events.once('replicated', () => this.notifyIfReviewIsUpdated(db, multihash, notifyUpdate));
-            this.notifyIfReviewIsUpdated(db, multihash, notifyUpdate);
-        }
-    }
-
-    async getReviewRecord(multihash){
-        const dagNode = await this.ipfs.object.get(this.utils.multihashToBuffer(multihash));
-        const buffer = dagNode.data;
-        const messages = protons(require('../src/utils/protobuf'));
-        const reviewRecord = messages.ReviewRecord.decode(buffer);
-        return reviewRecord;
-    }
-
     async readReviewRecord(multihash, notifyUpdate = null) {
-        this.utils.validateMultihash(multihash);
-        const reviewRecord = await this.getReviewRecord(multihash);
-        // TODO validate
-        if (notifyUpdate) this.findLastReviewRecordUpdate(multihash, notifyUpdate);
-        return reviewRecord;
+        return await this.reviewRecords.readReviewRecord(multihash, notifyUpdate);
     }
 
-    async storeReviewRecord(reviewRecord, previousVersionMultihash = null){
-        if (this.type !== constants.types.customer) {
-            throw new Error('Not a customer');
-        }
-        reviewRecord.orbitDb = this.getOrbitDBAddress();
-        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
-        // TODO validate
-        // write thing to ipfs
-        const dagNode = await this.ipfs.object.put(buffer);
-        const multihash = this.utils.multihashToString(dagNode.multihash);
-        // Broadcast request for pin, then wait for response
-        // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
-        let tasksToAwait = [];
-        tasksToAwait.push(new Promise(fullfill => {
-            this.events.once(constants.eventTypes.pinned + '_' + multihash, () => fullfill());
-            this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.wroteReviewRecord, multihash }));
-        }));
-        if (previousVersionMultihash) {
-            // This is a review update
-            tasksToAwait.push(this.setForwardPointerForReviewRecord(previousVersionMultihash, multihash));
-        }
-        await Promise.all(tasksToAwait);
-        return multihash;
-    }
-
-    async setForwardPointerForReviewRecord(previousVersionMultihash, multihash) {
-        this.logger.debug('Setting forward pointer for ' + previousVersionMultihash + ' to ' + multihash);
-        // TODO: verify that the update is valid
-        await new Promise(async fullfill => {
-            const address = this.getOrbitDBAddress();
-            this.events.once(constants.eventTypes.replicated + '_' + address, () => fullfill());
-            try {
-                await this.db.set(previousVersionMultihash, multihash);
-            } catch (error) {
-                this.logger.error('OrbitDB Error: ' + error.message || error);
-            }
-            this.broadcastReviewUpdates();
-            this.logger.debug('Waiting for remote replication');
-        });
-        this.logger.debug('Done setting forward pointer, the db has been replicated remotely');
-        return multihash;
+    async storeReviewRecord(reviewRecord, previousVersionMultihash = null) {
+        return await this.reviewRecords.storeReviewRecord(reviewRecord, previousVersionMultihash);
     }
 
     async exportData() {
@@ -295,48 +161,6 @@ class ChluIPFS {
     
     async publishKeys() {
         throw new Error('not implemented');
-    }
-
-    async handleMessage(message) {
-        try {
-            const obj = JSON.parse(message.data.toString());
-
-            // Handle internal events
-
-            this.events.emit(obj.type || constants.eventTypes.unknown, obj);
-            if (obj.type === constants.eventTypes.pinned) {
-                // Emit internal PINNED event
-                this.events.emit(constants.eventTypes.pinned + '_' + obj.multihash);
-            }
-            if (obj.type === constants.eventTypes.replicated) {
-                // Emit internal REPLICATED event
-                this.events.emit(constants.eventTypes.replicated + '_' + obj.address);
-            }
-
-            if (this.type === constants.types.service) {
-                // Service node stuff
-                const isOrbitDb = obj.type === constants.eventTypes.customerReviews || obj.type === constants.eventTypes.updatedReview;
-                // handle ReviewRecord: pin hash
-                if (obj.type === constants.eventTypes.wroteReviewRecord && typeof obj.multihash === 'string') {
-                    this.logger.info('Pinning ReviewRecord ' + obj.multihash);
-                    try {
-                        await this.pin(obj.multihash);
-                        this.logger.info('Pinned ReviewRecord ' + obj.multihash);
-                    } catch(exception){
-                        this.logger.error('Pin Error: ' + exception.message);
-                    }
-                } else if (isOrbitDb && typeof obj.address === 'string') {
-                    // handle OrbitDB: replicate
-                    try {
-                        this.replicate(obj.address);
-                    } catch(exception){
-                        this.logger.error('OrbitDB Replication Error: ' + exception.message);
-                    }
-                }
-            }
-        } catch(exception) {
-            this.logger.warn('Error while decoding PubSub message');
-        }
     }
 
     async openDb(address) {
@@ -366,13 +190,13 @@ class ChluIPFS {
         this.logger.info('Replicating ' + address);
         const db = await this.openDbForReplication(address);
         if (db) {
-            this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicating, address }));
+            this.room.broadcast({ type: constants.eventTypes.replicating, address });
             await new Promise(fullfill => {
                 this.logger.debug('Waiting for next replication of ' + address);
                 db.events.once('replicated', fullfill);
                 db.events.once('ready', fullfill);
             });
-            this.room.broadcast(this.utils.encodeMessage({ type: constants.eventTypes.replicated, address }));
+            this.room.broadcast({ type: constants.eventTypes.replicated, address });
             this.logger.info('Replicated ' + address);
         }
     }
@@ -442,23 +266,6 @@ class ChluIPFS {
         });
     }
 
-    listenToRoomEvents(room){
-        room.on('peer joined', peer => {
-            this.logger.debug('Peer joined the pubsub room', peer);
-        });
-        room.on('peer left', peer => {
-            this.logger.debug('Peer left the pubsub room', peer);
-        });
-        room.on('subscribed', () => {
-            this.logger.debug('Connected to the pubsub room');
-        });
-        room.on('message', message => {
-            this.logger.debug('PubSub Message from ' + message.from + ': ' + message.data.toString());
-        });
-        room.on('error', error => {
-            this.logger.error('PubSub Room Error: ' + error.message || error);
-        });
-    }
 }
 
 module.exports = Object.assign(ChluIPFS, constants);
