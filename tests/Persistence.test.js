@@ -33,7 +33,7 @@ describe('Persistence', () => {
             'fakeOrbitDBAddress3': { fakeDb: true, id: 3 }
         };
         const orbitDbAddresses = [ 'fakeOrbitDBAddress1', 'fakeOrbitDBAddress2', 'fakeOrbitDBAddress3' ];
-        api.dbs = dbs;
+        api.orbitDb.dbs = dbs;
         api.storage.save = sinon.stub().resolves();
         await api.persistData();
         const expected = { orbitDbAddresses };
@@ -45,8 +45,8 @@ describe('Persistence', () => {
         const address = 'fakeOrbitDBAddress';
         const expected = { orbitDbAddresses: [address] };
         api.storage.save = sinon.stub().resolves();
-        api.openDb = sinon.stub().resolves({ fakeDb: true, id: 1 });
-        await api.openDbForReplication(address);
+        api.orbitDb.openDb = sinon.stub().resolves({ fakeDb: true, id: 1 });
+        await api.orbitDb.openDbForReplication(address);
         expect(api.storage.save.calledWith(api.directory, expected, api.type)).to.be.true;
     });
 
@@ -55,11 +55,11 @@ describe('Persistence', () => {
         const data = { orbitDbAddress: 'fakeOrbitDbAddress' };
         const fakeDb = { address: 'fakeOrbitDbAddress', id: 1 };
         api.storage.load = sinon.stub().resolves(data);
-        api.openDb = sinon.stub().resolves(fakeDb);
+        api.orbitDb.openDb = sinon.stub().resolves(fakeDb);
         await api.loadPersistedData();
         expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
-        expect(api.openDb.calledWith(fakeDb.address)).to.be.true;
-        expect(api.db).to.deep.equal(fakeDb);
+        expect(api.orbitDb.openDb.calledWith(fakeDb.address)).to.be.true;
+        expect(api.orbitDb.db).to.deep.equal(fakeDb);
     });
 
     it('loads service node orbitdb addresses', async () => {
@@ -68,13 +68,13 @@ describe('Persistence', () => {
         const orbitDbAddresses = [ 'fakeOrbitDBAddress1', 'fakeOrbitDBAddress2', 'fakeOrbitDBAddress3' ];
         const data = { orbitDbAddresses };
         api.storage.load = sinon.stub().resolves(data);
-        api.openDb = sinon.stub().resolves(fakeDb);
+        api.orbitDb.openDb = sinon.stub().resolves(fakeDb);
         await api.loadPersistedData();
         expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
-        expect(api.openDb.firstCall.calledWith(orbitDbAddresses[0])).to.be.true;
-        expect(api.openDb.secondCall.calledWith(orbitDbAddresses[1])).to.be.true;
-        expect(api.openDb.thirdCall.calledWith(orbitDbAddresses[2])).to.be.true;
-        expect(Object.keys(api.dbs)).to.deep.equal(orbitDbAddresses);
+        expect(api.orbitDb.openDb.firstCall.calledWith(orbitDbAddresses[0])).to.be.true;
+        expect(api.orbitDb.openDb.secondCall.calledWith(orbitDbAddresses[1])).to.be.true;
+        expect(api.orbitDb.openDb.thirdCall.calledWith(orbitDbAddresses[2])).to.be.true;
+        expect(Object.keys(api.orbitDb.dbs)).to.deep.equal(orbitDbAddresses);
     });
     
     it('skips loading if disabled', async () => {

@@ -54,7 +54,7 @@ class Room {
     broadcastReviewUpdates(){
         this.broadcast({
             type: constants.eventTypes.customerReviews,
-            address: this.chluIpfs.getOrbitDBAddress()
+            address: this.chluIpfs.orbitDb.getPersonalDBAddress()
         });
     }
 
@@ -91,7 +91,7 @@ class Room {
                 } else if (isOrbitDb && typeof obj.address === 'string') {
                     // handle OrbitDB: replicate
                     try {
-                        this.chluIpfs.replicate(obj.address);
+                        this.chluIpfs.orbitDb.replicate(obj.address);
                     } catch(exception){
                         this.chluIpfs.logger.error('OrbitDB Replication Error: ' + exception.message);
                     }

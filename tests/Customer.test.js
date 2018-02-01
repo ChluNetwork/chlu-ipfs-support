@@ -13,7 +13,7 @@ describe('Customer APIs', () => {
     before(async () => {
         const put = sinon.stub().returns({ multihash });
         chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false });
-        chluIpfs.db = { address: { toString: () => 'example' } };
+        chluIpfs.orbitDb.db = { address: { toString: () => 'example' } };
         chluIpfs.ipfs = { object: { put } };
         // Mock broadcast: fake a response so that the call can complete
         const broadcast = sinon.stub().callsFake(obj => {
