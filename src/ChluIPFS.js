@@ -3,6 +3,7 @@ const Pinning = require('./modules/pinning');
 const Room = require('./modules/room');
 const ReviewRecords = require('./modules/reviewrecords');
 const DB = require('./modules/orbitdb');
+const Persistence = require('./modules/persistence');
 const storageUtils = require('./utils/storage');
 const EventEmitter = require('events');
 const constants = require('./constants');
@@ -57,6 +58,7 @@ class ChluIPFS {
         this.pinning = new Pinning(this);
         this.room = new Room(this);
         this.reviewRecords = new ReviewRecords(this);
+        this.persistence = new Persistence(this);
     }
     
     async start(){
@@ -71,11 +73,11 @@ class ChluIPFS {
         await this.room.start();
 
         // Load previously persisted data
-        await this.loadPersistedData();
+        await this.persistence.loadPersistedData();
 
         if (this.type === constants.types.customer && !this.orbitDb.getPersonalDBAddress()) {
             await this.orbitDb.openPersonalOrbitDB(constants.customerDbName);
-            await this.persistData();
+            await this.persistence.persistData();
         }
 
         // If customer, also wait for at least one peer to join the room (TODO: review this)
@@ -89,7 +91,7 @@ class ChluIPFS {
     }
 
     async stop() {
-        await this.persistData();
+        await this.persistence.persistData();
         await this.orbitDb.stop();
         await this.room.stop();
         await this.ipfs.stop();
@@ -98,7 +100,7 @@ class ChluIPFS {
 
     async switchType(newType) {
         if (this.type !== newType) {
-            await this.persistData();
+            await this.persistence.persistData();
             if (this.type === constants.types.customer) {
                 if (this.db) await this.db.close();
                 this.db = undefined;
@@ -110,7 +112,7 @@ class ChluIPFS {
                 this.dbs = {};
             }
             this.type = newType;
-            await this.loadPersistedData();
+            await this.persistence.loadPersistedData();
         }
     }
 
@@ -147,43 +149,6 @@ class ChluIPFS {
     
     async publishKeys() {
         throw new Error('not implemented');
-    }
-
-    async persistData() {
-        if (this.enablePersistence) {
-            const data = {};
-            if (this.type === constants.types.customer) {
-                // Customer OrbitDB Address
-                data.orbitDbAddress = this.getOrbitDBAddress();
-            } else if (this.type === constants.types.service) {
-                // Service Node Synced OrbitDB addresses
-                data.orbitDbAddresses = Object.keys(this.orbitDb.dbs);
-            }
-            this.logger.debug('Saving persisted data');
-            try {
-                await this.storage.save(this.directory, data, this.type);
-            } catch (error) {
-                this.logger.error('Could not write data: ' + error.message || error);
-            }
-            this.logger.debug('Saved persisted data');
-        } else {
-            this.logger.debug('Not persisting data, persistence disabled');
-        }
-    }
-
-    async loadPersistedData() {
-        if (this.enablePersistence) {
-            this.logger.debug('Loading persisted data');
-            const data = await this.storage.load(this.directory, this.type);
-            this.logger.debug('Loaded persisted data');
-            if (this.type === constants.types.service) {
-                // Open known OrbitDBs so that we can seed them
-                if (data.orbitDbAddresses) await this.orbitDb.openDbs(data.orbitDbAddresses);
-            }
-            if (data.orbitDbAddress) await this.orbitDb.openPersonalOrbitDB(data.orbitDbAddress);
-        } else {
-            this.logger.debug('Not loading persisted data, persistence disabled');
-        }
     }
 
 }

@@ -56,7 +56,7 @@ class DB {
         if (!this.dbs[address]) {
             this.dbs[address] = await this.openDb(address);
             // Make sure this DB address does not get lost
-            if (this.dbs[address]) await this.chluIpfs.persistData();
+            if (this.dbs[address]) await this.chluIpfs.persistence.persistData();
         }
         return this.dbs[address];
     }
