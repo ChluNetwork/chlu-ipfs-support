@@ -22,7 +22,7 @@ class DB {
     }
 
     async stop() {
-        await this.orbitDb.stop();
+        if (this.orbitDb) await this.orbitDb.stop();
     }
 
     async openPersonalOrbitDB(address = null) {

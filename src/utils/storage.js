@@ -3,7 +3,11 @@ const fs = require('fs');
 const env = require('./env');
 
 function getDefaultDirectory() {
-    return path.join(process.env.HOME || '.', '.chlu');
+    if (env.isNode()) {
+        return path.join(process.env.HOME || '.', '.chlu');
+    } else {
+        return '';
+    }
 }
 
 async function load(directory = getDefaultDirectory(), type) {
