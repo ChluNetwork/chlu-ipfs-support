@@ -39,7 +39,8 @@ module.exports = `
         required PoPR popr = 8;
         required uint32 chlu_version = 9;
         required string orbitDb = 10;
-        required string hash = 11;
+        optional string last_reviewrecord_multihash = 11;
+        required string hash = 12;
     }
 
     message PaymentRecord {

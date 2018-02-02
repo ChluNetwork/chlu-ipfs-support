@@ -68,6 +68,7 @@ class ReviewRecords {
             throw new Error('Not a customer');
         }
         reviewRecord.orbitDb = this.chluIpfs.getOrbitDBAddress();
+        reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
         const buffer = protobuf.ReviewRecord.encode(reviewRecord);
         // TODO validate
         // write thing to ipfs
@@ -75,17 +76,23 @@ class ReviewRecords {
         const multihash = this.chluIpfs.utils.multihashToString(dagNode.multihash);
         // Broadcast request for pin, then wait for response
         // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
-        let tasksToAwait = [];
-        tasksToAwait.push(new Promise(fullfill => {
-            this.chluIpfs.events.once(constants.eventTypes.pinned + '_' + multihash, () => fullfill());
-            this.chluIpfs.room.broadcast({ type: constants.eventTypes.wroteReviewRecord, multihash });
-        }));
+        let tasksToAwait = [this.waitForRemotePin(multihash)];
         if (previousVersionMultihash) {
             // This is a review update
             tasksToAwait.push(this.setForwardPointerForReviewRecord(previousVersionMultihash, multihash));
         }
         await Promise.all(tasksToAwait);
+        // Store operation succeeded: set this as the last review record published
+        this.chluIpfs.lastReviewRecordMultihash = multihash;
+        await this.chluIpfs.persistence.persistData();
         return multihash;
+    }
+
+    async waitForRemotePin(multihash) {
+        await new Promise(fullfill => {
+            this.chluIpfs.events.once(constants.eventTypes.pinned + '_' + multihash, () => fullfill());
+            this.chluIpfs.room.broadcast({ type: constants.eventTypes.wroteReviewRecord, multihash });
+        });
     }
 
     async setForwardPointerForReviewRecord(previousVersionMultihash, multihash) {
@@ -104,6 +111,13 @@ class ReviewRecords {
         });
         this.chluIpfs.logger.debug('Done setting forward pointer, the db has been replicated remotely');
         return multihash;
+    }
+
+    setPointerToLastReviewRecord(reviewRecord) {
+        if (this.chluIpfs.lastReviewRecordMultihash) {
+            reviewRecord.last_reviewrecord_multihash = this.chluIpfs.lastReviewRecordMultihash;
+        }
+        return reviewRecord;
     }
 
 }

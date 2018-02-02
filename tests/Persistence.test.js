@@ -21,8 +21,16 @@ describe('Persistence module', () => {
         api.getOrbitDBAddress = sinon.stub().returns(orbitDbAddress);
         api.storage.save = sinon.stub().resolves();
         await api.persistence.persistData();
-        const expected = { orbitDbAddress };
-        expect(api.storage.save.calledWith(api.directory, expected, api.type)).to.be.true;
+        expect(api.storage.save.args[0][1].orbitDbAddress === orbitDbAddress).to.be.true;
+    });
+
+    it('saves customer last review record multihash', async () => {
+        const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
+        const lastReviewRecordMultihash = 'example data';
+        api.lastReviewRecordMultihash = lastReviewRecordMultihash; 
+        api.storage.save = sinon.stub().resolves();
+        await api.persistence.persistData();
+        expect(api.storage.save.args[0][1].lastReviewRecordMultihash === lastReviewRecordMultihash).to.be.true;
     });
 
     it('saves service node orbitdb addresses', async () => {
@@ -60,6 +68,15 @@ describe('Persistence module', () => {
         expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
         expect(api.orbitDb.openDb.calledWith(fakeDb.address)).to.be.true;
         expect(api.orbitDb.db).to.deep.equal(fakeDb);
+    });
+
+    it('loads customer last review record multihash', async () => {
+        const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
+        const data = { lastReviewRecordMultihash: 'example data' };
+        api.storage.load = sinon.stub().resolves(data);
+        await api.persistence.loadPersistedData();
+        expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
+        expect(api.lastReviewRecordMultihash).to.deep.equal(data.lastReviewRecordMultihash);
     });
 
     it('loads service node orbitdb addresses', async () => {

@@ -38,4 +38,26 @@ describe('ReviewRecords module', () => {
         expect(isValidMultihash({ notEvenA: 'multihash'})).to.be.false;
     });
 
+    it('sets the last review record multihash into new reviews and updates it after storing the review', async () => {
+        const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ';
+        const fakeReviewRecord = await getFakeReviewRecord();
+        const buffer = protobuf.ReviewRecord.encode(fakeReviewRecord);
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
+        const lastReviewRecordMultihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPZ';
+        chluIpfs.lastReviewRecordMultihash = lastReviewRecordMultihash.slice(0); // make a copy
+        chluIpfs.ipfs = {
+            object: {
+                get: sinon.stub().resolves({ data: buffer }),
+                put: sinon.stub().resolves({ multihash })
+            }
+        };
+        chluIpfs.getOrbitDBAddress = () => 'example data';
+        chluIpfs.reviewRecords.setForwardPointerForReviewRecord = sinon.stub().resolves();
+        chluIpfs.reviewRecords.waitForRemotePin = sinon.stub().resolves();
+        await chluIpfs.storeReviewRecord(fakeReviewRecord);
+        const reviewRecord = protobuf.ReviewRecord.decode(chluIpfs.ipfs.object.put.args[0][0]);
+        expect(reviewRecord.last_reviewrecord_multihash).to.deep.equal(lastReviewRecordMultihash);
+        expect(chluIpfs.lastReviewRecordMultihash).to.deep.equal(multihash);
+    });
+
 });
