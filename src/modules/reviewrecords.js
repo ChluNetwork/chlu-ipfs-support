@@ -64,10 +64,11 @@ class ReviewRecords {
     }
 
     async storeReviewRecord(reviewRecord, previousVersionMultihash = null){
-        if (this.chluIpfs.type !== constants.types.customer) {
-            throw new Error('Not a customer');
+        if(this.chluIpfs.type === constants.types.customer) {
+            reviewRecord.orbitDb = this.chluIpfs.getOrbitDBAddress();
+        } else if (!reviewRecord.orbitDb) {
+            throw new Error('Can not set the orbitDb address since this is not a customer');
         }
-        reviewRecord.orbitDb = this.chluIpfs.getOrbitDBAddress();
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
         const buffer = protobuf.ReviewRecord.encode(reviewRecord);
         // TODO validate
