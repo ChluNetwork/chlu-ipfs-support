@@ -1,6 +1,7 @@
 const protons = require('protons');
 const constants = require('../constants');
 const protobuf = protons(require('../utils/protobuf'));
+const { storeBuffer, multihashToString } = require('../utils/ipfs');
 
 class ReviewRecords {
 
@@ -51,30 +52,51 @@ class ReviewRecords {
     async getReviewRecord(multihash){
         const dagNode = await this.chluIpfs.ipfs.object.get(this.chluIpfs.utils.multihashToBuffer(multihash));
         const buffer = dagNode.data;
-        const reviewRecord = protobuf.ReviewRecord.decode(buffer);
-        return reviewRecord;
+        return protobuf.ReviewRecord.decode(buffer);
     }
 
     async readReviewRecord(multihash, notifyUpdate = null) {
         this.chluIpfs.utils.validateMultihash(multihash);
         const reviewRecord = await this.getReviewRecord(multihash);
-        // TODO validate
+        // TODO: validate
         if (notifyUpdate) this.findLastReviewRecordUpdate(multihash, notifyUpdate);
         return reviewRecord;
     }
 
-    async storeReviewRecord(reviewRecord, previousVersionMultihash = null){
+    prepareReviewRecord(reviewRecord) {
+        // TODO: validate
         if(this.chluIpfs.type === constants.types.customer) {
             reviewRecord.orbitDb = this.chluIpfs.getOrbitDBAddress();
         } else if (!reviewRecord.orbitDb) {
             throw new Error('Can not set the orbitDb address since this is not a customer');
         }
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
-        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
-        // TODO validate
+        return protobuf.ReviewRecord.encode(reviewRecord);
+    }
+
+    async addReviewRecordToIPFS(buffer) {
+        return await storeBuffer(this.chluIpfs.ipfs, buffer);
+    }
+
+    async storeReviewRecord(reviewRecord, options = {}){
+        const defaultOptions = {
+            publish: true
+        };
+        const opt = Object.assign({}, defaultOptions, options);
+        const { previousVersionMultihash, publish } = opt;
+        const buffer = this.prepareReviewRecord(reviewRecord);
         // write thing to ipfs
-        const dagNode = await this.chluIpfs.ipfs.object.put(buffer);
-        const multihash = this.chluIpfs.utils.multihashToString(dagNode.multihash);
+        const multihash = await this.addReviewRecordToIPFS(buffer);
+        if (options.expectedMultihash) {
+            if (multihashToString(options.expectedMultihash) !== multihashToString(multihash)) {
+                throw new Error('Expected a different multihash');
+            }
+        }
+        if (publish) await this.publishReviewRecord(multihash, previousVersionMultihash);
+        return multihash;
+    }
+
+    async publishReviewRecord(multihash, previousVersionMultihash) {
         // Broadcast request for pin, then wait for response
         // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
         let tasksToAwait = [this.waitForRemotePin(multihash)];
@@ -86,7 +108,6 @@ class ReviewRecords {
         // Store operation succeeded: set this as the last review record published
         this.chluIpfs.lastReviewRecordMultihash = multihash;
         await this.chluIpfs.persistence.persistData();
-        return multihash;
     }
 
     async waitForRemotePin(multihash) {

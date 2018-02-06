@@ -74,7 +74,9 @@ describe('Customer and Service Node integration', function() {
         expect(hash).to.be.a('string').that.is.not.empty;
         // the service node should already have pinned the hash
         expect(serviceNode.pinning.pin.called).to.be.true;
-        serviceNode.pinning.pin.restore();
+        // check that reading works
+        const readRecord = await serviceNode.readReviewRecord(hash);
+        expect(readRecord).to.deep.equal(reviewRecord);
     });
 
     it('handles review updates', async () => {
@@ -87,11 +89,15 @@ describe('Customer and Service Node integration', function() {
         // Store the original review
         const multihash = await customerNode.storeReviewRecord(reviewRecord);
         // Store the update
-        const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, multihash);
+        const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, {
+            previousVersionMultihash: multihash
+        });
         // Now try to fetch it from the service node while checking for updates
         await new Promise(fullfill => {
-            serviceNode.readReviewRecord(multihash, (originalHash, newHash) => {
+            serviceNode.readReviewRecord(multihash, async (originalHash, newHash) => {
                 expect(newHash).to.deep.equal(updatedMultihash);
+                const readRecord = await serviceNode.readReviewRecord(newHash);
+                expect(readRecord).to.deep.equal(reviewUpdate);
                 fullfill();
             });
         });

@@ -48,6 +48,14 @@ function multihashToBuffer(multihash) {
     return multihashes.fromB58String(multihash);
 }
 
+async function storeBuffer(ipfs, buf) {
+    if (!Buffer.isBuffer(buf)) {
+        throw new Error('Argument is not a buffer');
+    }
+    const dagNode = await ipfs.object.put(buf);
+    return multihashToString(dagNode.multihash);
+}
+
 function getDefaultRepoPath(directory = storage.getDefaultDirectory()) {
     // the versioning is required due to https://github.com/ipfs/js-ipfs/issues/1115
     // in short, IPFS upgrades change the format of the repo
@@ -74,6 +82,7 @@ module.exports = {
     validateMultihash,
     multihashToString,
     multihashToBuffer,
+    storeBuffer,
     getDefaultRepoPath,
     getDefaultOrbitDBPath
 };
