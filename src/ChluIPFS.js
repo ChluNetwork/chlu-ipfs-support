@@ -106,8 +106,8 @@ class ChluIPFS {
         return await this.reviewRecords.readReviewRecord(multihash, notifyUpdate);
     }
 
-    async storeReviewRecord(reviewRecord, previousVersionMultihash = null) {
-        return await this.reviewRecords.storeReviewRecord(reviewRecord, previousVersionMultihash);
+    async storeReviewRecord(reviewRecord, options = {}) {
+        return await this.reviewRecords.storeReviewRecord(reviewRecord, options);
     }
 
     async exportData() {
