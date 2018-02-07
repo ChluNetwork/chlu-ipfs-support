@@ -48,11 +48,7 @@ function multihashToBuffer(multihash) {
     return multihashes.fromB58String(multihash);
 }
 
-async function storeBuffer(ipfs, buf) {
-    if (!Buffer.isBuffer(buf)) {
-        throw new Error('Argument is not a buffer');
-    }
-    const dagNode = await ipfs.object.put(buf);
+function getDAGNodeMultihash(dagNode) {
     return multihashToString(dagNode.multihash);
 }
 
@@ -82,7 +78,7 @@ module.exports = {
     validateMultihash,
     multihashToString,
     multihashToBuffer,
-    storeBuffer,
+    getDAGNodeMultihash,
     getDefaultRepoPath,
     getDefaultOrbitDBPath
 };

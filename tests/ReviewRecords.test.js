@@ -45,19 +45,19 @@ describe('ReviewRecords module', () => {
         const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
         const lastReviewRecordMultihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPZ';
         chluIpfs.lastReviewRecordMultihash = lastReviewRecordMultihash.slice(0); // make a copy
-        chluIpfs.ipfs = {
-            object: {
-                get: sinon.stub().resolves({ data: buffer }),
-                put: sinon.stub().resolves({ multihash })
-            }
+        chluIpfs.ipfsUtils = {
+            get: sinon.stub().resolves({ data: buffer }),
+            createDAGNode: sinon.stub().callsFake(async buf => { return { data: buf, multihash }; }),
+            storeDAGNode: sinon.stub().resolves(multihash),
+            getDAGNodeMultihash: sinon.stub().returns(multihash)
         };
         chluIpfs.getOrbitDBAddress = () => 'example data';
         chluIpfs.reviewRecords.setForwardPointerForReviewRecord = sinon.stub().resolves();
         chluIpfs.reviewRecords.waitForRemotePin = sinon.stub().resolves();
         await chluIpfs.storeReviewRecord(fakeReviewRecord);
-        const reviewRecord = protobuf.ReviewRecord.decode(chluIpfs.ipfs.object.put.args[0][0]);
-        expect(reviewRecord.last_reviewrecord_multihash).to.deep.equal(lastReviewRecordMultihash);
+        const reviewRecord = protobuf.ReviewRecord.decode(chluIpfs.ipfsUtils.storeDAGNode.args[0][0].data);
         expect(chluIpfs.lastReviewRecordMultihash).to.deep.equal(multihash);
+        expect(reviewRecord.last_reviewrecord_multihash).to.deep.equal(lastReviewRecordMultihash);
     });
 
 });
