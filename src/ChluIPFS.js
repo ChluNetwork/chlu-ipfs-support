@@ -1,4 +1,4 @@
-const ipfsUtils = require('./utils/ipfs');
+const IPFSUtils = require('./modules/ipfs');
 const Pinning = require('./modules/pinning');
 const Room = require('./modules/room');
 const ReviewRecords = require('./modules/reviewrecords');
@@ -11,7 +11,7 @@ const defaultLogger = require('./utils/logger');
 
 class ChluIPFS {
     constructor(options = {}){
-        this.utils = ipfsUtils;
+        // Configuration
         this.storage = storageUtils;
         if (typeof options.enablePersistence === 'undefined') {
             this.enablePersistence = true;
@@ -20,9 +20,9 @@ class ChluIPFS {
         }
         this.directory = options.directory || this.storage.getDefaultDirectory();
         const additionalOptions = {
-            repo: this.utils.getDefaultRepoPath(this.directory)
+            repo: IPFSUtils.getDefaultRepoPath(this.directory)
         };
-        this.orbitDbDirectory = options.orbitDbDirectory || this.utils.getDefaultOrbitDBPath(this.directory);
+        this.orbitDbDirectory = options.orbitDbDirectory || IPFSUtils.getDefaultOrbitDBPath(this.directory);
         this.ipfsOptions = Object.assign(
             {},
             constants.defaultIPFSOptions,
@@ -36,6 +36,7 @@ class ChluIPFS {
         this.events = new EventEmitter();
         this.logger = options.logger || defaultLogger;
         // Modules
+        this.ipfsUtils = new IPFSUtils(this);
         this.orbitDb = new DB(this);
         this.pinning = new Pinning(this);
         this.room = new Room(this);
@@ -47,7 +48,7 @@ class ChluIPFS {
         this.logger.debug('Starting ChluIPFS, directory: ' + this.directory);
         if (!this.ipfs) {
             this.logger.debug('Initializing IPFS');
-            this.ipfs = await this.utils.createIPFS(this.ipfsOptions);
+            this.ipfs = await IPFSUtils.createIPFS(this.ipfsOptions);
             this.logger.debug('Initialized IPFS');
         }
 
