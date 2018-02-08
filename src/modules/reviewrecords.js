@@ -1,4 +1,6 @@
 const protons = require('protons');
+const multihashes = require('multihashes');
+const multihashing = require('multihashing-async');
 const constants = require('../constants');
 const protobuf = protons(require('../utils/protobuf'));
 const IPFSUtils = require('./ipfs');
@@ -62,7 +64,7 @@ class ReviewRecords {
         return reviewRecord;
     }
 
-    prepareReviewRecord(reviewRecord) {
+    async prepareReviewRecord(reviewRecord) {
         // TODO: validate
         if(this.chluIpfs.type === constants.types.customer) {
             reviewRecord.orbitDb = this.chluIpfs.getOrbitDBAddress();
@@ -70,6 +72,7 @@ class ReviewRecords {
             throw new Error('Can not set the orbitDb address since this is not a customer');
         }
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
+        reviewRecord = await this.setReviewRecordHash(reviewRecord);
         return protobuf.ReviewRecord.encode(reviewRecord);
     }
 
@@ -79,7 +82,7 @@ class ReviewRecords {
         };
         const opt = Object.assign({}, defaultOptions, options);
         const { previousVersionMultihash, publish } = opt;
-        const buffer = this.prepareReviewRecord(reviewRecord);
+        const buffer = await this.prepareReviewRecord(reviewRecord);
         const dagNode = await this.chluIpfs.ipfsUtils.createDAGNode(buffer); // don't store to IPFS yet
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         if (options.expectedMultihash) {
@@ -130,6 +133,18 @@ class ReviewRecords {
         });
         this.chluIpfs.logger.debug('Done setting forward pointer, the db has been replicated remotely');
         return multihash;
+    }
+
+    async setReviewRecordHash(reviewRecord) {
+        reviewRecord.hash = '';
+        const toHash = protobuf.ReviewRecord.encode(reviewRecord); 
+        const multihash = await new Promise((fullfill, reject) => {
+            multihashing(toHash, 'sha2-256', (err, multihash) => {
+                if (err) reject(err); else fullfill(multihash);
+            });
+        })
+        reviewRecord.hash = multihashes.toB58String(multihash);
+        return reviewRecord;
     }
 
     setPointerToLastReviewRecord(reviewRecord) {
