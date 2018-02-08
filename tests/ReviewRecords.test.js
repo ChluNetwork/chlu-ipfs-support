@@ -59,5 +59,14 @@ describe('ReviewRecords module', () => {
         expect(chluIpfs.lastReviewRecordMultihash).to.deep.equal(multihash);
         expect(reviewRecord.last_reviewrecord_multihash).to.deep.equal(lastReviewRecordMultihash);
     });
+    
+    it('computes the ReviewRecord hash', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
+        const reviewRecord = await getFakeReviewRecord();
+        reviewRecord.hash = 'fake';
+        const hashedReviewRecord = await chluIpfs.reviewRecords.setReviewRecordHash(Object.assign({}, reviewRecord));
+        expect(hashedReviewRecord.hash).not.to.equal(reviewRecord.hash);
+        multihashes.validate(multihashes.fromB58String(hashedReviewRecord.hash)); // throws if invalid
+    });
 
 });
