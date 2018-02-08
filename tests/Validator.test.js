@@ -8,7 +8,7 @@ const protobuf = protons(require('../src/utils/protobuf'));
 const logger = require('./utils/logger');
 const { getFakeReviewRecord } = require('./utils/protobuf');
 
-describe('Validator Module', () => {
+describe.only('Validator Module', () => {
     let chluIpfs;
 
     beforeEach(() => {
@@ -22,8 +22,10 @@ describe('Validator Module', () => {
     it('performs all validations', async () => {
         const reviewRecord = await getFakeReviewRecord();
         chluIpfs.validator.validateMultihash = sinon.stub().resolves();
+        chluIpfs.validator.validateHistory = sinon.stub().resolves();
         await chluIpfs.validator.validateReviewRecord(reviewRecord);
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
+        expect(chluIpfs.validator.validateHistory.called).to.be.true;
     });
 
     it('is called by default but can be disabled', async () => {
@@ -65,5 +67,17 @@ describe('Validator Module', () => {
         }
         expect(error.message).to.equal('Mismatching hash');
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
+    });
+
+    it('validates ancestors', async () => {
+        sinon.spy(chluIpfs.validator, 'validateReviewRecord');
+        chluIpfs.validator.validateMultihash = sinon.stub().resolves();
+        let reviewRecord = await getFakeReviewRecord();
+        reviewRecord.previous_version_multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1';
+        let originalReviewRecord = Object.assign({}, reviewRecord);
+        originalReviewRecord.previous_version_multihash = '';
+        chluIpfs.reviewRecords.readReviewRecord = sinon.stub().resolves(originalReviewRecord);
+        await chluIpfs.validator.validateReviewRecord(reviewRecord);
+        expect(chluIpfs.reviewRecords.readReviewRecord.calledWith(reviewRecord.previous_version_multihash)).to.be.true;
     });
 });
