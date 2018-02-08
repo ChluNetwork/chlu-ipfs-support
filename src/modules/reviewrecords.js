@@ -137,10 +137,20 @@ class ReviewRecords {
     }
 
     async setReviewRecordHash(reviewRecord) {
+        let name;
+        try {
+            // Try to detect existing multihash type
+            const multihash = multihashes.fromB58String(reviewRecord.hash);
+            const decoded = multihashes.decode(multihash);
+            name = decoded.name;
+        } catch (error) {
+            // Use default
+            name = 'sha2-256';
+        }
         reviewRecord.hash = '';
         const toHash = protobuf.ReviewRecord.encode(reviewRecord); 
         const multihash = await new Promise((fullfill, reject) => {
-            multihashing(toHash, 'sha2-256', (err, multihash) => {
+            multihashing(toHash, name, (err, multihash) => {
                 if (err) reject(err); else fullfill(multihash);
             });
         });
