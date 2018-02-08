@@ -1,1 +1,1 @@
-tests/**/*.test.js --timeout 15000 --exit
+tests/**/*.test.js --timeout 30000 --exit
