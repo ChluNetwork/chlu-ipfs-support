@@ -2,6 +2,7 @@ const IPFSUtils = require('./modules/ipfs');
 const Pinning = require('./modules/pinning');
 const Room = require('./modules/room');
 const ReviewRecords = require('./modules/reviewrecords');
+const Validator = require('./modules/validator');
 const DB = require('./modules/orbitdb');
 const Persistence = require('./modules/persistence');
 const storageUtils = require('./utils/storage');
@@ -41,6 +42,7 @@ class ChluIPFS {
         this.pinning = new Pinning(this);
         this.room = new Room(this);
         this.reviewRecords = new ReviewRecords(this);
+        this.validator = new Validator(this);
         this.persistence = new Persistence(this);
     }
     

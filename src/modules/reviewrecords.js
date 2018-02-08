@@ -22,7 +22,7 @@ class ReviewRecords {
                     path.push(dbValue);
                     this.chluIpfs.logger.debug('Found forward pointer from ' + multihash + ' to ' + updatedMultihash);
                 } else {
-                    throw new Error('Recursive references detected in this OrbitDB: ' + db.address.toString())
+                    throw new Error('Recursive references detected in this OrbitDB: ' + db.address.toString());
                 }
             }
         }
@@ -64,7 +64,7 @@ class ReviewRecords {
         return reviewRecord;
     }
 
-    async prepareReviewRecord(reviewRecord) {
+    async prepareReviewRecord(reviewRecord, validate = true) {
         // TODO: validate
         if(this.chluIpfs.type === constants.types.customer) {
             reviewRecord.orbitDb = this.chluIpfs.getOrbitDBAddress();
@@ -73,16 +73,17 @@ class ReviewRecords {
         }
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
         reviewRecord = await this.setReviewRecordHash(reviewRecord);
+        if (validate) await this.chluIpfs.validator.validateReviewRecord(reviewRecord);
         return protobuf.ReviewRecord.encode(reviewRecord);
     }
 
     async storeReviewRecord(reviewRecord, options = {}){
-        const defaultOptions = {
-            publish: true
-        };
-        const opt = Object.assign({}, defaultOptions, options);
-        const { previousVersionMultihash, publish } = opt;
-        const buffer = await this.prepareReviewRecord(reviewRecord);
+        const {
+            previousVersionMultihash,
+            publish = true,
+            validate = true
+        } = options;
+        const buffer = await this.prepareReviewRecord(reviewRecord, validate);
         const dagNode = await this.chluIpfs.ipfsUtils.createDAGNode(buffer); // don't store to IPFS yet
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         if (options.expectedMultihash) {
@@ -142,7 +143,7 @@ class ReviewRecords {
             multihashing(toHash, 'sha2-256', (err, multihash) => {
                 if (err) reject(err); else fullfill(multihash);
             });
-        })
+        });
         reviewRecord.hash = multihashes.toB58String(multihash);
         return reviewRecord;
     }
