@@ -69,4 +69,38 @@ describe('ReviewRecords module', () => {
         multihashes.validate(multihashes.fromB58String(hashedReviewRecord.hash)); // throws if invalid
     });
 
+    it('can rebuild the history of an updated ReviewRecord', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
+        const reviewRecord = await getFakeReviewRecord();
+        const reviewRecord2 = await getFakeReviewRecord();
+        reviewRecord2.previous_version_multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1';
+        const reviewRecord3 = await getFakeReviewRecord();
+        reviewRecord3.previous_version_multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP2';
+        let map = {
+            'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1': reviewRecord,
+            'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP2': reviewRecord2
+        };
+        chluIpfs.reviewRecords.getReviewRecord = sinon.stub().callsFake(async multihash => {
+            return map[multihash];
+        });
+        const history = await chluIpfs.reviewRecords.getHistory(reviewRecord3);
+        expect(history).to.deep.equal(Object.keys(map).reverse());
+        // Check that the recursive history detection works
+        map = {
+            'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1': reviewRecord,
+            'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP2': reviewRecord2,
+            'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP3': reviewRecord3
+        };
+        reviewRecord.previous_version_multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP3';
+        chluIpfs.reviewRecords.getReviewRecord = sinon.stub().callsFake(async multihash => {
+            return map[multihash];
+        });
+        let error;
+        try {
+            await chluIpfs.reviewRecords.getHistory(reviewRecord3);
+        } catch (err) {
+            error = err;
+        }
+        expect(error).to.not.be.undefined;
+    });
 });
