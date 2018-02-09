@@ -27,11 +27,17 @@ class Validator {
     async validateHistory(reviewRecord) {
         const history = await this.chluIpfs.reviewRecords.getHistory(reviewRecord);
         if (history.length > 0) {
-            const rr = await this.chluIpfs.reviewRecords.readReviewRecord(history[0]);
+            const opt = {
+                validate: false
+            };
+            const rr = await this.chluIpfs.reviewRecords.readReviewRecord(history[0], opt);
             this.validatePrevious(reviewRecord, rr);
         }
         const validations = history.map(async (multihash, i) => {
-            const rr = await this.chluIpfs.reviewRecords.readReviewRecord(multihash);
+            const opt = {
+                validate: false
+            };
+            const rr = await this.chluIpfs.reviewRecords.readReviewRecord(multihash, opt);
             await this.validateReviewRecord(rr, { validateHistory: false });
             if (i !== history.length-1) {
                 const prev = await this.chluIpfs.reviewRecords.readReviewRecord(history[i+1]);

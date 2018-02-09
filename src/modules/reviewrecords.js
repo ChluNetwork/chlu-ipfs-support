@@ -58,7 +58,7 @@ class ReviewRecords {
                 throw new Error('Recursive history detected');
             }
             history.push(prev);
-            const prevReviewRecord = await this.chluIpfs.reviewRecords.readReviewRecord(prev);
+            const prevReviewRecord = await this.chluIpfs.reviewRecords.readReviewRecord(prev, { validate: false });
             return await this.getHistory(prevReviewRecord, history);
         } else {
             return history;
@@ -70,10 +70,17 @@ class ReviewRecords {
         return protobuf.ReviewRecord.decode(buffer);
     }
 
-    async readReviewRecord(multihash, notifyUpdate = null) {
+    async readReviewRecord(multihash, options = {}) {
+        const {
+            notifyUpdate = null,
+            validate = true
+        } = options;
         IPFSUtils.validateMultihash(multihash);
         const reviewRecord = await this.getReviewRecord(multihash);
-        // TODO: validate
+        if (validate) {
+            const validateOptions = typeof validate === 'object' ? validate : {};
+            this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
+        }
         if (notifyUpdate) this.findLastReviewRecordUpdate(multihash, notifyUpdate);
         return reviewRecord;
     }
