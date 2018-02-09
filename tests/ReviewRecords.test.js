@@ -24,7 +24,7 @@ describe('ReviewRecords module', () => {
         };
         const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
         chluIpfs.ipfs = ipfs;
-        const reviewRecord = await chluIpfs.readReviewRecord(multihash);
+        const reviewRecord = await chluIpfs.readReviewRecord(multihash, { validate: false });
         expect(ipfs.object.get.args[0][0]).to.deep.equal(multihashBuffer);
         expect(reviewRecord).to.not.be.undefined;
         expect(reviewRecord.chlu_version).to.not.be.undefined;
