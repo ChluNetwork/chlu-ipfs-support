@@ -112,14 +112,17 @@ class ReviewRecords {
                 throw new Error('Expected a different multihash');
             }
         }
-        if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash);
+        if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash);
         return multihash;
     }
 
-    async publishReviewRecord(dagNode, previousVersionMultihash) {
+    async publishReviewRecord(dagNode, previousVersionMultihash, expectedMultihash) {
         // Broadcast request for pin, then wait for response
         // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
         const multihash = await this.chluIpfs.ipfsUtils.storeDAGNode(dagNode); // store to IPFS
+        if (expectedMultihash && multihash !== expectedMultihash) {
+            throw new Error('Multihash mismatch when publishing');
+        }
         // Wait for it to be remotely pinned
         let tasksToAwait = [this.waitForRemotePin(multihash)];
         if (previousVersionMultihash) {

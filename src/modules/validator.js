@@ -1,5 +1,3 @@
-
-
 class Validator {
 
     constructor(chluIpfs) {
@@ -7,14 +5,15 @@ class Validator {
     }
 
     async validateReviewRecord(reviewRecord, validations = {}) {
+        const rr = cloneReviewRecord(reviewRecord);
         const v = Object.assign({
             validateVersion: true,
             validateMultihash: true,
             validateHistory: true
         }, validations);
-        if (v.validateVersion) this.validateVersion(reviewRecord);
-        if (v.validateMultihash) await this.validateMultihash(reviewRecord, reviewRecord.hash.slice(0));
-        if (v.validateHistory) await this.validateHistory(reviewRecord);
+        if (v.validateVersion) this.validateVersion(rr);
+        if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
+        if (v.validateHistory) await this.validateHistory(rr);
     }
 
     async validateMultihash(reviewRecord, expected) {
@@ -84,6 +83,14 @@ function assertFieldsEqual(a, b, fields) {
         }
         if (!equal) throw new Error(field + ' has changed');
     }
+}
+
+function cloneReviewRecord(reviewRecord) {
+    const rr = Object.assign({}, reviewRecord);
+    if (typeof rr.popr === 'object') {
+        Object.assign(rr.popr, reviewRecord.popr);
+    }
+    return rr;
 }
 
 module.exports = Validator;
