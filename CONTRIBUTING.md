@@ -4,7 +4,7 @@
 
 - make sure node and npm are installed
 - run `npm install` to install dependencies
-- warning: in case of issues, first delete package-lock and node_modules and try rerunning npm install ([This is why we reccomend this](https://github.com/ipfs/js-ipfs/issues/1071#issuecomment-343726601))
+- warning: in case of issues, first delete package-lock and node_modules and try rerunning npm install ([This is why we recommend this](https://github.com/ipfs/js-ipfs/issues/1071#issuecomment-343726601))
 
 ## Hacking
 
