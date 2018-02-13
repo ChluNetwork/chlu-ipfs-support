@@ -43,7 +43,10 @@ class Room {
     broadcast(msg) {
         let message = msg;
         if (typeof message === 'object') message = JSON.stringify(message);
-        if (typeof message === 'string') message = Buffer.from(message);
+        if (typeof message === 'string') {
+            this.chluIpfs.logger.debug('Broadcasting message: ' + message);
+            message = Buffer.from(message);
+        }
         if (Buffer.isBuffer(message)) {
             this.room.broadcast(message);
         } else {
@@ -51,58 +54,126 @@ class Room {
         }
     }
 
-    broadcastReviewUpdates(){
-        this.broadcast({
+    async broadcastUntil(msg, expected, options = {}) {
+        let {
+            retry = true,
+            tryEvery = 3000,
+            maxTries = 5,
+            timeout = 15000
+        } = options;
+        let timeoutRef = null;
+        let globalTimeoutRef = null;
+        let tried = 0;
+        let done = false;
+        const self = this;
+        // function that sends the message
+        const broadcaster = () => {
+            if (!done && self.room) return self.broadcast.call(self, msg);
+        };
+        // function that clears dangling timeouts
+        const cleanup = () => {
+            done = true;
+            if (self.room) self.room.removeListener('peer joined', broadcaster);
+            clearTimeout(timeoutRef);
+            clearTimeout(globalTimeoutRef);
+        };
+        // function that schedules the next resend
+        const retrier = reject => {
+            if (tried === 0 || (retry && maxTries > tried)) {
+                tried++;
+                broadcaster();
+                const lastTry = !retry || maxTries === tried;
+                if (!lastTry && !done) {
+                    timeoutRef = setTimeout(() => {
+                        if (!done) retrier(reject);
+                    }, tryEvery);
+                }
+            } else {
+                // Use this instead of throwing to avoid
+                // uncatchable errors inside scheduled
+                // calls using setTimeout
+                cleanup();
+                reject('Broadcast timed out: too many retries (' + tried + ')');
+            }
+        };
+        await new Promise(async (resolve, reject) => {
+            // set up absolute timeout
+            if (timeout > 0) {
+                globalTimeoutRef = setTimeout(() => {
+                    if (!done) {
+                        cleanup();
+                        reject('Broadcast timed out after ' + timeout + 'ms');
+                    }
+                }, timeout);
+            }
+            // set up resolution case
+            this.chluIpfs.events.once(expected, () =>  resolve());
+            // set up automatic resend on peer join
+            this.room.on('peer joined', broadcaster);
+            // wait for a peer to appear if there are none
+            await this.waitForAnyPeer();
+            // broadcast and schedule next resend
+            timeoutRef = retrier(reject);
+        });
+        // Arriving at this point means everything worked
+        cleanup();
+    }
+
+    async broadcastReviewUpdates(){
+        return await this.broadcastUntil({
             type: constants.eventTypes.customerReviews,
             address: this.chluIpfs.orbitDb.getPersonalDBAddress()
-        });
+        }, constants.eventTypes.replicated + '_' + this.chluIpfs.getOrbitDBAddress());
     }
 
     async handleMessage(message) {
         try {
-            const str = message.data.toString();
-            this.chluIpfs.logger.debug('PubSub Message from ' + message.from + ': ' + str);
-            const obj = JSON.parse(str);
+            const myId = (await this.chluIpfs.ipfs.id()).id;
+            if (message.from !== myId) {
+                const str = message.data.toString();
+                this.chluIpfs.logger.debug('Handling PubSub message from ' + message.from + ': ' + str);
+                const obj = parseMessage(message);
 
-            // Handle internal events
+                // Handle internal events
+                this.chluIpfs.events.emit(obj.type || constants.eventTypes.unknown, obj);
+                if (obj.type === constants.eventTypes.pinned) {
+                    // Emit internal PINNED event
+                    this.chluIpfs.events.emit(constants.eventTypes.pinned + '_' + obj.multihash);
+                }
+                if (obj.type === constants.eventTypes.replicated) {
+                    // Emit internal REPLICATED event
+                    this.chluIpfs.events.emit(constants.eventTypes.replicated + '_' + obj.address);
+                }
 
-            this.chluIpfs.events.emit(obj.type || constants.eventTypes.unknown, obj);
-            if (obj.type === constants.eventTypes.pinned) {
-                // Emit internal PINNED event
-                this.chluIpfs.events.emit(constants.eventTypes.pinned + '_' + obj.multihash);
-            }
-            if (obj.type === constants.eventTypes.replicated) {
-                // Emit internal REPLICATED event
-                this.chluIpfs.events.emit(constants.eventTypes.replicated + '_' + obj.address);
-            }
-
-            if (this.chluIpfs.type === constants.types.service) {
-                // Service node stuff
-                const isOrbitDb = obj.type === constants.eventTypes.customerReviews || obj.type === constants.eventTypes.updatedReview;
-                // handle ReviewRecord: pin hash
-                if (obj.type === constants.eventTypes.wroteReviewRecord && typeof obj.multihash === 'string') {
-                    this.chluIpfs.logger.info('Reading and Pinning ReviewRecord ' + obj.multihash);
-                    try {
-                        // Read review record first. This caches the content, the history, and throws if it's not valid
-                        this.chluIpfs.logger.debug('Reading and validating ReviewRecord ' + obj.multihash);
-                        await this.chluIpfs.readReviewRecord(obj.multihash);
-                        this.chluIpfs.logger.debug('Pinning validated ReviewRecord ' + obj.multihash);
-                        await this.chluIpfs.pinning.pin(obj.multihash);
-                        this.chluIpfs.logger.info('Validated and Pinned ReviewRecord ' + obj.multihash);
-                    } catch(exception){
-                        this.chluIpfs.logger.error('Pinning failed due to Error: ' + exception.message);
-                    }
-                } else if (isOrbitDb && typeof obj.address === 'string') {
-                    // handle OrbitDB: replicate
-                    try {
-                        this.chluIpfs.orbitDb.replicate(obj.address);
-                    } catch(exception){
-                        this.chluIpfs.logger.error('OrbitDB Replication Error: ' + exception.message);
+                if (this.chluIpfs.type === constants.types.service) {
+                    // Service node stuff
+                    const isOrbitDb = obj.type === constants.eventTypes.customerReviews || obj.type === constants.eventTypes.updatedReview;
+                    // handle ReviewRecord: pin hash
+                    if (obj.type === constants.eventTypes.wroteReviewRecord && typeof obj.multihash === 'string') {
+                        this.chluIpfs.logger.info('Reading and Pinning ReviewRecord ' + obj.multihash);
+                        try {
+                            // Read review record first. This caches the content, the history, and throws if it's not valid
+                            this.chluIpfs.logger.debug('Reading and validating ReviewRecord ' + obj.multihash);
+                            await this.chluIpfs.readReviewRecord(obj.multihash);
+                            this.chluIpfs.logger.debug('Pinning validated ReviewRecord ' + obj.multihash);
+                            await this.chluIpfs.pinning.pin(obj.multihash);
+                            this.chluIpfs.logger.info('Validated and Pinned ReviewRecord ' + obj.multihash);
+                        } catch(exception){
+                            this.chluIpfs.logger.error('Pinning failed due to Error: ' + exception.message);
+                        }
+                    } else if (isOrbitDb && typeof obj.address === 'string') {
+                        // handle OrbitDB: replicate
+                        try {
+                            this.chluIpfs.orbitDb.replicate(obj.address);
+                        } catch(exception){
+                            this.chluIpfs.logger.error('OrbitDB Replication Error: ' + exception.message);
+                        }
                     }
                 }
             }
         } catch(exception) {
-            this.chluIpfs.logger.warn('Error while decoding PubSub message');
+            this.chluIpfs.logger.warn('Error while decoding PubSub message: ' + message.data.toString());
+            console.error(exception);
         }
     }
 
@@ -123,4 +194,10 @@ class Room {
 
 }
 
-module.exports = Room;
+function parseMessage(message) {
+    const str = message.data.toString();
+    const obj = JSON.parse(str);
+    return obj;
+}
+
+module.exports = Object.assign(Room, { parseMessage });
