@@ -38,6 +38,10 @@ You can install this module globally and use `chlu-service-node` to run a (bareb
 
 In the examples folder you can find out how to run a Service Node in a browser tab although this won't be a good idea outside of testing.
 
+## API Docs
+
+https://ipfs.io/ipfs/QmYjfSPRcqKeRiJ7Es1qfnfgADSAvM1CApJyZdXhfpDqjs
+
 ## Examples
 
 ```javascript
