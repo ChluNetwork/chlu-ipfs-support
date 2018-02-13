@@ -136,24 +136,22 @@ class ReviewRecords {
     }
 
     async waitForRemotePin(multihash) {
-        await new Promise(fullfill => {
-            this.chluIpfs.events.once(constants.eventTypes.pinned + '_' + multihash, () => fullfill());
-            this.chluIpfs.room.broadcast({ type: constants.eventTypes.wroteReviewRecord, multihash });
-        });
+        await this.chluIpfs.room.broadcastUntil({
+            type: constants.eventTypes.wroteReviewRecord,
+            multihash
+        }, constants.eventTypes.pinned + '_' + multihash);
     }
 
     async setForwardPointerForReviewRecord(previousVersionMultihash, multihash) {
         this.chluIpfs.logger.debug('Setting forward pointer for ' + previousVersionMultihash + ' to ' + multihash);
         // TODO: verify that the update is valid
         await new Promise(async fullfill => {
-            const address = this.chluIpfs.getOrbitDBAddress();
-            this.chluIpfs.events.once(constants.eventTypes.replicated + '_' + address, () => fullfill());
+            this.chluIpfs.room.broadcastReviewUpdates().then(() => fullfill());
             try {
                 await this.chluIpfs.orbitDb.db.set(previousVersionMultihash, multihash);
             } catch (error) {
                 this.chluIpfs.logger.error('OrbitDB Error: ' + error.message || error);
             }
-            this.chluIpfs.room.broadcastReviewUpdates();
             this.chluIpfs.logger.debug('Waiting for remote replication');
         });
         this.chluIpfs.logger.debug('Done setting forward pointer, the db has been replicated remotely');
