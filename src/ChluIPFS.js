@@ -5,6 +5,7 @@ const ReviewRecords = require('./modules/reviewrecords');
 const Validator = require('./modules/validator');
 const DB = require('./modules/orbitdb');
 const Persistence = require('./modules/persistence');
+const ServiceNode = require('./modules/servicenode');
 const storageUtils = require('./utils/storage');
 const EventEmitter = require('events');
 const constants = require('./constants');
@@ -44,6 +45,7 @@ class ChluIPFS {
         this.reviewRecords = new ReviewRecords(this);
         this.validator = new Validator(this);
         this.persistence = new Persistence(this);
+        this.serviceNode = new ServiceNode(this);
     }
     
     async start(){
@@ -70,12 +72,15 @@ class ChluIPFS {
             await this.room.waitForAnyPeer();
             // Broadcast my review updates DB
             this.room.broadcastReviewUpdates();
+        } else if (this.type === constants.types.service) {
+            await this.serviceNode.start();
         }
 
         return true;
     }
 
     async stop() {
+        await this.serviceNode.stop();
         await this.persistence.persistData();
         await this.orbitDb.stop();
         await this.room.stop();
@@ -91,10 +96,7 @@ class ChluIPFS {
                 this.db = undefined;
             }
             if (this.type === constants.types.service) {
-                if (this.dbs) {
-                    await Promise.all(Object.values(this.dbs).map(db => db.close()));
-                }
-                this.dbs = {};
+                await this.serviceNode.stop();
             }
             this.type = newType;
             await this.persistence.loadPersistedData();
