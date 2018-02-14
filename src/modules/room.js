@@ -82,8 +82,7 @@ class Room {
             if (tried === 0 || (retry && maxTries > tried)) {
                 tried++;
                 broadcaster();
-                const lastTry = !retry || maxTries === tried;
-                if (!lastTry && !done) {
+                if (!done) {
                     timeoutRef = setTimeout(() => {
                         if (!done) retrier(reject);
                     }, tryEvery);
