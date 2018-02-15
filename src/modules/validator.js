@@ -16,9 +16,9 @@ class Validator {
         if (v.validateHistory) await this.validateHistory(rr);
     }
 
-    async validateMultihash(reviewRecord, expected) {
-        const hashedReviewRecord = await this.chluIpfs.reviewRecords.setReviewRecordHash(reviewRecord);
-        if (expected !== hashedReviewRecord.hash) {
+    async validateMultihash(obj, expected) {
+        const hashedObj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
+        if (expected !== hashedObj.hash) {
             throw new Error('Mismatching hash');
         }
     }

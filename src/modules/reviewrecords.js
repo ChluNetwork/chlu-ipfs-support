@@ -93,7 +93,7 @@ class ReviewRecords {
             throw new Error('Can not set the orbitDb address since this is not a customer');
         }
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
-        reviewRecord = await this.setReviewRecordHash(reviewRecord);
+        reviewRecord = await this.hashReviewRecord(reviewRecord);
         if (validate) await this.chluIpfs.validator.validateReviewRecord(reviewRecord);
         return protobuf.ReviewRecord.encode(reviewRecord);
     }
@@ -158,26 +158,34 @@ class ReviewRecords {
         return multihash;
     }
 
-    async setReviewRecordHash(reviewRecord) {
+    async hashObject(obj, encoder) {
         let name;
         try {
             // Try to detect existing multihash type
-            const multihash = multihashes.fromB58String(reviewRecord.hash);
+            const multihash = multihashes.fromB58String(obj.hash);
             const decoded = multihashes.decode(multihash);
             name = decoded.name;
         } catch (error) {
             // Use default
             name = 'sha2-256';
         }
-        reviewRecord.hash = '';
-        const toHash = protobuf.ReviewRecord.encode(reviewRecord); 
+        obj.hash = '';
+        const toHash = encoder(obj); 
         const multihash = await new Promise((fullfill, reject) => {
             multihashing(toHash, name, (err, multihash) => {
                 if (err) reject(err); else fullfill(multihash);
             });
         });
-        reviewRecord.hash = multihashes.toB58String(multihash);
-        return reviewRecord;
+        obj.hash = multihashes.toB58String(multihash);
+        return obj;
+    }
+
+    async hashReviewRecord(reviewRecord) {
+        return await this.hashObject(reviewRecord, protobuf.ReviewRecord.encode);
+    }
+
+    async hashPoPR(popr) {
+        return await this.hashObject(popr, protobuf.PoPR.encode);
     }
 
     setPointerToLastReviewRecord(reviewRecord) {
