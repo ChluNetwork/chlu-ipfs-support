@@ -1,4 +1,3 @@
-
 const expect = require('chai').expect;
 const sinon = require('sinon');
 
@@ -54,7 +53,7 @@ describe('Validator Module', () => {
     it('validates the internal multihash correctly', async () => {
         sinon.spy(chluIpfs.validator, 'validateMultihash');
         let reviewRecord = await getFakeReviewRecord();
-        reviewRecord = await chluIpfs.reviewRecords.setReviewRecordHash(reviewRecord);
+        reviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(reviewRecord);
         await chluIpfs.validator.validateReviewRecord(reviewRecord);
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
         chluIpfs.validator.validateMultihash.reset();

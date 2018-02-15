@@ -64,7 +64,7 @@ describe('ReviewRecords module', () => {
         const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.hash = 'fake';
-        const hashedReviewRecord = await chluIpfs.reviewRecords.setReviewRecordHash(Object.assign({}, reviewRecord));
+        const hashedReviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(Object.assign({}, reviewRecord));
         expect(hashedReviewRecord.hash).not.to.equal(reviewRecord.hash);
         multihashes.validate(multihashes.fromB58String(hashedReviewRecord.hash)); // throws if invalid
     });

@@ -6,6 +6,7 @@ const Validator = require('./modules/validator');
 const DB = require('./modules/orbitdb');
 const Persistence = require('./modules/persistence');
 const ServiceNode = require('./modules/servicenode');
+const Vendor = require('./modules/vendor');
 const storageUtils = require('./utils/storage');
 const EventEmitter = require('events');
 const constants = require('./constants');
@@ -46,6 +47,7 @@ class ChluIPFS {
         this.validator = new Validator(this);
         this.persistence = new Persistence(this);
         this.serviceNode = new ServiceNode(this);
+        this.vendor = new Vendor(this);
     }
     
     async start(){
