@@ -24,8 +24,8 @@ class Room {
 
     async stop() {
         if (this.room) {
-            await new Promise(fullfill => {
-                this.room.on('stop', fullfill);
+            await new Promise(resolve => {
+                this.room.on('stop', resolve);
                 this.room.leave();
             });
             this.room = undefined;

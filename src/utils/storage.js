@@ -14,12 +14,12 @@ async function load(directory = getDefaultDirectory(), type) {
     if (env.isNode()) {
         const file = path.join(directory, type + '.json');
         if (!fs.existsSync(file)) return {};
-        return await new Promise((fullfill, reject) => {
+        return await new Promise((resolve, reject) => {
             fs.readFile(path.join(directory, type + '.json'), (err, result) => {
                 if (err) reject(err);
                 try {
                     const data = JSON.parse(result.toString());
-                    fullfill(data);
+                    resolve(data);
                 } catch(err) {
                     reject(err);
                 }
@@ -36,8 +36,8 @@ async function save(directory = getDefaultDirectory(), data, type) {
     if (env.isNode()) {
         if (!fs.existsSync(directory)) fs.mkdirSync(directory);
         const file = path.join(directory, type + '.json');
-        await new Promise((fullfill, reject) => {
-            fs.writeFile(file, string, err => err ? reject(err) : fullfill());
+        await new Promise((resolve, reject) => {
+            fs.writeFile(file, string, err => err ? reject(err) : resolve());
         });
     } else {
         localStorage.setItem('chlu-' + type + '-data', string);

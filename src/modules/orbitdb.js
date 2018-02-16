@@ -74,10 +74,10 @@ class DB {
         const db = await this.openDbForReplication(address);
         if (db) {
             this.chluIpfs.room.broadcast({ type: constants.eventTypes.replicating, address });
-            await new Promise(fullfill => {
+            await new Promise(resolve => {
                 this.chluIpfs.logger.debug('Waiting for next replication of ' + address);
-                db.events.once('replicated', fullfill);
-                db.events.once('ready', fullfill);
+                db.events.once('replicated', resolve);
+                db.events.once('ready', resolve);
             });
             this.chluIpfs.room.broadcast({ type: constants.eventTypes.replicated, address });
             this.chluIpfs.logger.info('Replicated ' + address);
