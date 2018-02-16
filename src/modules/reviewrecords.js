@@ -54,11 +54,14 @@ class ReviewRecords {
     async getHistory(reviewRecord, history = []) {
         const prev = reviewRecord.previous_version_multihash;
         if (prev) {
-            if (history.indexOf(prev) >= 0) {
+            if (history.map(o => o.multihash).indexOf(prev) >= 0) {
                 throw new Error('Recursive history detected');
             }
-            history.push(prev);
             const prevReviewRecord = await this.chluIpfs.reviewRecords.readReviewRecord(prev, { validate: false });
+            history.push({
+                multihash: prev,
+                reviewRecord: prevReviewRecord
+            });
             return await this.getHistory(prevReviewRecord, history);
         } else {
             return history;
