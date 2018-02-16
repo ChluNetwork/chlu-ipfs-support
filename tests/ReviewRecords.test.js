@@ -9,6 +9,7 @@ const protobuf = protons(require('../src/utils/protobuf'));
 const { getFakeReviewRecord } = require('./utils/protobuf');
 const multihashes = require('multihashes');
 const { isValidMultihash } = require('../src/utils/ipfs');
+const cloneDeep = require('lodash.clonedeep');
 
 describe('ReviewRecords module', () => {
 
@@ -64,7 +65,7 @@ describe('ReviewRecords module', () => {
         const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.hash = 'fake';
-        const hashedReviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(Object.assign({}, reviewRecord));
+        const hashedReviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(reviewRecord));
         expect(hashedReviewRecord.hash).not.to.equal(reviewRecord.hash);
         multihashes.validate(multihashes.fromB58String(hashedReviewRecord.hash)); // throws if invalid
     });

@@ -1,3 +1,6 @@
+const cloneDeep = require('lodash.clonedeep');
+const isEqual = require('lodash.isequal');
+
 class Validator {
 
     constructor(chluIpfs) {
@@ -5,13 +8,16 @@ class Validator {
     }
 
     async validateReviewRecord(reviewRecord, validations = {}) {
-        const rr = cloneReviewRecord(reviewRecord);
+        const rr = cloneDeep(reviewRecord);
         const v = Object.assign({
             validateVersion: true,
             validateMultihash: true,
-            validateHistory: true
+            validateHistory: true,
+            validateSignature: false, // TODO: enable this
+            expectedPoPRPublicKey: null // TODO: pass this from readReviewRecord
         }, validations);
         if (v.validateVersion) this.validateVersion(rr);
+        if (v.validateSignature) this.validateSignature(rr, v.expectedPoPRPublicKey);
         if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
         if (v.validateHistory) await this.validateHistory(rr);
     }
@@ -46,9 +52,13 @@ class Validator {
         await Promise.all(validations);
     }
 
+    async validateSignature(reviewRecord, expectedPoPRPublicKey = null) {
+        return true; // TODO: implementation
+    }
+
     validatePrevious(reviewRecord, previousVersion) {
         // Check that the PoPR was not changed
-        const poprEqual = deepEqual(reviewRecord.popr, previousVersion.popr);
+        const poprEqual = isEqual(reviewRecord.popr, previousVersion.popr);
         if (!poprEqual) {
             throw new Error('PoPR was changed');
         }
@@ -69,28 +79,10 @@ class Validator {
 
 }
 
-function deepEqual(a, b) {
-    return JSON.stringify(a) === JSON.stringify(b);
-}
-
 function assertFieldsEqual(a, b, fields) {
     for (const field of fields) {
-        let equal;
-        if (typeof a[field] === 'object' || typeof b[field] === 'object') {
-            equal = deepEqual(a, b);
-        } else {
-            equal = a[field] === b[field];
-        }
-        if (!equal) throw new Error(field + ' has changed');
+        if (!isEqual(a[field], b[field])) throw new Error(field + ' has changed');
     }
-}
-
-function cloneReviewRecord(reviewRecord) {
-    const rr = Object.assign({}, reviewRecord);
-    if (typeof rr.popr === 'object') {
-        Object.assign(rr.popr, reviewRecord.popr);
-    }
-    return rr;
 }
 
 module.exports = Validator;
