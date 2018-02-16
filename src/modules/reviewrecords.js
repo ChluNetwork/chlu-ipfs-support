@@ -145,8 +145,8 @@ class ReviewRecords {
     async setForwardPointerForReviewRecord(previousVersionMultihash, multihash) {
         this.chluIpfs.logger.debug('Setting forward pointer for ' + previousVersionMultihash + ' to ' + multihash);
         // TODO: verify that the update is valid
-        await new Promise(async fullfill => {
-            this.chluIpfs.room.broadcastReviewUpdates().then(() => fullfill());
+        await new Promise(async resolve => {
+            this.chluIpfs.room.broadcastReviewUpdates().then(() => resolve());
             try {
                 await this.chluIpfs.orbitDb.db.set(previousVersionMultihash, multihash);
             } catch (error) {
@@ -171,9 +171,9 @@ class ReviewRecords {
         }
         obj.hash = '';
         const toHash = encoder(obj); 
-        const multihash = await new Promise((fullfill, reject) => {
+        const multihash = await new Promise((resolve, reject) => {
             multihashing(toHash, name, (err, multihash) => {
-                if (err) reject(err); else fullfill(multihash);
+                if (err) reject(err); else resolve(multihash);
             });
         });
         obj.hash = multihashes.toB58String(multihash);

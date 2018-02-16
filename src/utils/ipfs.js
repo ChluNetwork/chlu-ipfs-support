@@ -5,10 +5,10 @@ const storage = require('./storage');
 const env = require('./env');
 
 async function createIPFS(options) {
-    return await new Promise(fullfill => {
+    return await new Promise(resolve => {
         const node = new IPFS(options);
 
-        node.on('ready', () => fullfill(node));
+        node.on('ready', () => resolve(node));
     });
 }
 

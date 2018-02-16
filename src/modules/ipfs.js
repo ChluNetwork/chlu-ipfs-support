@@ -15,9 +15,9 @@ class IPFS {
         if (!Buffer.isBuffer(buf)) {
             throw new Error('Argument is not a buffer');
         }
-        return await new Promise((fullfill, reject) => {
+        return await new Promise((resolve, reject) => {
             DAGNode.create(buf, [], (err, dagNode) => {
-                if (err) reject(err); else fullfill(dagNode);
+                if (err) reject(err); else resolve(dagNode);
             });
         });
     }
