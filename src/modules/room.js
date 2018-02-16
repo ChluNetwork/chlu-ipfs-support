@@ -57,9 +57,9 @@ class Room {
     async broadcastUntil(msg, expected, options = {}) {
         let {
             retry = true,
-            tryEvery = 3000,
+            retryAfter = 500,
             maxTries = 5,
-            timeout = 15000
+            timeout = 7000
         } = options;
         let timeoutRef = null;
         let globalTimeoutRef = null;
@@ -68,7 +68,7 @@ class Room {
         const self = this;
         // function that sends the message
         const broadcaster = () => {
-            if (!done && self.room) return self.broadcast.call(self, msg);
+            if (!done && self.room) return self.broadcast(msg);
         };
         // function that clears dangling timeouts
         const cleanup = () => {
@@ -81,11 +81,12 @@ class Room {
         const retrier = reject => {
             if (tried === 0 || (retry && maxTries > tried)) {
                 tried++;
-                broadcaster();
+                const nextTryIn = retryAfter * tried;
                 if (!done) {
+                    broadcaster();
                     timeoutRef = setTimeout(() => {
                         if (!done) retrier(reject);
-                    }, tryEvery);
+                    }, nextTryIn);
                 }
             } else {
                 // Use this instead of throwing to avoid
@@ -106,7 +107,10 @@ class Room {
                 }, timeout);
             }
             // set up resolution case
-            this.chluIpfs.events.once(expected, () =>  resolve());
+            this.chluIpfs.events.once(expected, () => {
+                cleanup();
+                resolve();
+            });
             // set up automatic resend on peer join
             this.room.on('peer joined', broadcaster);
             // wait for a peer to appear if there are none
@@ -114,15 +118,18 @@ class Room {
             // broadcast and schedule next resend
             timeoutRef = retrier(reject);
         });
-        // Arriving at this point means everything worked
-        cleanup();
     }
 
-    async broadcastReviewUpdates(){
-        return await this.broadcastUntil({
+    async broadcastReviewUpdates(expectReplication = true){
+        const msg = {
             type: constants.eventTypes.customerReviews,
             address: this.chluIpfs.orbitDb.getPersonalDBAddress()
-        }, constants.eventTypes.replicated + '_' + this.chluIpfs.getOrbitDBAddress());
+        };
+        if (expectReplication) {
+            return await this.broadcastUntil(msg, constants.eventTypes.replicated + '_' + this.chluIpfs.getOrbitDBAddress());
+        } else {
+            return this.broadcast(msg);
+        }
     }
 
     async handleMessage(message) {

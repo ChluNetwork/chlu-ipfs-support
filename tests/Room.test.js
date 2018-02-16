@@ -23,7 +23,7 @@ describe('Room module', () => {
             chluIpfs.room.room = getMockPubSubRoom();
             chluIpfs.room.broadcastUntil('message', 'FAKE_EVENT', {
                 retry: true,
-                tryEvery: 50,
+                retryAfter: 50,
                 maxTries: 3,
                 timeout: 10000,
             }).catch(() => {
@@ -37,7 +37,7 @@ describe('Room module', () => {
             chluIpfs.room.room = getMockPubSubRoom();
             chluIpfs.room.broadcastUntil('message', 'FAKE_EVENT', {
                 retry: false,
-                tryEvery: 10,
+                retryAfter: 10,
                 maxTries: 5,
                 timeout: 500
             }).catch(() => {
@@ -51,7 +51,7 @@ describe('Room module', () => {
             chluIpfs.room.room = getMockPubSubRoom();
             chluIpfs.room.broadcastUntil('message', 'FAKE_EVENT', {
                 retry: true,
-                tryEvery: 50,
+                retryAfter: 50,
                 maxTries: 5,
                 timeout: 1000
             }).catch(() => {
@@ -70,7 +70,7 @@ describe('Room module', () => {
             });
             chluIpfs.room.broadcastUntil('message', 'FAKE_EVENT', {
                 retry: true,
-                tryEvery: 100,
+                retryAfter: 100,
                 maxTries: 5,
                 timeout: 1000
             }).then(() => {
@@ -95,7 +95,7 @@ describe('Room module', () => {
             chluIpfs.room.broadcastUntil('message', 'FAKE_EVENT', {
                 retry: false,
                 maxTries: 1,
-                tryEvery: 10000,
+                retryAfter: 10000,
                 timeout: 300 
             }).catch(() => {
                 expect(chluIpfs.room.room.broadcast.callCount).to.equal(2);
