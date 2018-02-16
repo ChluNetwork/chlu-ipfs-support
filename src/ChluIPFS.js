@@ -72,8 +72,8 @@ class ChluIPFS {
         // If customer, also wait for at least one peer to join the room (TODO: review this)
         if (this.type === constants.types.customer) {
             await this.room.waitForAnyPeer();
-            // Broadcast my review updates DB
-            this.room.broadcastReviewUpdates();
+            // Broadcast my review updates DB, but don't fail if nobody replicates
+            this.room.broadcastReviewUpdates(false);
         } else if (this.type === constants.types.service) {
             await this.serviceNode.start();
         }
