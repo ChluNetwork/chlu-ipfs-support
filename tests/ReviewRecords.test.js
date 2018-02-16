@@ -85,7 +85,8 @@ describe('ReviewRecords module', () => {
             return map[multihash];
         });
         const history = await chluIpfs.reviewRecords.getHistory(reviewRecord3);
-        expect(history).to.deep.equal(Object.keys(map).reverse());
+        expect(history.map(o => o.multihash)).to.deep.equal(Object.keys(map).reverse());
+        expect(history.map(o => o.reviewRecord)).to.deep.equal(Object.values(map).reverse());
         // Check that the recursive history detection works
         map = {
             'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1': reviewRecord,
