@@ -48,6 +48,7 @@ class ChluIPFS {
         this.persistence = new Persistence(this);
         this.serviceNode = new ServiceNode(this);
         this.vendor = new Vendor(this);
+        this.ready = false;
     }
     
     async start(){
@@ -77,17 +78,26 @@ class ChluIPFS {
         } else if (this.type === constants.types.service) {
             await this.serviceNode.start();
         }
-
+        this.ready = true;
         return true;
     }
 
     async stop() {
+        this.ready = false;
         await this.serviceNode.stop();
         await this.persistence.persistData();
         await this.orbitDb.stop();
         await this.room.stop();
         await this.ipfs.stop();
         this.ipfs = undefined;
+    }
+
+    async waitUntilReady() {
+        if (!this.ready) {
+            await new Promise(resolve => {
+                this.events.on('ready', resolve);
+            });
+        }
     }
 
     async switchType(newType) {
