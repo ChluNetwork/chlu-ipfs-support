@@ -82,7 +82,7 @@ class ReviewRecords {
         const reviewRecord = await this.getReviewRecord(multihash);
         if (validate) {
             const validateOptions = typeof validate === 'object' ? validate : {};
-            this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
+            await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
         }
         if (notifyUpdate) this.findLastReviewRecordUpdate(multihash, notifyUpdate);
         return reviewRecord;

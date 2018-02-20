@@ -64,6 +64,10 @@ class ChluIPFS {
         return await this.instance.stop();
     }
 
+    async waitUntilReady() {
+        return await this.instance.waitUntilReady();
+    }
+
     /**
      * Change this node to a new ChluIPFS type. Works
      * when started or stopped.
