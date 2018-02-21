@@ -17,6 +17,7 @@ describe('Customer', () => {
             enablePersistence: false,
             logger: logger('Customer')
         });
+        chluIpfs.waitUntilReady = sinon.stub().resolves();
         chluIpfs.orbitDb.db = { address: { toString: () => 'example' } };
         chluIpfs.ipfsUtils = {
             createDAGNode: sinon.stub().resolves({ multihash }),

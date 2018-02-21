@@ -38,6 +38,7 @@ describe('Validator Module', () => {
             storeDAGNode: sinon.stub().resolves(multihash),
             getDAGNodeMultihash: sinon.stub().returns(multihash)
         };
+        chluIpfs.waitUntilReady = sinon.stub().resolves();
         await chluIpfs.storeReviewRecord(reviewRecord, {
             publish: false
         });
