@@ -128,6 +128,8 @@ class Room {
         if (expectReplication) {
             return await this.broadcastUntil(msg, constants.eventTypes.replicated + '_' + this.chluIpfs.getOrbitDBAddress());
         } else {
+            // Wait for at least one peer before broadcasting. TODO: review this
+            await this.waitForAnyPeer();
             return this.broadcast(msg);
         }
     }
