@@ -137,7 +137,6 @@ class ChluIPFS {
 
     async storeReviewRecord(reviewRecord, options = {}) {
         await this.waitUntilReady();
-        await this.room.waitForAnyPeer();
         return await this.reviewRecords.storeReviewRecord(reviewRecord, options);
     }
 
