@@ -49,9 +49,11 @@ class ChluIPFS {
         this.serviceNode = new ServiceNode(this);
         this.vendor = new Vendor(this);
         this.ready = false;
+        this.starting = false;
     }
     
     async start(){
+        this.starting = true;
         this.logger.debug('Starting ChluIPFS, directory: ' + this.directory);
         if (!this.ipfs) {
             this.logger.debug('Initializing IPFS');
@@ -70,15 +72,15 @@ class ChluIPFS {
             await this.persistence.persistData();
         }
 
-        // If customer, also wait for at least one peer to join the room (TODO: review this)
         if (this.type === constants.types.customer) {
-            await this.room.waitForAnyPeer();
             // Broadcast my review updates DB, but don't fail if nobody replicates
             this.room.broadcastReviewUpdates(false);
         } else if (this.type === constants.types.service) {
             await this.serviceNode.start();
         }
         this.ready = true;
+        this.starting = false;
+        this.events.emit('ready');
         return true;
     }
 
@@ -94,14 +96,20 @@ class ChluIPFS {
 
     async waitUntilReady() {
         if (!this.ready) {
-            await new Promise(resolve => {
-                this.events.on('ready', resolve);
-            });
+            if (this.starting) {
+                await new Promise(resolve => {
+                    this.events.once('ready', resolve);
+                });
+            } else {
+                throw new Error('The ChluIPFS node needs to be started');
+            }
         }
     }
 
     async switchType(newType) {
         if (this.type !== newType) {
+            this.starting = true;
+            this.ready = false;
             await this.persistence.persistData();
             if (this.type === constants.types.customer) {
                 if (this.db) await this.db.close();
@@ -112,6 +120,9 @@ class ChluIPFS {
             }
             this.type = newType;
             await this.persistence.loadPersistedData();
+            this.starting = false;
+            this.ready = true;
+            this.events.emit('ready');
         }
     }
 
@@ -120,10 +131,13 @@ class ChluIPFS {
     }
 
     async readReviewRecord(multihash, options = {}) {
+        await this.waitUntilReady();
         return await this.reviewRecords.readReviewRecord(multihash, options);
     }
 
     async storeReviewRecord(reviewRecord, options = {}) {
+        await this.waitUntilReady();
+        await this.room.waitForAnyPeer();
         return await this.reviewRecords.storeReviewRecord(reviewRecord, options);
     }
 
