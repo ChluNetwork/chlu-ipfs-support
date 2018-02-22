@@ -164,15 +164,19 @@ class Room {
     listenToRoomEvents(room){
         room.on('peer joined', peer => {
             this.chluIpfs.logger.debug('Peer joined the pubsub room', peer);
+            this.chluIpfs.events.emit('peer joined', peer);
         });
         room.on('peer left', peer => {
             this.chluIpfs.logger.debug('Peer left the pubsub room', peer);
+            this.chluIpfs.events.emit('peer left', peer);
         });
         room.on('subscribed', () => {
             this.chluIpfs.logger.debug('Connected to the pubsub room');
+            this.chluIpfs.events.emit('pubsub subscribed');
         });
         room.on('error', error => {
             this.chluIpfs.logger.error('PubSub Room Error: ' + error.message || error);
+            this.chluIpfs.events.emit('pubsub error', error);
         });
     }
 

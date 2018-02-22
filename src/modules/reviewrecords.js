@@ -39,6 +39,7 @@ class ReviewRecords {
         if (updatedMultihash) {
             // TODO: Check that the update is valid first
             notifyUpdate(multihash, updatedMultihash);
+            this.chluIpfs.events.emit('updated ReviewRecord', { multihash, updatedMultihash });
         }
     }
 
@@ -85,6 +86,7 @@ class ReviewRecords {
             await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
         }
         if (notifyUpdate) this.findLastReviewRecordUpdate(multihash, notifyUpdate);
+        this.chluIpfs.events.emit('read ReviewRecord', { reviewRecord, multihash });
         return reviewRecord;
     }
 
@@ -115,6 +117,7 @@ class ReviewRecords {
                 throw new Error('Expected a different multihash');
             }
         }
+        this.chluIpfs.events.emit('stored', { multihash, reviewRecord });
         if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash);
         return multihash;
     }
@@ -136,6 +139,7 @@ class ReviewRecords {
         // Operation succeeded: set this as the last review record published
         this.chluIpfs.lastReviewRecordMultihash = multihash;
         await this.chluIpfs.persistence.persistData();
+        this.chluIpfs.events.emit('published', multihash);
     }
 
     async waitForRemotePin(multihash) {
