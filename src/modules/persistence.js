@@ -24,6 +24,7 @@ class Persistence {
             } catch (error) {
                 this.chluIpfs.logger.error('Could not write data: ' + error.message || error);
             }
+            this.chluIpfs.events.emit('saved');
             this.chluIpfs.logger.debug('Saved persisted data');
         } else {
             this.chluIpfs.logger.debug('Not persisting data, persistence disabled');
@@ -34,13 +35,14 @@ class Persistence {
         if (this.chluIpfs.enablePersistence) {
             this.chluIpfs.logger.debug('Loading persisted data');
             const data = await this.chluIpfs.storage.load(this.chluIpfs.directory, this.chluIpfs.type);
-            this.chluIpfs.logger.debug('Loaded persisted data');
             if (this.chluIpfs.type === constants.types.service) {
                 // Open known OrbitDBs so that we can seed them
                 if (data.orbitDbAddresses) await this.chluIpfs.orbitDb.openDbs(data.orbitDbAddresses);
             }
             if (data.orbitDbAddress) await this.chluIpfs.orbitDb.openPersonalOrbitDB(data.orbitDbAddress);
             if (data.lastReviewRecordMultihash) this.chluIpfs.lastReviewRecordMultihash = data.lastReviewRecordMultihash;
+            this.chluIpfs.events.emit('loaded');
+            this.chluIpfs.logger.debug('Loaded persisted data');
         } else {
             this.chluIpfs.logger.debug('Not loading persisted data, persistence disabled');
         }
