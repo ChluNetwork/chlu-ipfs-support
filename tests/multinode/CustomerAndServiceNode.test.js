@@ -94,10 +94,9 @@ describe('Customer and Service Node integration', function() {
         });
         // Now try to fetch it from the service node while checking for updates
         await new Promise(resolve => {
-            const notifyUpdate = async (originalHash, newHash) => {
+            const notifyUpdate = async (originalHash, newHash, rr) => {
                 expect(newHash).to.deep.equal(updatedMultihash);
-                const readRecord = await serviceNode.readReviewRecord(newHash);
-                expect(readRecord).to.deep.equal(reviewUpdate);
+                expect(rr).to.deep.equal(reviewUpdate);
                 resolve();
             };
             serviceNode.readReviewRecord(multihash, { notifyUpdate });

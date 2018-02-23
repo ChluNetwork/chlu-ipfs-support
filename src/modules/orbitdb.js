@@ -87,12 +87,15 @@ class DB {
     listenToDBEvents(db){
         db.events.on('replicated', address => {
             this.chluIpfs.logger.debug('OrbitDB Event: Replicated ' + address);
+            this.chluIpfs.events.emit('replicated', address);
         });
         db.events.on('replicate', address => {
             this.chluIpfs.logger.debug('OrbitDB Event: Replicate ' + address);
+            this.chluIpfs.events.emit('replicate', address);
         });
         db.events.on('replicate.progress', (address, hash, entry, progress) => {
             this.chluIpfs.logger.debug('OrbitDB Event: Replicate Progress ' + progress + ' for address ' + address);
+            this.chluIpfs.events.emit('replicate.progress', address, hash, entry, progress);
         });
         db.events.on('ready', () => this.chluIpfs.logger.debug('OrbitDB Event: Ready'));
         db.events.on('write', () => this.chluIpfs.logger.debug('OrbitDB Event: Write'));

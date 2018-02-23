@@ -38,8 +38,13 @@ class ReviewRecords {
         const updatedMultihash = await this.getLastReviewRecordUpdate(db, multihash);
         if (updatedMultihash) {
             // TODO: Check that the update is valid first
-            notifyUpdate(multihash, updatedMultihash);
-            this.chluIpfs.events.emit('updated ReviewRecord', { multihash, updatedMultihash });
+            try {
+                const reviewRecord = await this.readReviewRecord(updatedMultihash);
+                notifyUpdate(multihash, updatedMultihash, reviewRecord);
+                this.chluIpfs.events.emit('updated ReviewRecord', { multihash, updatedMultihash, reviewRecord });
+            } catch (error) {
+                this.chluIpfs.logger.error('Review update ' + updatedMultihash + ' for ' + multihash + ' was invalid: ' + error);
+            }
         }
     }
 
@@ -47,7 +52,9 @@ class ReviewRecords {
         const reviewRecord = await this.getReviewRecord(multihash);
         if (reviewRecord.orbitDb) {
             const db = await this.chluIpfs.orbitDb.openDbForReplication(reviewRecord.orbitDb);
-            db.events.once('replicated', () => this.notifyIfReviewIsUpdated(db, multihash, notifyUpdate));
+            const notify = () => this.notifyIfReviewIsUpdated(db, multihash, notifyUpdate);
+            db.events.on('replicated', notify);
+            db.events.on('write', notify);
             this.notifyIfReviewIsUpdated(db, multihash, notifyUpdate);
         }
     }
