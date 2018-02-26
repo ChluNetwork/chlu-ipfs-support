@@ -10,16 +10,26 @@ class Validator {
     async validateReviewRecord(reviewRecord, validations = {}) {
         const rr = cloneDeep(reviewRecord);
         const v = Object.assign({
+            throwErrors: true,
             validateVersion: true,
             validateMultihash: true,
             validateHistory: true,
             validateSignature: false, // TODO: enable this
             expectedPoPRPublicKey: null // TODO: pass this from readReviewRecord
         }, validations);
-        if (v.validateVersion) this.validateVersion(rr);
-        if (v.validateSignature) this.validateSignature(rr, v.expectedPoPRPublicKey);
-        if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
-        if (v.validateHistory) await this.validateHistory(rr);
+        try {
+            if (v.validateVersion) this.validateVersion(rr);
+            if (v.validateSignature) this.validateSignature(rr, v.expectedPoPRPublicKey);
+            if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
+            if (v.validateHistory) await this.validateHistory(rr);
+        } catch (error) {
+            if (v.throwErrors) {
+                throw error;
+            } else {
+                return error;
+            }
+        }
+        return null;
     }
 
     async validateMultihash(obj, expected) {
