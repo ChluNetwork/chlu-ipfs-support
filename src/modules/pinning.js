@@ -27,6 +27,7 @@ class Pinning {
         } catch (error) {
             this.chluIpfs.logger.error('IPFS Pin Error: ' + error.message);
             this.chluIpfs.events.emit('pin error', { multihash, error });
+            this.chluIpfs.events.emit('error', error);
         }
     }
 }

@@ -70,6 +70,7 @@ class DB {
     }
 
     async replicate(address) {
+        // TODO: check for validity
         this.chluIpfs.logger.info('Replicating ' + address);
         const db = await this.openDbForReplication(address);
         if (db) {
@@ -79,6 +80,7 @@ class DB {
                 db.events.once('replicated', resolve);
                 db.events.once('ready', resolve);
             });
+            this.chluIpfs.events.emit('reviewUpdates', address);
             this.chluIpfs.room.broadcast({ type: constants.eventTypes.replicated, address });
             this.chluIpfs.logger.info('Replicated ' + address);
         }

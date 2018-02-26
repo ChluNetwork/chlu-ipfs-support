@@ -54,6 +54,7 @@ class ChluIPFS {
     
     async start(){
         this.starting = true;
+        this.events.emit('starting');
         this.logger.debug('Starting ChluIPFS, directory: ' + this.directory);
         if (!this.ipfs) {
             this.logger.debug('Initializing IPFS');
@@ -85,12 +86,14 @@ class ChluIPFS {
     }
 
     async stop() {
+        this.events.emit('stopping');
         this.ready = false;
         await this.serviceNode.stop();
         await this.persistence.persistData();
         await this.orbitDb.stop();
         await this.room.stop();
         await this.ipfs.stop();
+        this.events.emit('stop');
         this.ipfs = undefined;
     }
 
@@ -109,6 +112,7 @@ class ChluIPFS {
     async switchType(newType) {
         if (this.type !== newType) {
             this.starting = true;
+            this.events.emit('starting');
             this.ready = false;
             await this.persistence.persistData();
             if (this.type === constants.types.customer) {

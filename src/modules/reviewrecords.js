@@ -22,7 +22,9 @@ class ReviewRecords {
                     path.push(dbValue);
                     this.chluIpfs.logger.debug('Found forward pointer from ' + multihash + ' to ' + updatedMultihash);
                 } else {
-                    throw new Error('Recursive references detected in this OrbitDB: ' + db.address.toString());
+                    const error = new Error('Recursive references detected in this OrbitDB: ' + db.address.toString());
+                    this.chluIpfs.events.emit('error', error);
+                    throw error;
                 }
             }
         }
@@ -55,7 +57,7 @@ class ReviewRecords {
             const notify = () => this.notifyIfReviewIsUpdated(db, multihash, notifyUpdate);
             db.events.on('replicated', notify);
             db.events.on('write', notify);
-            this.notifyIfReviewIsUpdated(db, multihash, notifyUpdate);
+            notify();
         }
     }
 
@@ -90,7 +92,12 @@ class ReviewRecords {
         const reviewRecord = await this.getReviewRecord(multihash);
         if (validate) {
             const validateOptions = typeof validate === 'object' ? validate : {};
-            await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
+            try {
+                await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
+            } catch (error) {
+                this.chluIpfs.events.emit('validation error', error, multihash);
+                throw error;
+            }
         }
         if (notifyUpdate) this.findLastReviewRecordUpdate(multihash, notifyUpdate);
         this.chluIpfs.events.emit('read ReviewRecord', { reviewRecord, multihash });
@@ -124,7 +131,7 @@ class ReviewRecords {
                 throw new Error('Expected a different multihash');
             }
         }
-        this.chluIpfs.events.emit('stored', { multihash, reviewRecord });
+        this.chluIpfs.events.emit('stored ReviewRecord', { multihash, reviewRecord });
         if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash);
         return multihash;
     }
@@ -146,7 +153,7 @@ class ReviewRecords {
         // Operation succeeded: set this as the last review record published
         this.chluIpfs.lastReviewRecordMultihash = multihash;
         await this.chluIpfs.persistence.persistData();
-        this.chluIpfs.events.emit('published', multihash);
+        this.chluIpfs.events.emit('published ReviewRecord', multihash);
     }
 
     async waitForRemotePin(multihash) {
@@ -169,6 +176,7 @@ class ReviewRecords {
             this.chluIpfs.logger.debug('Waiting for remote replication');
         });
         this.chluIpfs.logger.debug('Done setting forward pointer, the db has been replicated remotely');
+        this.chluIpfs.events.emit('updated ReviewRecord', previousVersionMultihash, multihash);
         return multihash;
     }
 

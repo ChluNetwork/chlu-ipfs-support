@@ -156,8 +156,9 @@ class Room {
                 }
             }
         } catch(exception) {
-            this.chluIpfs.logger.warn('Error while decoding PubSub message: ' + message.data.toString());
-            console.error(exception);
+            const error = 'Error while decoding PubSub message: ' + message.data.toString();
+            this.chluIpfs.logger.warn(error);
+            this.chluIpfs.events.emit('error', error);
         }
     }
 
