@@ -43,7 +43,6 @@ class ReviewRecords {
             try {
                 const reviewRecord = await this.readReviewRecord(updatedMultihash);
                 notifyUpdate(multihash, updatedMultihash, reviewRecord);
-                this.chluIpfs.events.emit('updated ReviewRecord', { multihash, updatedMultihash, reviewRecord });
             } catch (error) {
                 this.chluIpfs.logger.error('Review update ' + updatedMultihash + ' for ' + multihash + ' was invalid: ' + error);
             }
@@ -53,10 +52,15 @@ class ReviewRecords {
     async findLastReviewRecordUpdate(multihash, notifyUpdate) {
         const reviewRecord = await this.getReviewRecord(multihash);
         if (reviewRecord.orbitDb) {
-            const db = await this.chluIpfs.orbitDb.openDbForReplication(reviewRecord.orbitDb);
+            let db;
+            if (this.chluIpfs.orbitDb.getPersonalDBAddress() === reviewRecord.orbitDb) {
+                db = this.chluIpfs.orbitDb.db;
+            } else {
+                db = await this.chluIpfs.orbitDb.openDbForReplication(reviewRecord.orbitDb);
+            }
             const notify = () => this.notifyIfReviewIsUpdated(db, multihash, notifyUpdate);
             db.events.on('replicated', notify);
-            db.events.on('write', notify);
+            this.chluIpfs.events.on('updated ReviewRecord', notify);
             notify();
         }
     }
@@ -114,7 +118,7 @@ class ReviewRecords {
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
         reviewRecord = await this.hashReviewRecord(reviewRecord);
         if (validate) await this.chluIpfs.validator.validateReviewRecord(reviewRecord);
-        return protobuf.ReviewRecord.encode(reviewRecord);
+        return reviewRecord;
     }
 
     async storeReviewRecord(reviewRecord, options = {}){
@@ -123,7 +127,8 @@ class ReviewRecords {
             publish = true,
             validate = true
         } = options;
-        const buffer = await this.prepareReviewRecord(reviewRecord, validate);
+        const rr = await this.prepareReviewRecord(reviewRecord, validate);
+        const buffer = protobuf.ReviewRecord.encode(rr);
         const dagNode = await this.chluIpfs.ipfsUtils.createDAGNode(buffer); // don't store to IPFS yet
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         if (options.expectedMultihash) {
@@ -131,12 +136,12 @@ class ReviewRecords {
                 throw new Error('Expected a different multihash');
             }
         }
-        this.chluIpfs.events.emit('stored ReviewRecord', { multihash, reviewRecord });
-        if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash);
+        this.chluIpfs.events.emit('stored ReviewRecord', { multihash, reviewRecord: rr });
+        if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash, rr);
         return multihash;
     }
 
-    async publishReviewRecord(dagNode, previousVersionMultihash, expectedMultihash) {
+    async publishReviewRecord(dagNode, previousVersionMultihash, expectedMultihash, reviewRecord) {
         // Broadcast request for pin, then wait for response
         // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
         const multihash = await this.chluIpfs.ipfsUtils.storeDAGNode(dagNode); // store to IPFS
@@ -147,7 +152,7 @@ class ReviewRecords {
         let tasksToAwait = [this.waitForRemotePin(multihash)];
         if (previousVersionMultihash) {
             // This is a review update
-            tasksToAwait.push(this.setForwardPointerForReviewRecord(previousVersionMultihash, multihash));
+            tasksToAwait.push(this.setForwardPointerForReviewRecord(previousVersionMultihash, multihash, reviewRecord));
         }
         await Promise.all(tasksToAwait);
         // Operation succeeded: set this as the last review record published
@@ -163,7 +168,7 @@ class ReviewRecords {
         }, constants.eventTypes.pinned + '_' + multihash);
     }
 
-    async setForwardPointerForReviewRecord(previousVersionMultihash, multihash) {
+    async setForwardPointerForReviewRecord(previousVersionMultihash, multihash, reviewRecord) {
         this.chluIpfs.logger.debug('Setting forward pointer for ' + previousVersionMultihash + ' to ' + multihash);
         // TODO: verify that the update is valid
         await new Promise(async resolve => {
@@ -176,7 +181,7 @@ class ReviewRecords {
             this.chluIpfs.logger.debug('Waiting for remote replication');
         });
         this.chluIpfs.logger.debug('Done setting forward pointer, the db has been replicated remotely');
-        this.chluIpfs.events.emit('updated ReviewRecord', previousVersionMultihash, multihash);
+        this.chluIpfs.events.emit('updated ReviewRecord', previousVersionMultihash, multihash, reviewRecord);
         return multihash;
     }
 
