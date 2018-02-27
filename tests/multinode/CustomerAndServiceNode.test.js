@@ -102,4 +102,78 @@ describe('Customer and Service Node integration', function() {
             serviceNode.readReviewRecord(multihash, { notifyUpdate });
         });
     });
+
+    it('handles review updates happening after calling readReviewRecord', async () => {
+        await new Promise(async resolve => {
+            // Create fake review record
+            const reviewRecord = await getFakeReviewRecord();
+            // Store the original review
+            const multihash = await customerNode.storeReviewRecord(reviewRecord);
+            // Now try to fetch it from the service node while checking for updates
+            const notifyUpdate = async (originalHash, newHash, rr) => {
+                expect(newHash).to.not.equal(multihash);
+                expect(originalHash).to.equal(multihash);
+                expect(rr).to.not.deep.equal(reviewRecord);
+                resolve();
+            };
+            await serviceNode.readReviewRecord(multihash, { notifyUpdate });
+            // Now create a fake update
+            const reviewUpdate = await getFakeReviewRecord();
+            reviewUpdate.review_text = 'Actually it broke after just a week!';
+            reviewUpdate.rating = 1;
+            // Store the update
+            await customerNode.storeReviewRecord(reviewUpdate, {
+                previousVersionMultihash: multihash
+            });
+        });
+    });
+
+    it('handles review updates written by the current node', async () => {
+        // Create fake review record
+        const reviewRecord = await getFakeReviewRecord();
+        // Now create a fake update
+        const reviewUpdate = await getFakeReviewRecord();
+        reviewUpdate.review_text = 'Actually it broke after just a week!';
+        reviewUpdate.rating = 1;
+        // Store the original review
+        const multihash = await customerNode.storeReviewRecord(reviewRecord);
+        // Store the update
+        const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, {
+            previousVersionMultihash: multihash
+        });
+        // Now try to fetch it from the service node while checking for updates
+        await new Promise(resolve => {
+            const notifyUpdate = async (originalHash, newHash, rr) => {
+                expect(newHash).to.deep.equal(updatedMultihash);
+                expect(rr).to.deep.equal(reviewUpdate);
+                resolve();
+            };
+            customerNode.readReviewRecord(multihash, { notifyUpdate });
+        });
+    });
+
+    it('handles review updates written by the current node but that happened after the read', async () => {
+        await new Promise(async resolve => {
+            // Create fake review record
+            const reviewRecord = await getFakeReviewRecord();
+            // Store the original review
+            const multihash = await customerNode.storeReviewRecord(reviewRecord);
+            // Now try to fetch it from the service node while checking for updates
+            const notifyUpdate = async (originalHash, newHash, rr) => {
+                expect(newHash).to.not.equal(multihash);
+                expect(originalHash).to.equal(multihash);
+                expect(rr).to.not.deep.equal(reviewRecord);
+                resolve();
+            };
+            await customerNode.readReviewRecord(multihash, { notifyUpdate });
+            // Now create a fake update
+            const reviewUpdate = await getFakeReviewRecord();
+            reviewUpdate.review_text = 'Actually it broke after just a week!';
+            reviewUpdate.rating = 1;
+            // Store the update
+            await customerNode.storeReviewRecord(reviewUpdate, {
+                previousVersionMultihash: multihash
+            });
+        });
+    });
 });
