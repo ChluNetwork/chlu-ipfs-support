@@ -52,16 +52,23 @@ class ReviewRecords {
     async findLastReviewRecordUpdate(multihash, notifyUpdate) {
         const reviewRecord = await this.getReviewRecord(multihash);
         if (reviewRecord.orbitDb) {
-            let db;
-            if (this.chluIpfs.orbitDb.getPersonalDBAddress() === reviewRecord.orbitDb) {
-                db = this.chluIpfs.orbitDb.db;
-            } else {
-                db = await this.chluIpfs.orbitDb.openDbForReplication(reviewRecord.orbitDb);
-            }
-            const notify = () => this.notifyIfReviewIsUpdated(db, multihash, notifyUpdate);
-            db.events.on('replicated', notify);
-            this.chluIpfs.events.on('updated ReviewRecord', notify);
-            notify();
+            const getDb = async address => {
+                if (this.chluIpfs.orbitDb.getPersonalDBAddress() === address) {
+                    return this.chluIpfs.orbitDb.db;
+                } else {
+                    return await this.chluIpfs.orbitDb.openDbForReplication(address);
+                }
+            };
+            const notify = async address => {
+                if (address === reviewRecord.orbitDb) {
+                    this.notifyIfReviewIsUpdated(await getDb(address), multihash, notifyUpdate);
+                }
+            };
+            this.chluIpfs.events.on('replicated', address => notify(address));
+            this.chluIpfs.events.on('updated ReviewRecord', (previousVersionMultihash, multihash, rr) => {
+                if (rr && rr.orbitDb) notify(rr.orbitDb);
+            });
+            notify(reviewRecord.orbitDb);
         }
     }
 
