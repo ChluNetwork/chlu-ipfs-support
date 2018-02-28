@@ -204,6 +204,7 @@ class ReviewRecords {
             name = 'sha2-256';
         }
         obj.hash = '';
+        this.chluIpfs.logger.debug('Preparing to hash the object: ' + JSON.stringify(obj));
         const toHash = encoder(obj); 
         const multihash = await new Promise((resolve, reject) => {
             multihashing(toHash, name, (err, multihash) => {
@@ -211,6 +212,7 @@ class ReviewRecords {
             });
         });
         obj.hash = multihashes.toB58String(multihash);
+        this.chluIpfs.logger.debug('Hashed to ' + obj.hash + ' the object ' + JSON.stringify(obj));
         return obj;
     }
 
