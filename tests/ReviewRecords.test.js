@@ -109,4 +109,20 @@ describe('ReviewRecords module', () => {
         }
         expect(error).to.not.be.undefined;
     });
+
+    it('hashes consistently in weird edge cases', async () => {
+        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
+        chluIpfs.waitUntilReady = sinon.stub().resolves();
+        const reviewRecord = await getFakeReviewRecord();
+        reviewRecord.last_reviewrecord_multihash = '';
+
+        const hashedReviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(reviewRecord));
+        const rrGoneThroughEncoding = protobuf.ReviewRecord.decode(protobuf.ReviewRecord.encode(reviewRecord));
+        const hashedAgain = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(rrGoneThroughEncoding));
+        expect(hashedReviewRecord.hash).to.equal(hashedAgain.hash);
+
+        delete reviewRecord.last_reviewrecord_multihash;
+        const hashedAgain2 = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(reviewRecord));
+        expect(hashedReviewRecord.hash).to.equal(hashedAgain2.hash);
+    });
 });
