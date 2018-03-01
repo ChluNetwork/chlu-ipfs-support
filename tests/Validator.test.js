@@ -43,7 +43,7 @@ describe('Validator Module', () => {
             publish: false
         });
         expect(chluIpfs.validator.validateReviewRecord.called).to.be.true;
-        chluIpfs.validator.validateReviewRecord.reset();
+        chluIpfs.validator.validateReviewRecord.resetHistory();
         await chluIpfs.storeReviewRecord(reviewRecord, {
             publish: false,
             validate: false
@@ -57,7 +57,7 @@ describe('Validator Module', () => {
         reviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(reviewRecord);
         await chluIpfs.validator.validateReviewRecord(reviewRecord);
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
-        chluIpfs.validator.validateMultihash.reset();
+        chluIpfs.validator.validateMultihash.resetHistory();
         reviewRecord.hash = 'this hash is wrong on purpose';
         let error;
         try {
@@ -94,9 +94,9 @@ describe('Validator Module', () => {
         expect(chluIpfs.validator.validatePrevious.callCount).to.equal(2);
         expect(chluIpfs.reviewRecords.getReviewRecord.calledWith(reviewRecord3.previous_version_multihash)).to.be.true;
         // Test failure cases
-        chluIpfs.validator.validateMultihash.reset();
-        chluIpfs.validator.validatePrevious.reset();
-        chluIpfs.validator.validatePrevious.reset();
+        chluIpfs.validator.validateMultihash.resetHistory();
+        chluIpfs.validator.validatePrevious.resetHistory();
+        chluIpfs.validator.validatePrevious.resetHistory();
         // Change review2 to be an invalid update
         reviewRecord2.customer_address = 'changed';
         let error;

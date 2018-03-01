@@ -217,6 +217,9 @@ class ReviewRecords {
     }
 
     async hashReviewRecord(reviewRecord) {
+        if (!reviewRecord.last_reviewrecord_multihash) {
+            reviewRecord.last_reviewrecord_multihash = '';
+        }
         return await this.hashObject(reviewRecord, protobuf.ReviewRecord.encode);
     }
 
@@ -225,9 +228,7 @@ class ReviewRecords {
     }
 
     setPointerToLastReviewRecord(reviewRecord) {
-        if (this.chluIpfs.lastReviewRecordMultihash) {
-            reviewRecord.last_reviewrecord_multihash = this.chluIpfs.lastReviewRecordMultihash;
-        }
+        reviewRecord.last_reviewrecord_multihash = this.chluIpfs.lastReviewRecordMultihash || '';
         return reviewRecord;
     }
 
