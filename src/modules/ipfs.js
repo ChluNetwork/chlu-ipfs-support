@@ -35,7 +35,7 @@ class IPFS {
         if (typeof data === 'string') buf = Buffer.from(data);
         else if (Buffer.isBuffer(data)) buf = data;
         if (!Buffer.isBuffer(buf)) throw new Error('Could not convert data into buffer');
-        const dagNode = await this.chluIpfs.ipfs.put(buf);
+        const dagNode = await this.chluIpfs.ipfs.object.put(buf);
         return utils.getDAGNodeMultihash(dagNode);
     }
 }
