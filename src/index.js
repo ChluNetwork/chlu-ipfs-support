@@ -87,7 +87,8 @@ class ChluIPFS {
      * @returns {Promise} resolves when the pinning process has completed
      */
     async pin(multihash){
-        return await this.instance.pin(multihash);
+        // TODO: tests for this (it was broken)
+        return await this.instance.pinning.pin(multihash);
     }
 
     /**
