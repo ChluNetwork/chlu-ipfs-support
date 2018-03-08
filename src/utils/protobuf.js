@@ -21,6 +21,12 @@ module.exports = `
         required uint32 chlu_version = 11;
         repeated ReviewAttribute attributes = 12;
         required string signature = 13;
+        /*
+        required string vendor_key_location = 14;
+        required string vendor_encryption_key_location = 15;
+        required string vendor_signature = 16;
+        required string marketplace_signature = 17;
+        */
     }
   
     message ReviewRecord {

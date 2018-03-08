@@ -36,6 +36,7 @@ class Vendor {
     }
 
     async verifyPoPR(popr, pubKeyMultihash) {
+        // TODO: DEPRECATED: use validator
         let obj = Object.assign({}, popr);
         const signature = obj.signature.slice(0); // make a copy
         obj.signature = '';

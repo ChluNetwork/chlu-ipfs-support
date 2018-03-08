@@ -6,6 +6,7 @@ const protons = require('protons');
 const protobuf = protons(require('../src/utils/protobuf'));
 const logger = require('./utils/logger');
 const { getFakeReviewRecord } = require('./utils/protobuf');
+const { ECPair } = require('bitcoinjs-lib');
 
 describe('Validator Module', () => {
     let chluIpfs;
@@ -107,4 +108,34 @@ describe('Validator Module', () => {
         }
         expect(error.message).to.equal('customer_address has changed');
     });
+
+    it.skip('validates PoPR signatures and keys', async () => {
+        // Prepare marketplace stuff
+        const vm = await makeKeyPair();
+        const v = await makeKeyPair();
+        const m = await makeKeyPair();
+        const vSignature = await chluIpfs.vendor.signMultihash(vm.multihash, v.keyPair);
+        const mSignature = await chluIpfs.vendor.signMultihash(vm.multihash, m.keyPair);
+        // Stubs
+        chluIpfs.validator.fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
+        // Get a PoPR
+        const popr = (await getFakeReviewRecord()).popr;
+        // Put all the signatures in place
+        popr.marketplace_signature = mSignature;
+        popr.vendor_signature = vSignature;
+        const signedPoPR = await chluIpfs.vendor.signPoPR(popr, vm.keyPair);
+        // Validate
+        let valid = await chluIpfs.validator.validatePoPRSignaturesAndKeys(signedPoPR);
+        expect(valid).to.be.true;
+        // TODO: Failure Cases
+    });
+
+    async function makeKeyPair() {
+        const keyPair = ECPair.makeRandom();
+        const multihash = await chluIpfs.vendor.storePublicKey(keyPair.getPublicKeyBuffer());
+        return {
+            keyPair,
+            multihash
+        };
+    }
 });
