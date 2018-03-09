@@ -68,8 +68,10 @@ describe('ReviewRecords module', () => {
         chluIpfs.waitUntilReady = sinon.stub().resolves();
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.hash = 'fake';
-        const hashedReviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(reviewRecord));
+        const hashedReviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(reviewRecord);
         expect(hashedReviewRecord.hash).not.to.equal(reviewRecord.hash);
+        const hashedAgain = await chluIpfs.reviewRecords.hashReviewRecord(reviewRecord);
+        expect(hashedAgain.hash).to.equal(hashedReviewRecord.hash);
         multihashes.validate(multihashes.fromB58String(hashedReviewRecord.hash)); // throws if invalid
     });
 

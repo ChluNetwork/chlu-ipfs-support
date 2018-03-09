@@ -6,7 +6,9 @@ const protons = require('protons');
 const protobuf = protons(require('../src/utils/protobuf'));
 const logger = require('./utils/logger');
 const { getFakeReviewRecord } = require('./utils/protobuf');
-const { ECPair } = require('bitcoinjs-lib');
+const DAGNode = require('ipld-dag-pb').DAGNode;
+const cloneDeep = require('lodash.clonedeep');
+const cryptoTestUtils = require('./utils/crypto');
 
 describe('Validator Module', () => {
     let chluIpfs;
@@ -109,33 +111,54 @@ describe('Validator Module', () => {
         expect(error.message).to.equal('customer_address has changed');
     });
 
-    it.skip('validates PoPR signatures and keys', async () => {
-        // Prepare marketplace stuff
+    it('validates PoPR signatures and keys', async () => {
+        // --- Setup
+        const fakeStore = {};
+        chluIpfs.ipfsUtils = {
+            get: sinon.stub().callsFake(async m => fakeStore[m]),
+            put: sinon.stub().callsFake(async data => {
+                const buf = Buffer.from(data);
+                const multihash = await new Promise((resolve, reject) => {
+                    DAGNode.create(buf, [], (err, dagNode) => {
+                        if (err) reject(err); else resolve(dagNode.toJSON().multihash);
+                    });
+                });
+                fakeStore[multihash] = buf;
+                return multihash;
+            }),
+            storeDAGNode: sinon.stub().callsFake(async dagNode => {
+                const data = dagNode.toJSON();
+                fakeStore[data.multihash] = data.data;
+                return data.multihash;
+            })
+        };
+        const { makeKeyPair, preparePoPR } = cryptoTestUtils(chluIpfs);
         const vm = await makeKeyPair();
         const v = await makeKeyPair();
         const m = await makeKeyPair();
-        const vSignature = await chluIpfs.vendor.signMultihash(vm.multihash, v.keyPair);
-        const mSignature = await chluIpfs.vendor.signMultihash(vm.multihash, m.keyPair);
-        // Stubs
         chluIpfs.validator.fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
-        // Get a PoPR
+        // --- Success Case
         const popr = (await getFakeReviewRecord()).popr;
-        // Put all the signatures in place
-        popr.marketplace_signature = mSignature;
-        popr.vendor_signature = vSignature;
-        const signedPoPR = await chluIpfs.vendor.signPoPR(popr, vm.keyPair);
-        // Validate
-        let valid = await chluIpfs.validator.validatePoPRSignaturesAndKeys(signedPoPR);
+        const signedPoPR = await preparePoPR(popr, vm, v, m);
+        let valid = await chluIpfs.validator.validatePoPRSignaturesAndKeys(cloneDeep(signedPoPR));
         expect(valid).to.be.true;
-        // TODO: Failure Cases
-    });
-
-    async function makeKeyPair() {
-        const keyPair = ECPair.makeRandom();
-        const multihash = await chluIpfs.vendor.storePublicKey(keyPair.getPublicKeyBuffer());
-        return {
-            keyPair,
-            multihash
+        // --- Failure Cases
+        const test = popr => {
+            return () => {
+                chluIpfs.validator.validatePoPRSignaturesAndKeys(popr);
+            };
         };
-    }
+        let invalidPopr = cloneDeep(popr);
+        invalidPopr.hash = 'lol not the real hash';
+        expect(test(invalidPopr)).to.throw;
+        invalidPopr = cloneDeep(popr);
+        invalidPopr.signature = invalidPopr.vendor_signature;
+        expect(test(invalidPopr)).to.throw;
+        invalidPopr = cloneDeep(popr);
+        invalidPopr.marketplace_signature = invalidPopr.vendor_signature;
+        expect(test(invalidPopr)).to.throw;
+        invalidPopr = cloneDeep(popr);
+        invalidPopr.vendor_signature = invalidPopr.marketplace_signature;
+        expect(test(invalidPopr)).to.throw;
+    });
 });

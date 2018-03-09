@@ -6,26 +6,25 @@ class Validator {
 
     constructor(chluIpfs) {
         this.chluIpfs = chluIpfs;
-    }
-
-    async validateReviewRecord(reviewRecord, validations = {}) {
-        const rr = cloneDeep(reviewRecord);
-        const v = Object.assign({
+        this.defaultValidationSettings = {
             throwErrors: true,
             validateVersion: true,
             validateMultihash: true,
             validateHistory: true,
-            validateSignatures: false, // TODO: enable this
-            validatePoPR: false, // TODO: enable this
+            validateSignatures: false,
             expectedPoPRPublicKey: null // TODO: pass this from readReviewRecord
-        }, validations);
+        };
+    }
+
+    async validateReviewRecord(reviewRecord, validations = {}) {
+        const rr = cloneDeep(reviewRecord);
+        const v = Object.assign({}, this.defaultValidationSettings, validations);
         try {
             if (v.validateVersion) this.validateVersion(rr);
-            if (v.validateSignature) this.validateSignature(rr, v.expectedPoPRPublicKey);
+            if (v.validateSignature) this.validateSignature(rr);
             if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
-            if (v.validatePoPR) await this.validatePoPR(rr.popr);
             if (v.validateSignatures){
-                // await this.validateSignature(rr); // TODO: enable
+                // await this.validateRRSignature(rr); // TODO: enable
                 await this.validatePoPRSignaturesAndKeys(rr.popr, v.expectedPoPRPublicKey);
             }
             if (v.validateHistory) await this.validateHistory(rr);
@@ -46,9 +45,9 @@ class Validator {
         }
     }
 
-    async validateSignature(obj) {
+    async validateRRSignature(rr, expectedRRPublicKey = null) {
         // TODO: implementation
-        throw new Error('Not implemented');
+        // needs customer to sign RR
     }
 
     async validateHistory(reviewRecord) {
@@ -65,11 +64,10 @@ class Validator {
         }
     }
 
-    async validatePoPR(popr) {
-        await this.validateMultihash(popr, popr.hash.slice(0));
-    }
-
     async validatePoPRSignaturesAndKeys(popr, expectedPoPRPublicKey = null) {
+        if (!popr.hash) {
+            popr = await this.chluIpfs.reviewRecords.hashPoPR(popr);
+        }
         const hash = popr.hash;
         const vmMultihash = this.keyLocationToKeyMultihash(popr.key_location);
         const isExpectedKey = expectedPoPRPublicKey === null || expectedPoPRPublicKey === vmMultihash;
@@ -82,11 +80,11 @@ class Validator {
         const vmSignature = popr.signature;
         const marketplaceUrl = popr.marketplace_url;
         const mMultihash = await this.fetchMarketplaceKey(marketplaceUrl);
-        const v = this.chluIpfs.vendor;
+        const c = this.chluIpfs.crypto;
         const validations = await Promise.all([
-            v.verifyMultihash(vMultihash, vmMultihash, vSignature),
-            v.verifyMultihash(mMultihash, vmMultihash, mSignature),
-            v.verifyMultihash(vmMultihash, hash, vmSignature)
+            c.verifyMultihash(vMultihash, vmMultihash, vSignature),
+            c.verifyMultihash(mMultihash, vmMultihash, mSignature),
+            c.verifyMultihash(vmMultihash, hash, vmSignature)
         ]);
         // Return false if any validation is false
         return validations.reduce((acc, v) => acc && v);

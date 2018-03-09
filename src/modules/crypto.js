@@ -2,7 +2,7 @@ const multihashes = require('multihashes');
 const { ECPair, ECSignature } = require('bitcoinjs-lib');
 const { multihashToBuffer } = require('../utils/ipfs');
 
-class Vendor {
+class Crypto {
     constructor(chluIpfs){
         this.chluIpfs = chluIpfs;
     }
@@ -27,21 +27,12 @@ class Vendor {
     }
 
     async signPoPR(obj, keyPair) {
-        obj.signature = '';
         if (!obj.hash) {
             obj = await this.chluIpfs.reviewRecords.hashPoPR(obj);
         }
         obj.signature = await this.signMultihash(obj.hash, keyPair);
+        delete obj.hash; // causes issues with tests because it is not in the protobuf
         return obj;
-    }
-
-    async verifyPoPR(popr, pubKeyMultihash) {
-        // TODO: DEPRECATED: use validator
-        let obj = Object.assign({}, popr);
-        const signature = obj.signature.slice(0); // make a copy
-        obj.signature = '';
-        obj = await this.chluIpfs.reviewRecords.hashPoPR(obj);
-        return await this.verifyMultihash(pubKeyMultihash, obj.hash, signature);
     }
 
     getDigestFromMultihash(multihash){
@@ -50,4 +41,4 @@ class Vendor {
     }
 }
 
-module.exports = Vendor;
+module.exports = Crypto;

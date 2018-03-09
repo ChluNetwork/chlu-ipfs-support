@@ -7,6 +7,8 @@ const env = require('../../src/utils/env');
 const rimraf = require('rimraf');
 const sinon = require('sinon');
 const logger = require('../utils/logger');
+const cryptoTestUtils = require('../utils/crypto');
+const cloneDeep = require('lodash.clonedeep');
 
 const testDir = '/tmp/chlu-test-' + Date.now() + Math.random();
 
@@ -14,7 +16,7 @@ const serviceNodeDir = testDir + '/chlu-service-node';
 const customerDir = testDir + '/chlu-customer';
 
 describe('Customer and Service Node integration', function() {
-    let customerNode, serviceNode, server;
+    let customerNode, serviceNode, server, v, vm, m, makeKeyPair, preparePoPR;
 
     before(async () => {
         if (env.isNode()) {
@@ -49,6 +51,21 @@ describe('Customer and Service Node integration', function() {
         await utils.connect(serviceNode.ipfs, customerNode.ipfs);
     
         await Promise.all([serviceNode.start(), customerNode.start()]);
+
+        // Stubs
+        const crypto = cryptoTestUtils(serviceNode);
+        makeKeyPair = crypto.makeKeyPair;
+        preparePoPR = crypto.preparePoPR;
+        vm = await makeKeyPair();
+        v = await makeKeyPair();
+        m = await makeKeyPair();
+        const fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
+        serviceNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
+        customerNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
+        // Force Signature validations on
+        // TODO: remove this when signature validations are globally on
+        serviceNode.validator.defaultValidationSettings.validateSignatures = true;
+        customerNode.validator.defaultValidationSettings.validateSignatures = true;
     });
 
     afterEach(async () => {
@@ -65,7 +82,9 @@ describe('Customer and Service Node integration', function() {
 
     it('handles review records', async () => {
         // Create fake review record
-        const reviewRecord = await getFakeReviewRecord();
+        let reviewRecord = await getFakeReviewRecord();
+        reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
+        reviewRecord = await customerNode.reviewRecords.prepareReviewRecord(reviewRecord, { validate: false });
         // Spy on pinning activity on the service node
         sinon.spy(serviceNode.pinning, 'pin');
         // store review record and await for completion
@@ -81,11 +100,16 @@ describe('Customer and Service Node integration', function() {
 
     it('handles review updates', async () => {
         // Create fake review record
-        const reviewRecord = await getFakeReviewRecord();
+        let reviewRecord = await getFakeReviewRecord();
+        reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
+        reviewRecord = await customerNode.reviewRecords.prepareReviewRecord(reviewRecord, { validate: false });
+        console.log(reviewRecord.hash);
         // Now create a fake update
-        const reviewUpdate = await getFakeReviewRecord();
+        let reviewUpdate = await getFakeReviewRecord();
+        reviewUpdate.popr = cloneDeep(reviewRecord.popr);
         reviewUpdate.review_text = 'Actually it broke after just a week!';
         reviewUpdate.rating = 1;
+        reviewUpdate = await customerNode.reviewRecords.prepareReviewRecord(reviewUpdate, { validate: false });
         // Store the original review
         const multihash = await customerNode.storeReviewRecord(reviewRecord);
         // Store the update
@@ -93,34 +117,47 @@ describe('Customer and Service Node integration', function() {
             previousVersionMultihash: multihash
         });
         // Now try to fetch it from the service node while checking for updates
-        await new Promise(resolve => {
+        await new Promise((resolve, reject) => {
             const notifyUpdate = async (originalHash, newHash, rr) => {
-                expect(newHash).to.deep.equal(updatedMultihash);
-                expect(rr).to.deep.equal(reviewUpdate);
-                resolve();
+                try {
+                    expect(newHash).to.deep.equal(updatedMultihash);
+                    const updatedRR = await serviceNode.readReviewRecord(updatedMultihash);
+                    expect(rr).to.deep.equal(updatedRR);
+                    resolve();
+                } catch (err) {
+                    reject(err);
+                }
             };
             serviceNode.readReviewRecord(multihash, { notifyUpdate });
         });
     });
 
     it('handles review updates happening after calling readReviewRecord', async () => {
-        await new Promise(async resolve => {
+        await new Promise(async (resolve, reject) => {
             // Create fake review record
-            const reviewRecord = await getFakeReviewRecord();
+            let reviewRecord = await getFakeReviewRecord();
+            reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
+            reviewRecord = await customerNode.reviewRecords.prepareReviewRecord(reviewRecord, { validate: false });
             // Store the original review
             const multihash = await customerNode.storeReviewRecord(reviewRecord);
             // Now try to fetch it from the service node while checking for updates
             const notifyUpdate = async (originalHash, newHash, rr) => {
-                expect(newHash).to.not.equal(multihash);
-                expect(originalHash).to.equal(multihash);
-                expect(rr).to.not.deep.equal(reviewRecord);
-                resolve();
+                try {
+                    expect(newHash).to.not.equal(multihash);
+                    expect(originalHash).to.equal(multihash);
+                    expect(rr).to.not.deep.equal(reviewRecord);
+                    resolve();
+                } catch (err) {
+                    reject(err);
+                }
             };
             await serviceNode.readReviewRecord(multihash, { notifyUpdate });
             // Now create a fake update
-            const reviewUpdate = await getFakeReviewRecord();
+            let reviewUpdate = await getFakeReviewRecord();
+            reviewUpdate.popr = cloneDeep(reviewRecord.popr);
             reviewUpdate.review_text = 'Actually it broke after just a week!';
             reviewUpdate.rating = 1;
+            reviewUpdate = await customerNode.reviewRecords.prepareReviewRecord(reviewUpdate, { validate: false });
             // Store the update
             await customerNode.storeReviewRecord(reviewUpdate, {
                 previousVersionMultihash: multihash
@@ -130,11 +167,15 @@ describe('Customer and Service Node integration', function() {
 
     it('handles review updates written by the current node', async () => {
         // Create fake review record
-        const reviewRecord = await getFakeReviewRecord();
+        let reviewRecord = await getFakeReviewRecord();
+        reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
+        reviewRecord = await customerNode.reviewRecords.prepareReviewRecord(reviewRecord, { validate: false });
         // Now create a fake update
-        const reviewUpdate = await getFakeReviewRecord();
+        let reviewUpdate = await getFakeReviewRecord();
+        reviewUpdate.popr = cloneDeep(reviewRecord.popr);
         reviewUpdate.review_text = 'Actually it broke after just a week!';
         reviewUpdate.rating = 1;
+        reviewUpdate = await customerNode.reviewRecords.prepareReviewRecord(reviewUpdate, { validate: false });
         // Store the original review
         const multihash = await customerNode.storeReviewRecord(reviewRecord);
         // Store the update
@@ -142,34 +183,48 @@ describe('Customer and Service Node integration', function() {
             previousVersionMultihash: multihash
         });
         // Now try to fetch it from the service node while checking for updates
-        await new Promise(resolve => {
+        await new Promise((resolve, reject) => {
             const notifyUpdate = async (originalHash, newHash, rr) => {
-                expect(newHash).to.deep.equal(updatedMultihash);
-                expect(rr).to.deep.equal(reviewUpdate);
-                resolve();
+                try {
+                    expect(newHash).to.deep.equal(updatedMultihash);
+                    const updatedRR = await serviceNode.readReviewRecord(updatedMultihash);
+                    expect(rr).to.deep.equal(updatedRR);
+                    resolve();
+                } catch (err) {
+                    reject(err);
+                }
             };
             customerNode.readReviewRecord(multihash, { notifyUpdate });
         });
     });
 
     it('handles review updates written by the current node but that happened after the read', async () => {
-        await new Promise(async resolve => {
+        await new Promise(async (resolve, reject) => {
             // Create fake review record
-            const reviewRecord = await getFakeReviewRecord();
+            let reviewRecord = await getFakeReviewRecord();
+            reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
+            reviewRecord = await customerNode.reviewRecords.prepareReviewRecord(reviewRecord, { validate: false });
             // Store the original review
             const multihash = await customerNode.storeReviewRecord(reviewRecord);
             // Now try to fetch it from the service node while checking for updates
             const notifyUpdate = async (originalHash, newHash, rr) => {
-                expect(newHash).to.not.equal(multihash);
-                expect(originalHash).to.equal(multihash);
-                expect(rr).to.not.deep.equal(reviewRecord);
-                resolve();
+                try {
+                    expect(newHash).to.not.equal(multihash);
+                    expect(originalHash).to.equal(multihash);
+                    expect(rr).to.not.deep.equal(reviewRecord);
+                    expect(rr).to.deep.equal(reviewUpdate);
+                    resolve();
+                } catch (err) {
+                    reject(err);
+                }
             };
             await customerNode.readReviewRecord(multihash, { notifyUpdate });
             // Now create a fake update
-            const reviewUpdate = await getFakeReviewRecord();
+            let reviewUpdate = await getFakeReviewRecord();
+            reviewUpdate.popr = cloneDeep(reviewRecord.popr);
             reviewUpdate.review_text = 'Actually it broke after just a week!';
             reviewUpdate.rating = 1;
+            reviewUpdate = await customerNode.reviewRecords.prepareReviewRecord(reviewUpdate, { validate: false });
             // Store the update
             await customerNode.storeReviewRecord(reviewUpdate, {
                 previousVersionMultihash: multihash

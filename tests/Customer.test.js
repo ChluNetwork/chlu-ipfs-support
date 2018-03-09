@@ -5,7 +5,7 @@ const ChluIPFS = require('../src/ChluIPFS');
 const protons = require('protons');
 const protobuf = protons(require('../src/utils/protobuf'));
 const { getFakeReviewRecord } = require('./utils/protobuf');
-const logger = require('./utils/logger')
+const logger = require('./utils/logger');
 
 describe('Customer', () => {
 

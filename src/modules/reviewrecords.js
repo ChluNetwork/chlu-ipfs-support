@@ -4,6 +4,7 @@ const multihashing = require('multihashing-async');
 const constants = require('../constants');
 const protobuf = protons(require('../utils/protobuf'));
 const IPFSUtils = require('./ipfs');
+const cloneDeep = require('lodash.clonedeep');
 
 class ReviewRecords {
 
@@ -192,7 +193,8 @@ class ReviewRecords {
         return multihash;
     }
 
-    async hashObject(obj, encoder) {
+    async hashObject(object, encoder) {
+        const obj = cloneDeep(object);
         let name;
         try {
             // Try to detect existing multihash type
@@ -204,6 +206,10 @@ class ReviewRecords {
             name = 'sha2-256';
         }
         obj.hash = '';
+        if (typeof obj.signature !== 'undefined') {
+            // Signature is applied after hashing, so remove it for hashing
+            obj.signature = '';
+        }
         this.chluIpfs.logger.debug('Preparing to hash the object: ' + JSON.stringify(obj));
         const toHash = encoder(obj); 
         const multihash = await new Promise((resolve, reject) => {
@@ -212,11 +218,16 @@ class ReviewRecords {
             });
         });
         obj.hash = multihashes.toB58String(multihash);
+        if (typeof object.signature !== 'undefined') {
+            // Restore signature if it was present originally
+            obj.signature = object.signature;
+        }
         this.chluIpfs.logger.debug('Hashed to ' + obj.hash + ' the object ' + JSON.stringify(obj));
         return obj;
     }
 
     async hashReviewRecord(reviewRecord) {
+        // TODO: better checks
         if (!reviewRecord.last_reviewrecord_multihash) {
             reviewRecord.last_reviewrecord_multihash = '';
         }
