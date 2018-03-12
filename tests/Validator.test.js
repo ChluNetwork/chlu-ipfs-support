@@ -9,6 +9,7 @@ const { getFakeReviewRecord } = require('./utils/protobuf');
 const DAGNode = require('ipld-dag-pb').DAGNode;
 const cloneDeep = require('lodash.clonedeep');
 const cryptoTestUtils = require('./utils/crypto');
+const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 
 describe('Validator Module', () => {
     let chluIpfs;
@@ -33,15 +34,10 @@ describe('Validator Module', () => {
     it('is called by default but can be disabled', async () => {
         sinon.spy(chluIpfs.validator, 'validateReviewRecord');
         const reviewRecord = await getFakeReviewRecord();
-        const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
-        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
-        chluIpfs.ipfsUtils = {
-            get: sinon.stub().resolves({ data: buffer }),
-            createDAGNode: sinon.stub().callsFake(async buf => { return { data: buf, multihash }; }),
-            storeDAGNode: sinon.stub().resolves(multihash),
-            getDAGNodeMultihash: sinon.stub().returns(multihash)
-        };
+        const fakeStore = {};
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
         chluIpfs.waitUntilReady = sinon.stub().resolves();
+        chluIpfs.crypto.generateKeyPair();
         await chluIpfs.storeReviewRecord(reviewRecord, {
             publish: false
         });

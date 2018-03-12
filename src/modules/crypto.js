@@ -5,6 +5,8 @@ const { multihashToBuffer } = require('../utils/ipfs');
 class Crypto {
     constructor(chluIpfs){
         this.chluIpfs = chluIpfs;
+        this.pubKeyMultihash = null;
+        this.keyPair = null;
     }
 
     async storePublicKey(pubKey) {
@@ -28,6 +30,7 @@ class Crypto {
 
     async signPoPR(obj, keyPair) {
         if (!obj.hash) {
+            obj.signature = '';
             obj = await this.chluIpfs.reviewRecords.hashPoPR(obj);
         }
         obj.signature = await this.signMultihash(obj.hash, keyPair);
@@ -37,6 +40,7 @@ class Crypto {
 
     async signReviewRecord(obj, keyPair) {
         if (!obj.hash) {
+            obj.signature = '';
             obj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
         }
         obj.signature = await this.signMultihash(obj.hash, keyPair);

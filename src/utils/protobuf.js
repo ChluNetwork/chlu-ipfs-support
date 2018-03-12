@@ -45,6 +45,8 @@ module.exports = `
         required string orbitDb = 10;
         optional string last_reviewrecord_multihash = 11;
         required string hash = 12;
+        required string signature = 13;
+        required string key_location = 14;
     }
 
     message PaymentRecord {

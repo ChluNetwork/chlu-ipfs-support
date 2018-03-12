@@ -68,6 +68,12 @@ class ChluIPFS {
         // Load previously persisted data
         await this.persistence.loadPersistedData();
 
+        if (this.type === constants.types.customer && this.crypto.keyPair === null) {
+            // Generate a key pair
+            // Note: this action requires IPFS to be already started
+            await this.crypto.generateKeyPair();
+        }
+
         if (this.type === constants.types.customer && !this.orbitDb.getPersonalDBAddress()) {
             await this.orbitDb.openPersonalOrbitDB(constants.customerDbName);
             await this.persistence.persistData();

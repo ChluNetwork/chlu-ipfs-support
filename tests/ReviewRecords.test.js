@@ -10,6 +10,7 @@ const { getFakeReviewRecord } = require('./utils/protobuf');
 const multihashes = require('multihashes');
 const { isValidMultihash } = require('../src/utils/ipfs');
 const cloneDeep = require('lodash.clonedeep');
+const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 
 describe('ReviewRecords module', () => {
 
@@ -41,26 +42,21 @@ describe('ReviewRecords module', () => {
     });
 
     it('sets the last review record multihash into new reviews and updates it after storing the review', async () => {
-        const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ';
         const fakeReviewRecord = await getFakeReviewRecord();
-        const buffer = protobuf.ReviewRecord.encode(fakeReviewRecord);
         const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
         chluIpfs.waitUntilReady = sinon.stub().resolves();
         const lastReviewRecordMultihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPZ';
         chluIpfs.lastReviewRecordMultihash = lastReviewRecordMultihash.slice(0); // make a copy
-        chluIpfs.ipfsUtils = {
-            get: sinon.stub().resolves({ data: buffer }),
-            createDAGNode: sinon.stub().callsFake(async buf => { return { data: buf, multihash }; }),
-            storeDAGNode: sinon.stub().resolves(multihash),
-            getDAGNodeMultihash: sinon.stub().returns(multihash)
-        };
+        const fakeStore = {};
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
         chluIpfs.getOrbitDBAddress = () => 'example data';
         chluIpfs.reviewRecords.setForwardPointerForReviewRecord = sinon.stub().resolves();
         chluIpfs.reviewRecords.waitForRemotePin = sinon.stub().resolves();
-        await chluIpfs.storeReviewRecord(fakeReviewRecord);
+        chluIpfs.crypto.generateKeyPair();
+        const multihash = await chluIpfs.storeReviewRecord(fakeReviewRecord);
         const reviewRecord = protobuf.ReviewRecord.decode(chluIpfs.ipfsUtils.storeDAGNode.args[0][0].data);
-        expect(chluIpfs.lastReviewRecordMultihash).to.deep.equal(multihash);
         expect(reviewRecord.last_reviewrecord_multihash).to.deep.equal(lastReviewRecordMultihash);
+        expect(chluIpfs.lastReviewRecordMultihash).to.deep.equal(multihash);
     });
     
     it('computes the ReviewRecord hash', async () => {

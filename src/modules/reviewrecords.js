@@ -117,14 +117,15 @@ class ReviewRecords {
     }
 
     async prepareReviewRecord(reviewRecord, validate = true) {
-        // TODO: validate
         if(this.chluIpfs.type === constants.types.customer) {
             reviewRecord.orbitDb = this.chluIpfs.getOrbitDBAddress();
         } else if (!reviewRecord.orbitDb) {
             throw new Error('Can not set the orbitDb address since this is not a customer');
         }
+        const keyPair = this.chluIpfs.crypto.keyPair;
+        reviewRecord.key_location = '/ipfs/' + await this.chluIpfs.crypto.storePublicKey(keyPair.getPublicKeyBuffer());
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
-        reviewRecord = await this.hashReviewRecord(reviewRecord);
+        reviewRecord = await this.chluIpfs.crypto.signReviewRecord(reviewRecord, keyPair);
         if (validate) await this.chluIpfs.validator.validateReviewRecord(reviewRecord);
         return reviewRecord;
     }

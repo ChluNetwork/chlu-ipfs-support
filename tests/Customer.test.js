@@ -6,12 +6,14 @@ const protons = require('protons');
 const protobuf = protons(require('../src/utils/protobuf'));
 const { getFakeReviewRecord } = require('./utils/protobuf');
 const logger = require('./utils/logger');
+const { isValidMultihash } = require('../src/utils/ipfs');
+const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 
 describe('Customer', () => {
 
-    let chluIpfs, multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
+    let chluIpfs, fakeStore = {}; // not the real multihash
 
-    before(async () => {
+    beforeEach(async () => {
         chluIpfs = new ChluIPFS({
             type: ChluIPFS.types.customer,
             enablePersistence: false,
@@ -19,16 +21,14 @@ describe('Customer', () => {
         });
         chluIpfs.waitUntilReady = sinon.stub().resolves();
         chluIpfs.orbitDb.db = { address: { toString: () => 'example' } };
-        chluIpfs.ipfsUtils = {
-            createDAGNode: sinon.stub().resolves({ multihash }),
-            storeDAGNode: sinon.stub().resolves(multihash),
-            getDAGNodeMultihash: sinon.stub().returns(multihash)
-        };
+        fakeStore = {};
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
+        chluIpfs.crypto.generateKeyPair();
         // Mock broadcast: fake a response so that the call can complete
         const broadcast = sinon.stub().callsFake(msg => {
             const obj = JSON.parse(msg.toString());
             expect(obj.type).to.equal(ChluIPFS.eventTypes.wroteReviewRecord);
-            expect(obj.multihash).to.equal(multihash);
+            expect(isValidMultihash(obj.multihash)).to.be.true;
             setTimeout(() => {
                 chluIpfs.events.emit(ChluIPFS.eventTypes.pinned + '_' + obj.multihash);
             }, 0);
@@ -42,18 +42,11 @@ describe('Customer', () => {
         };
     });
 
-    afterEach(async() => {
-        chluIpfs.ipfsUtils.createDAGNode.resetHistory();
-        chluIpfs.ipfsUtils.storeDAGNode.resetHistory();
-        chluIpfs.ipfsUtils.getDAGNodeMultihash.resetHistory();
-        chluIpfs.room.room.broadcast.resetHistory();
-    });
-
     it('stores ReviewRecords and automatically publishes them', async () => {
         const reviewRecord = await getFakeReviewRecord();
         const result = await chluIpfs.storeReviewRecord(reviewRecord);
         const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
-        expect(result).to.equal(multihash);
+        expect(isValidMultihash(result)).to.be.true;
         expect(chluIpfs.room.room.broadcast.called).to.be.true;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.true;
         expect(protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
@@ -63,7 +56,7 @@ describe('Customer', () => {
         const reviewRecord = await getFakeReviewRecord();
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
         const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
-        expect(result).to.equal(multihash);
+        expect(isValidMultihash(result)).to.be.true;
         expect(chluIpfs.room.room.broadcast.called).to.be.false;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.false;
         expect(protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
@@ -73,7 +66,7 @@ describe('Customer', () => {
         const reviewRecord = await getFakeReviewRecord();
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
         let actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
-        expect(result).to.equal(multihash);
+        expect(isValidMultihash(result)).to.be.true;
         expect(chluIpfs.room.room.broadcast.called).to.be.false;
         expect(protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
         const newResult = await chluIpfs.storeReviewRecord(reviewRecord, { expectedMultihash: result });
@@ -85,9 +78,9 @@ describe('Customer', () => {
 
     it('correctly checks expected multihash when storing a review record', async () => {
         const reviewRecord = await getFakeReviewRecord();
-        let errorMessage;
+        let errorMessage, multihash;
         try {
-            await chluIpfs.storeReviewRecord(reviewRecord, { publish: false, expectedMultihash: 'test' });
+            multihash = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false, expectedMultihash: 'test' });
         } catch (error) {
             errorMessage = error.message;
         }
@@ -99,6 +92,10 @@ describe('Customer', () => {
             errorMessage = error.message;
         }
         expect(errorMessage).to.be.null;
+    });
+
+    it.skip('signs review records correctly', async () => {
+        // TODO: check that the signature and key_location are present and valid
     });
 
 });

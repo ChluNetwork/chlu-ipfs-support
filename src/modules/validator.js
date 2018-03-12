@@ -41,7 +41,8 @@ class Validator {
     async validateMultihash(obj, expected) {
         const hashedObj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
         if (expected !== hashedObj.hash) {
-            throw new Error('Mismatching hash');
+            console.log(JSON.stringify(hashedObj))
+            throw new Error('Mismatching hash: got ' + hashedObj.hash + ' instead of ' + expected);
         }
     }
 
