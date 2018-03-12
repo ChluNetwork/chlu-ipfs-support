@@ -24,8 +24,10 @@ class Validator {
             if (v.validateSignature) this.validateSignature(rr);
             if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
             if (v.validateSignatures){
-                // await this.validateRRSignature(rr); // TODO: enable
-                await this.validatePoPRSignaturesAndKeys(rr.popr, v.expectedPoPRPublicKey);
+                await Promise.all([
+                    this.validateRRSignature(rr, v.expectedRRPublicKey),
+                    this.validatePoPRSignaturesAndKeys(rr.popr, v.expectedPoPRPublicKey)
+                ]);
             }
             if (v.validateHistory) await this.validateHistory(rr);
         } catch (error) {
@@ -41,14 +43,19 @@ class Validator {
     async validateMultihash(obj, expected) {
         const hashedObj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
         if (expected !== hashedObj.hash) {
-            console.log(JSON.stringify(hashedObj))
             throw new Error('Mismatching hash: got ' + hashedObj.hash + ' instead of ' + expected);
         }
     }
 
     async validateRRSignature(rr, expectedRRPublicKey = null) {
-        // TODO: implementation
-        // needs customer to sign RR
+        const pubKeyMultihash = this.keyLocationToKeyMultihash(rr.key_location);
+        const isExpectedKey = expectedRRPublicKey === null || expectedRRPublicKey === pubKeyMultihash;
+        if (!isExpectedKey) {
+            throw new Error('Expected Review Record to be signed by ' + expectedRRPublicKey + ' but found ' + pubKeyMultihash);
+        }
+        const valid = await this.chluIpfs.crypto.verifyMultihash(pubKeyMultihash, rr.hash, rr.signature);
+        if (!valid) throw new Error('The ReviewRecord signature is invalid');
+        return valid;
     }
 
     async validateHistory(reviewRecord) {
@@ -87,8 +94,10 @@ class Validator {
             c.verifyMultihash(mMultihash, vmMultihash, mSignature),
             c.verifyMultihash(vmMultihash, hash, vmSignature)
         ]);
-        // Return false if any validation is false
-        return validations.reduce((acc, v) => acc && v);
+        // false if any validation is false
+        const valid = validations.reduce((acc, v) => acc && v);
+        if (!valid) throw new Error('The PoPR is not correctly signed');
+        return valid;
     }
 
     keyLocationToKeyMultihash(l) {

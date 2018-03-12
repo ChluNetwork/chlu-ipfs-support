@@ -3,10 +3,23 @@ const sinon = require('sinon');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
+const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
+const { ECPair } = require('bitcoinjs-lib');
 
 const directory = '/tmp/chlu-test-' + Date.now() + Math.random();
 
 describe('Persistence module', () => {
+
+    let api;
+
+    beforeEach(() => {
+        api = new ChluIPFS({
+            type: ChluIPFS.types.customer,
+            directory,
+            logger: logger('Customer')
+        });
+    });
+
     it('saves and loads in this environment', async () => {
         const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
         const data = { hello: 'world' };
@@ -15,13 +28,23 @@ describe('Persistence module', () => {
         expect(loaded).to.deep.equal(data);
     });
 
+    it('saves customer key pair', async () => {
+        const fakeStore = {};
+        api.ipfsUtils = ipfsUtilsStub(fakeStore);
+        const keyPair = await api.crypto.generateKeyPair();
+        await api.crypto.exportKeyPair();
+        api.storage.save = sinon.stub().resolves();
+        await api.persistence.persistData();
+        expect(api.storage.save.args[0][1].keyPair).to.equal(keyPair.toWIF());
+    });
+
     it('saves customer orbitdb address', async () => {
         const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
         const orbitDbAddress = 'fakeOrbitDBAddress';
         api.getOrbitDBAddress = sinon.stub().returns(orbitDbAddress);
         api.storage.save = sinon.stub().resolves();
         await api.persistence.persistData();
-        expect(api.storage.save.args[0][1].orbitDbAddress === orbitDbAddress).to.be.true;
+        expect(api.storage.save.args[0][1].orbitDbAddress).to.equal(orbitDbAddress);
     });
 
     it('saves customer last review record multihash', async () => {
@@ -30,7 +53,7 @@ describe('Persistence module', () => {
         api.lastReviewRecordMultihash = lastReviewRecordMultihash; 
         api.storage.save = sinon.stub().resolves();
         await api.persistence.persistData();
-        expect(api.storage.save.args[0][1].lastReviewRecordMultihash === lastReviewRecordMultihash).to.be.true;
+        expect(api.storage.save.args[0][1].lastReviewRecordMultihash).to.equal(lastReviewRecordMultihash);
     });
 
     it('saves service node orbitdb addresses', async () => {
@@ -56,6 +79,17 @@ describe('Persistence module', () => {
         api.orbitDb.openDb = sinon.stub().resolves({ fakeDb: true, id: 1 });
         await api.orbitDb.openDbForReplication(address);
         expect(api.storage.save.calledWith(api.directory, expected, api.type)).to.be.true;
+    });
+
+    it('loads customer keypair', async () => {
+        const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
+        const keyPair = ECPair.makeRandom();
+        const data = { keyPair: keyPair.toWIF() };
+        api.storage.load = sinon.stub().resolves(data);
+        api.crypto.importKeyPair = sinon.stub().resolves();
+        await api.persistence.loadPersistedData();
+        expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
+        expect(api.crypto.importKeyPair.calledWith(keyPair.toWIF())).to.be.true;
     });
 
     it('loads customer orbitdb address', async () => {

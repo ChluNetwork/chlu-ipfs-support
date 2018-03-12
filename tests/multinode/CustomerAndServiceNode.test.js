@@ -22,7 +22,7 @@ function withoutHashAndSig(obj) {
     });
 }
 
-describe.only('Customer and Service Node integration', function() {
+describe('Customer and Service Node integration', function() {
     let customerNode, serviceNode, server, v, vm, m, makeKeyPair, preparePoPR;
 
     before(async () => {

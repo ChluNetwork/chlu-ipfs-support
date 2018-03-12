@@ -44,6 +44,25 @@ describe('Crypto Module', () => {
         map = null;
     });
 
+    it('signs Review Records', async () => {
+        async function verifyRR(rr, pubKeyMultihash) {
+            const hashed = await chluIpfs.reviewRecords.hashReviewRecord(rr);
+            return await chluIpfs.crypto.verifyMultihash(
+                pubKeyMultihash,
+                hashed.hash,
+                hashed.signature
+            );
+        }
+        let reviewRecord = await getFakeReviewRecord();
+        reviewRecord = await chluIpfs.crypto.signReviewRecord(reviewRecord, keyPair);
+        const verification = await verifyRR(reviewRecord, pubKeyMultihash);
+        expect(verification).to.be.true;
+        // Test failure case: change a field and validate again
+        reviewRecord.review_text = 'Hellooooo';
+        const verificationToFail = await verifyRR(reviewRecord, pubKeyMultihash);
+        expect(verificationToFail).to.be.false;
+    });
+
     it('signs PoPRs', async () => {
         async function verifyPoPR(popr, pubKeyMultihash) {
             const hashed = await chluIpfs.reviewRecords.hashPoPR(popr);

@@ -2,11 +2,8 @@ const expect = require('chai').expect;
 const sinon = require('sinon');
 
 const ChluIPFS = require('../src/ChluIPFS');
-const protons = require('protons');
-const protobuf = protons(require('../src/utils/protobuf'));
 const logger = require('./utils/logger');
 const { getFakeReviewRecord } = require('./utils/protobuf');
-const DAGNode = require('ipld-dag-pb').DAGNode;
 const cloneDeep = require('lodash.clonedeep');
 const cryptoTestUtils = require('./utils/crypto');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
@@ -64,12 +61,11 @@ describe('Validator Module', () => {
         } catch (err) {
             error = err;
         }
-        expect(error.message).to.equal('Mismatching hash');
+        expect(error.message.slice(0, 'Mismatching hash'.length)).to.equal('Mismatching hash');
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
     });
 
     it('validates ancestors', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.rating = 1;
         const reviewRecord2 = await getFakeReviewRecord();
@@ -110,24 +106,7 @@ describe('Validator Module', () => {
     it('validates PoPR signatures and keys', async () => {
         // --- Setup
         const fakeStore = {};
-        chluIpfs.ipfsUtils = {
-            get: sinon.stub().callsFake(async m => fakeStore[m]),
-            put: sinon.stub().callsFake(async data => {
-                const buf = Buffer.from(data);
-                const multihash = await new Promise((resolve, reject) => {
-                    DAGNode.create(buf, [], (err, dagNode) => {
-                        if (err) reject(err); else resolve(dagNode.toJSON().multihash);
-                    });
-                });
-                fakeStore[multihash] = buf;
-                return multihash;
-            }),
-            storeDAGNode: sinon.stub().callsFake(async dagNode => {
-                const data = dagNode.toJSON();
-                fakeStore[data.multihash] = data.data;
-                return data.multihash;
-            })
-        };
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
         const { makeKeyPair, preparePoPR } = cryptoTestUtils(chluIpfs);
         const vm = await makeKeyPair();
         const v = await makeKeyPair();
@@ -156,5 +135,36 @@ describe('Validator Module', () => {
         invalidPopr = cloneDeep(popr);
         invalidPopr.vendor_signature = invalidPopr.marketplace_signature;
         expect(test(invalidPopr)).to.throw;
+    });
+
+    it('validates Review Record signature', async () => {
+        // --- Setup
+        const fakeStore = {};
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
+        chluIpfs.crypto.generateKeyPair();
+        // --- Success Case
+        let reviewRecord = await getFakeReviewRecord();
+        reviewRecord = await chluIpfs.crypto.signReviewRecord(reviewRecord, chluIpfs.crypto.keyPair);
+        reviewRecord.key_location = '/ipfs/' + chluIpfs.crypto.pubKeyMultihash;
+        let valid = await chluIpfs.validator.validateRRSignature(reviewRecord);
+        expect(valid).to.be.true;
+        // --- Failure Cases
+        const test = rr => {
+            return () => {
+                chluIpfs.validator.validateRRSignature(rr);
+            };
+        };
+        let invalidRR = cloneDeep(reviewRecord);
+        invalidRR.hash = 'lol not the real hash';
+        expect(test(invalidRR)).to.throw;
+        invalidRR = cloneDeep(reviewRecord);
+        invalidRR.key_location = 'wrong';
+        expect(test(invalidRR)).to.throw;
+        invalidRR = cloneDeep(reviewRecord);
+        invalidRR.review_text = 'wrong again';
+        expect(test(invalidRR)).to.throw;
+        invalidRR = cloneDeep(reviewRecord);
+        invalidRR.signature = 'wrong again';
+        expect(test(invalidRR)).to.throw;
     });
 });

@@ -94,8 +94,13 @@ describe('Customer', () => {
         expect(errorMessage).to.be.null;
     });
 
-    it.skip('signs review records correctly', async () => {
+    it('signs review records', async () => {
         // TODO: check that the signature and key_location are present and valid
+        const reviewRecord = await getFakeReviewRecord();
+        const multihash = await chluIpfs.storeReviewRecord(reviewRecord);
+        const rr = await chluIpfs.readReviewRecord(multihash, { validate: false });
+        expect(rr.key_location).to.equal('/ipfs/' + chluIpfs.crypto.pubKeyMultihash);
+        expect(rr.signature).to.be.a('string');
     });
 
 });
