@@ -74,4 +74,28 @@ describe('Crypto Module', () => {
         expect(multihash).to.be.a('string');
         expect(isValidMultihash(multihash)).to.be.true;
     });
+
+    it('generates keypair', async () => {
+        const keyPair = await chluIpfs.crypto.generateKeyPair();
+        expect(chluIpfs.ipfsUtils.put.calledWith(keyPair.getPublicKeyBuffer())).to.be.true;
+        expect(keyPair instanceof ECPair).to.be.true;
+        expect(chluIpfs.crypto.keyPair).to.equal(keyPair);
+        expect(isValidMultihash(chluIpfs.crypto.pubKeyMultihash)).to.be.true;
+    });
+
+    it('imports keypair', async () => {
+        const keyPair = ECPair.makeRandom();
+        const imported = await chluIpfs.crypto.importKeyPair(keyPair.toWIF());
+        expect(imported instanceof ECPair).to.be.true;
+        expect(chluIpfs.ipfsUtils.put.calledWith(keyPair.getPublicKeyBuffer())).to.be.true;
+        expect(chluIpfs.crypto.keyPair.toWIF()).to.equal(keyPair.toWIF());
+        expect(isValidMultihash(chluIpfs.crypto.pubKeyMultihash)).to.be.true;
+    });
+
+    it('exports keypair', async () => {
+        const keyPair = ECPair.makeRandom();
+        chluIpfs.crypto.keyPair = keyPair;
+        const exported = await chluIpfs.crypto.exportKeyPair();
+        expect(exported).to.equal(keyPair.toWIF());
+    });
 });

@@ -35,6 +35,32 @@ class Crypto {
         return obj;
     }
 
+    async signReviewRecord(obj, keyPair) {
+        if (!obj.hash) {
+            obj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
+        }
+        obj.signature = await this.signMultihash(obj.hash, keyPair);
+        return obj;
+    }
+
+    async generateKeyPair() {
+        this.keyPair = ECPair.makeRandom();
+        this.pubKeyMultihash = await this.storePublicKey(this.keyPair.getPublicKeyBuffer());
+        return this.keyPair;
+    }
+
+    async importKeyPair(exported) {
+        this.keyPair = ECPair.fromWIF(exported);
+        this.pubKeyMultihash = await this.storePublicKey(this.keyPair.getPublicKeyBuffer());
+        return this.keyPair;
+    }
+
+    async exportKeyPair() {
+        if (this.keyPair) {
+            return this.keyPair.toWIF();
+        }
+    }
+
     getDigestFromMultihash(multihash){
         const decoded = multihashes.decode(multihashToBuffer(multihash));
         return decoded.digest;

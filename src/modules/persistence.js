@@ -14,6 +14,8 @@ class Persistence {
                 data.orbitDbAddress = this.chluIpfs.getOrbitDBAddress();
                 // Customer multihash of last review record created
                 data.lastReviewRecordMultihash = this.chluIpfs.lastReviewRecordMultihash;
+                // Customer keys
+                data.keyPair = await this.chluIpfs.crypto.exportKeyPair();
             } else if (this.chluIpfs.type === constants.types.service) {
                 // Service Node Synced OrbitDB addresses
                 data.orbitDbAddresses = Object.keys(this.chluIpfs.orbitDb.dbs);
@@ -41,6 +43,9 @@ class Persistence {
             }
             if (data.orbitDbAddress) await this.chluIpfs.orbitDb.openPersonalOrbitDB(data.orbitDbAddress);
             if (data.lastReviewRecordMultihash) this.chluIpfs.lastReviewRecordMultihash = data.lastReviewRecordMultihash;
+            if (data.keyPair) {
+                this.chluIpfs.crypto.keyPair = await this.chluIpfs.crypto.importKeyPair(data.keyPair);
+            }
             this.chluIpfs.events.emit('loaded');
             this.chluIpfs.logger.debug('Loaded persisted data');
         } else {

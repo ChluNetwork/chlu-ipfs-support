@@ -103,7 +103,6 @@ describe('Customer and Service Node integration', function() {
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         reviewRecord = await customerNode.reviewRecords.prepareReviewRecord(reviewRecord, { validate: false });
-        console.log(reviewRecord.hash);
         // Now create a fake update
         let reviewUpdate = await getFakeReviewRecord();
         reviewUpdate.popr = cloneDeep(reviewRecord.popr);
