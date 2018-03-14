@@ -17,19 +17,27 @@ describe('Validator Module', () => {
             enablePersistence: false,
             logger: logger('Customer')
         });
+        // TODO: instead of disabling explicitly other validators in tests,
+        // make a system to explicity enable only the validator that needs to be tested
     });
 
     it('performs all validations', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
+        chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
         chluIpfs.validator.validateMultihash = sinon.stub().resolves();
         chluIpfs.validator.validateHistory = sinon.stub().resolves();
         await chluIpfs.validator.validateReviewRecord(reviewRecord);
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
         expect(chluIpfs.validator.validateHistory.called).to.be.true;
+        expect(chluIpfs.validator.validateVersion.called).to.be.true;
+        expect(chluIpfs.validator.validatePoPRSignaturesAndKeys.called).to.be.true;
+        expect(chluIpfs.validator.validateRRSignature.called).to.be.true;
     });
 
     it('is called by default but can be disabled', async () => {
-        sinon.spy(chluIpfs.validator, 'validateReviewRecord');
+        chluIpfs.validator.validateReviewRecord = sinon.stub().resolves();
         const reviewRecord = await getFakeReviewRecord();
         const fakeStore = {};
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
@@ -48,6 +56,10 @@ describe('Validator Module', () => {
     });
 
     it('validates the internal multihash correctly', async () => {
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
+        chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
+        chluIpfs.validator.validateHistory = sinon.stub().resolves();
         sinon.spy(chluIpfs.validator, 'validateMultihash');
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(reviewRecord);
@@ -66,6 +78,7 @@ describe('Validator Module', () => {
     });
 
     it('validates ancestors', async () => {
+        // Prepare data
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.rating = 1;
         const reviewRecord2 = await getFakeReviewRecord();
@@ -81,8 +94,14 @@ describe('Validator Module', () => {
         chluIpfs.reviewRecords.getReviewRecord = sinon.stub().callsFake(async multihash => {
             return map[multihash];
         });
-        chluIpfs.validator.validateMultihash = sinon.stub().resolves(); // disable since we don't need it for this test
+        // Disable other validators
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
+        chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
+        chluIpfs.validator.validateMultihash = sinon.stub().resolves();
+        // Spy
         sinon.spy(chluIpfs.validator, 'validatePrevious');
+        // Test success case
         await chluIpfs.validator.validateReviewRecord(reviewRecord3);
         expect(chluIpfs.validator.validatePrevious.calledWith(reviewRecord3, reviewRecord2)).to.be.true;
         expect(chluIpfs.validator.validatePrevious.calledWith(reviewRecord2, reviewRecord)).to.be.true;
@@ -104,6 +123,11 @@ describe('Validator Module', () => {
     });
 
     it('validates PoPR signatures and keys', async () => {
+        // Disable other validators
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
+        chluIpfs.validator.validateHistory = sinon.stub().resolves();
+        chluIpfs.validator.validateMultihash = sinon.stub().resolves();
         // --- Setup
         const fakeStore = {};
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
@@ -138,6 +162,11 @@ describe('Validator Module', () => {
     });
 
     it('validates Review Record signature', async () => {
+        // Disable other validators
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
+        chluIpfs.validator.validateHistory = sinon.stub().resolves();
+        chluIpfs.validator.validateMultihash = sinon.stub().resolves();
         // --- Setup
         const fakeStore = {};
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);

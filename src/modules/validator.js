@@ -10,7 +10,7 @@ class Validator {
             validateVersion: true,
             validateMultihash: true,
             validateHistory: true,
-            validateSignatures: false,
+            validateSignatures: true,
             expectedPoPRPublicKey: null // TODO: pass this from readReviewRecord
         };
     }
@@ -20,7 +20,6 @@ class Validator {
         const v = Object.assign({}, this.defaultValidationSettings, validations);
         try {
             if (v.validateVersion) this.validateVersion(rr);
-            if (v.validateSignature) this.validateSignature(rr);
             if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
             if (v.validateSignatures){
                 await Promise.all([

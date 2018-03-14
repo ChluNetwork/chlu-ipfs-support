@@ -69,10 +69,6 @@ describe('Customer and Service Node integration', function() {
         const fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
         serviceNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
         customerNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
-        // Force Signature validations on
-        // TODO: remove this when signature validations are globally on
-        serviceNode.validator.defaultValidationSettings.validateSignatures = true;
-        customerNode.validator.defaultValidationSettings.validateSignatures = true;
     });
 
     afterEach(async () => {

@@ -8,10 +8,11 @@ const { getFakeReviewRecord } = require('./utils/protobuf');
 const logger = require('./utils/logger');
 const { isValidMultihash } = require('../src/utils/ipfs');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
+const cryptoTestUtils = require('./utils/crypto');
 
 describe('Customer', () => {
 
-    let chluIpfs, fakeStore = {}; // not the real multihash
+    let chluIpfs, fakeStore = {}, vm, v, m, makeKeyPair, preparePoPR;
 
     beforeEach(async () => {
         chluIpfs = new ChluIPFS({
@@ -23,7 +24,6 @@ describe('Customer', () => {
         chluIpfs.orbitDb.db = { address: { toString: () => 'example' } };
         fakeStore = {};
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
-        chluIpfs.crypto.generateKeyPair();
         // Mock publish: fake a response so that the call can complete
         const publish = sinon.stub().callsFake(async (topic, msg) => {
             const obj = JSON.parse(msg.toString());
@@ -41,10 +41,20 @@ describe('Customer', () => {
             }
         };
         await chluIpfs.room.start();
+        // Crypto
+        chluIpfs.crypto.generateKeyPair();
+        const crypto = cryptoTestUtils(chluIpfs);
+        makeKeyPair = crypto.makeKeyPair;
+        preparePoPR = crypto.preparePoPR;
+        vm = await makeKeyPair();
+        v = await makeKeyPair();
+        m = await makeKeyPair();
+        chluIpfs.validator.fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
     });
 
     it('stores ReviewRecords and automatically publishes them', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         const result = await chluIpfs.storeReviewRecord(reviewRecord);
         const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
@@ -55,6 +65,7 @@ describe('Customer', () => {
 
     it('can store ReviewRecords without publishing', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
         const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
@@ -65,6 +76,7 @@ describe('Customer', () => {
 
     it('can store ReviewRecords without publishing then store them again and publish them', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
         let actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
@@ -79,6 +91,7 @@ describe('Customer', () => {
 
     it('correctly checks expected multihash when storing a review record', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         let errorMessage, multihash;
         try {
             multihash = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false, expectedMultihash: 'test' });
@@ -95,13 +108,15 @@ describe('Customer', () => {
         expect(errorMessage).to.be.null;
     });
 
-    it('signs review records', async () => {
-        // TODO: check that the signature and key_location are present and valid
+    it('signs review records correctly', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         const multihash = await chluIpfs.storeReviewRecord(reviewRecord);
-        const rr = await chluIpfs.readReviewRecord(multihash, { validate: false });
+        const rr = await chluIpfs.readReviewRecord(multihash);
         expect(rr.key_location).to.equal('/ipfs/' + chluIpfs.crypto.pubKeyMultihash);
         expect(rr.signature).to.be.a('string');
+        const valid = await chluIpfs.crypto.verifyMultihash(chluIpfs.crypto.pubKeyMultihash, rr.hash, rr.signature);
+        expect(valid).to.be.true;
     });
 
 });
