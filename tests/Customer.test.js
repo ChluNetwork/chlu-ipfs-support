@@ -24,8 +24,8 @@ describe('Customer', () => {
         fakeStore = {};
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
         chluIpfs.crypto.generateKeyPair();
-        // Mock broadcast: fake a response so that the call can complete
-        const broadcast = sinon.stub().callsFake(msg => {
+        // Mock publish: fake a response so that the call can complete
+        const publish = sinon.stub().callsFake(async (topic, msg) => {
             const obj = JSON.parse(msg.toString());
             expect(obj.type).to.equal(ChluIPFS.eventTypes.wroteReviewRecord);
             expect(isValidMultihash(obj.multihash)).to.be.true;
@@ -33,13 +33,14 @@ describe('Customer', () => {
                 chluIpfs.events.emit(ChluIPFS.eventTypes.pinned + '_' + obj.multihash);
             }, 0);
         });
-        const getPeers = sinon.stub().returns(1);
-        chluIpfs.room.room = {
-            broadcast,
-            on: sinon.stub(),
-            removeListener: sinon.stub(),
-            getPeers
+        chluIpfs.ipfs = {
+            pubsub: {
+                subscribe: sinon.stub(),
+                peers: sinon.stub().resolves(['FakePeer']),
+                publish
+            }
         };
+        await chluIpfs.room.start();
     });
 
     it('stores ReviewRecords and automatically publishes them', async () => {
@@ -47,7 +48,7 @@ describe('Customer', () => {
         const result = await chluIpfs.storeReviewRecord(reviewRecord);
         const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
-        expect(chluIpfs.room.room.broadcast.called).to.be.true;
+        expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.true;
         expect(protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
     });
@@ -57,7 +58,7 @@ describe('Customer', () => {
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
         const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
-        expect(chluIpfs.room.room.broadcast.called).to.be.false;
+        expect(chluIpfs.ipfs.pubsub.publish.called).to.be.false;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.false;
         expect(protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
     });
@@ -67,10 +68,10 @@ describe('Customer', () => {
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
         let actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
-        expect(chluIpfs.room.room.broadcast.called).to.be.false;
+        expect(chluIpfs.ipfs.pubsub.publish.called).to.be.false;
         expect(protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
         const newResult = await chluIpfs.storeReviewRecord(reviewRecord, { expectedMultihash: result });
-        expect(chluIpfs.room.room.broadcast.called).to.be.true;
+        expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
         expect(newResult).to.equal(result);
         actual = chluIpfs.ipfsUtils.createDAGNode.args[1][0];
         expect(protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;

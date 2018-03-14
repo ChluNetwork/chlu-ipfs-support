@@ -17,7 +17,7 @@ module.exports = {
         replicated: 'REPLICATED'
     },
     customerDbName: 'chlu-experimental-customer-review-updates',
-    pubsubRoom: 'chlu-experimental',
+    pubsubTopic: 'chlu-experimental',
     defaultIPFSOptions:  {
         EXPERIMENTAL: {
             pubsub: true

@@ -1,5 +1,4 @@
-const cloneDeep = require('lodash.clonedeep');
-const isEqual = require('lodash.isequal');
+const { cloneDeep, isEqual } = require('lodash');
 const axios = require('axios');
 
 class Validator {

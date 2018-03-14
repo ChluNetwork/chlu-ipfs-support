@@ -4,7 +4,7 @@ const multihashing = require('multihashing-async');
 const constants = require('../constants');
 const protobuf = protons(require('../utils/protobuf'));
 const IPFSUtils = require('./ipfs');
-const cloneDeep = require('lodash.clonedeep');
+const { cloneDeep } = require('lodash');
 
 class ReviewRecords {
 

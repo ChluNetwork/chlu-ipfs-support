@@ -3165,16 +3165,6 @@ ipfs-multipart@~0.1.0:
     pull-stream "^3.6.1"
     safe-buffer "^5.1.1"
 
-ipfs-pubsub-room@~1.1.5:
-  version "1.1.5"
-  resolved "https://registry.yarnpkg.com/ipfs-pubsub-room/-/ipfs-pubsub-room-1.1.5.tgz#7a05069ee9f7ea35349824e450c5e1cf64d44fa5"
-  dependencies:
-    hyperdiff "^2.0.3"
-    lodash.clonedeep "^4.5.0"
-    pull-pushable "^2.1.1"
-    pull-stream "^3.6.1"
-    safe-buffer "^5.1.1"
-
 ipfs-repo@~0.18.2, ipfs-repo@~0.18.5:
   version "0.18.7"
   resolved "https://registry.yarnpkg.com/ipfs-repo/-/ipfs-repo-0.18.7.tgz#a25b00d5f03437f313f10085bd181b1182a76502"
@@ -4515,10 +4505,6 @@ lodash.has@^4.5.2:
 lodash.includes@^4.3.0:
   version "4.3.0"
   resolved "https://registry.yarnpkg.com/lodash.includes/-/lodash.includes-4.3.0.tgz#60bb98a87cb923c68ca1e51325483314849f553f"
-
-lodash.isequal@^4.5.0:
-  version "4.5.0"
-  resolved "https://registry.yarnpkg.com/lodash.isequal/-/lodash.isequal-4.5.0.tgz#415c4478f2bcc30120c22ce10ed3226f7d3e18e0"
 
 lodash.isequalwith@^4.4.0:
   version "4.4.0"

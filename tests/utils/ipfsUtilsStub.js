@@ -3,6 +3,7 @@ const DAGNode = require('ipld-dag-pb').DAGNode;
 
 module.exports = function (fakeStore) {
     return {
+        id: sinon.stub().resolves('myId'),
         get: sinon.stub().callsFake(async m => fakeStore[m]),
         put: sinon.stub().callsFake(async data => {
             const buf = Buffer.from(data);

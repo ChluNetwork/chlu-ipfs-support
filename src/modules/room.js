@@ -1,46 +1,49 @@
+const { difference, without } = require('lodash');
 const constants = require('../constants');
-const PubSubRoom = require('ipfs-pubsub-room');
 
 class Room {
 
     constructor(chluIpfs) {
         this.chluIpfs = chluIpfs;
-        this.room = undefined;
+        this.subscription = null;
+        this.topic = null;
+        this.peers = [];
     }
 
     async start() {
         // PubSub setup
-        if (!this.room) {
-            this.room = PubSubRoom(this.chluIpfs.ipfs, constants.pubsubRoom);
-            // Handle events
-            this.listenToRoomEvents(this.room);
-            this.room.on('message', message => this.handleMessage(message));
-            // wait for room subscription
-            await new Promise(resolve => {
-                this.room.once('subscribed', () => resolve());
-            });
+        if (!this.subscription) {
+            this.topic = constants.pubsubTopic;
+            this.subscription = msg => this.handleMessage(msg);
+            await this.chluIpfs.ipfs.pubsub.subscribe(this.topic, this.subscription);
+            await this.updatePeers();
+            this.pollPeers();
+            this.chluIpfs.events.emit('pubsub subscribed', this.topic);
+            // TODO: update listenToRoomEvents to poll for info instead
+            // TODO: call watchPubSubTopic
         }
     }
 
     async stop() {
-        if (this.room) {
-            await new Promise(resolve => {
-                this.room.on('stop', resolve);
-                this.room.leave();
-            });
-            this.room = undefined;
+        if (this.topic && this.subscription) {
+            await this.chluIpfs.ipfs.pubsub.unsubscribe(this.topic, this.subscription);
+            this.chluIpfs.events.emit('pubsub unsubscribed', this.topic);
         }
+        this.subscription = null;
+        this.topic = null;
+        this.peers = [];
     }
 
     async waitForAnyPeer() {
-        if (this.room.getPeers().length === 0) {
-            await new Promise(resolve => {
-                this.room.on('peer joined', () => resolve());
+        if (this.getPeers().length === 0) {
+            await new Promise((resolve, reject) => {
+                this.chluIpfs.events.on('peer joined', () => resolve());
+                this.chluIpfs.events.on('pubsub error', err => reject(err));
             });
         }
     }
 
-    broadcast(msg) {
+    async broadcast(msg) {
         let message = msg;
         if (typeof message === 'object') message = JSON.stringify(message);
         if (typeof message === 'string') {
@@ -48,7 +51,7 @@ class Room {
             message = Buffer.from(message);
         }
         if (Buffer.isBuffer(message)) {
-            this.room.broadcast(message);
+            await this.chluIpfs.ipfs.pubsub.publish(this.topic, message);
         } else {
             throw new Error('Message format invalid');
         }
@@ -67,33 +70,37 @@ class Room {
         let done = false;
         const self = this;
         // function that sends the message
-        const broadcaster = () => {
-            if (!done && self.room) return self.broadcast(msg);
+        const broadcaster = async () => {
+            if (!done && self.subscription) return await self.broadcast(msg);
         };
         // function that clears dangling timeouts
         const cleanup = () => {
             done = true;
-            if (self.room) self.room.removeListener('peer joined', broadcaster);
+            self.chluIpfs.events.removeListener('peer joined', broadcaster);
             clearTimeout(timeoutRef);
             clearTimeout(globalTimeoutRef);
         };
         // function that schedules the next resend
-        const retrier = reject => {
+        const retrier = async reject => {
             if (tried === 0 || (retry && maxTries > tried)) {
                 tried++;
                 const nextTryIn = retryAfter * tried;
                 if (!done) {
-                    broadcaster();
-                    timeoutRef = setTimeout(() => {
-                        if (!done) retrier(reject);
-                    }, nextTryIn);
+                    try {
+                        await broadcaster();
+                        timeoutRef = setTimeout(() => {
+                            if (!done) retrier(reject);
+                        }, nextTryIn);
+                    } catch (error) {
+                        reject(error);
+                    }
                 }
             } else {
                 // Use this instead of throwing to avoid
                 // uncatchable errors inside scheduled
                 // calls using setTimeout
                 cleanup();
-                reject('Broadcast timed out: too many retries (' + tried + ')');
+                reject(new Error('Broadcast timed out: too many retries (' + tried + ')'));
             }
         };
         await new Promise(async (resolve, reject) => {
@@ -102,7 +109,7 @@ class Room {
                 globalTimeoutRef = setTimeout(() => {
                     if (!done) {
                         cleanup();
-                        reject('Broadcast timed out after ' + timeout + 'ms');
+                        reject(new Error('Broadcast timed out after ' + timeout + 'ms'));
                     }
                 }, timeout);
             }
@@ -112,11 +119,11 @@ class Room {
                 resolve();
             });
             // set up automatic resend on peer join
-            this.room.on('peer joined', broadcaster);
+            this.chluIpfs.events.on('peer joined',  broadcaster);
             // wait for a peer to appear if there are none
             await this.waitForAnyPeer();
             // broadcast and schedule next resend
-            timeoutRef = retrier(reject);
+            await retrier(reject);
         });
     }
 
@@ -130,13 +137,13 @@ class Room {
         } else {
             // Wait for at least one peer before broadcasting. TODO: review this
             await this.waitForAnyPeer();
-            return this.broadcast(msg);
+            return await this.broadcast(msg);
         }
     }
 
     async handleMessage(message) {
         try {
-            const myId = (await this.chluIpfs.ipfs.id()).id;
+            const myId = await this.chluIpfs.ipfsUtils.id();
             if (message.from !== myId) {
                 const str = message.data.toString();
                 this.chluIpfs.logger.debug('Handling PubSub message from ' + message.from + ': ' + str);
@@ -162,22 +169,63 @@ class Room {
         }
     }
 
-    listenToRoomEvents(room){
-        room.on('peer joined', peer => {
+    getPeers() {
+        return [...this.peers]; // Readonly copy
+    }
+
+    pollPeers(intervalMs = 1000) {
+        if (this.topic && this.subscription) {
+            this.pollPeersTimeout = setTimeout(self => {
+                self.updatePeers()
+                    .then(() => self.pollPeers(intervalMs))
+                    .catch(err => self.chluIpfs.events.emit('pubsub error', err));
+            }, intervalMs, this);
+        }
+    }
+
+    stopPollingPeers() {
+        clearTimeout(this.pollPeersTimeout);
+    }
+
+    async updatePeers() {
+        if (this.subscription && this.topic) {
+            try {
+                const myId = await this.chluIpfs.ipfsUtils.id();
+                const pubsubPeers = await this.chluIpfs.ipfs.pubsub.peers(this.topic);
+                const updatedPeers = without(pubsubPeers, myId);
+                const currentPeers = this.getPeers();
+                const joinedPeers = difference(updatedPeers, currentPeers);
+                const leftPeers = difference(currentPeers, updatedPeers);
+                this.peers = updatedPeers;
+                this.emitPeerEvents(joinedPeers, leftPeers);
+            } catch (error) {
+                this.chluIpfs.events.emit('pubsub error', error);
+                this.emitPeerEvents([], this.peers || []);
+                this.peers = [];
+            }
+        } else {
+            this.emitPeerEvents([], this.peers || []);
+            this.peers = [];
+        }
+    }
+
+    emitPeerEvents(joinedPeers = [], leftPeers = []) {
+        joinedPeers.forEach(p => this.chluIpfs.events.emit('peer joined', p));
+        leftPeers.forEach(p => this.chluIpfs.events.emit('peer left', p));
+    }
+
+    listenToPubSubEvents() {
+        this.chluIpfs.events.on('peer joined', peer => {
             this.chluIpfs.logger.debug('Peer joined the pubsub room', peer);
-            this.chluIpfs.events.emit('peer joined', peer);
         });
-        room.on('peer left', peer => {
+        this.chluIpfs.events.on('peer left', peer => {
             this.chluIpfs.logger.debug('Peer left the pubsub room', peer);
-            this.chluIpfs.events.emit('peer left', peer);
         });
-        room.on('subscribed', () => {
+        this.chluIpfs.events.on('subscribed', () => {
             this.chluIpfs.logger.debug('Connected to the pubsub room');
-            this.chluIpfs.events.emit('pubsub subscribed');
         });
-        room.on('error', error => {
-            this.chluIpfs.logger.error('PubSub Room Error: ' + error.message || error);
-            this.chluIpfs.events.emit('pubsub error', error);
+        this.chluIpfs.events.on('pubsub error', error => {
+            this.chluIpfs.logger.error('PubSub Error: ' + error.message || error);
         });
     }
 
