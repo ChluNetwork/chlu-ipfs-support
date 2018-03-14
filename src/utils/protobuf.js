@@ -47,6 +47,7 @@ module.exports = `
         required string hash = 12;
         required string signature = 13;
         required string key_location = 14;
+        optional string previous_version_multihash = 15;
     }
 
     message PaymentRecord {

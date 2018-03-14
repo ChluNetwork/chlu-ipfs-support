@@ -136,7 +136,10 @@ class ReviewRecords {
             publish = true,
             validate = true
         } = options;
-        const rr = await this.prepareReviewRecord(reviewRecord, validate);
+        let rr = Object.assign({}, reviewRecord, {
+            previous_version_multihash: previousVersionMultihash || ''
+        });
+        rr = await this.prepareReviewRecord(rr, validate);
         const buffer = protobuf.ReviewRecord.encode(rr);
         const dagNode = await this.chluIpfs.ipfsUtils.createDAGNode(buffer); // don't store to IPFS yet
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
@@ -229,9 +232,8 @@ class ReviewRecords {
 
     async hashReviewRecord(reviewRecord) {
         // TODO: better checks
-        if (!reviewRecord.last_reviewrecord_multihash) {
-            reviewRecord.last_reviewrecord_multihash = '';
-        }
+        if (!reviewRecord.last_reviewrecord_multihash) reviewRecord.last_reviewrecord_multihash = '';
+        if (!reviewRecord.previous_version_multihash) reviewRecord.previous_version_multihash = '';
         return await this.hashObject(reviewRecord, protobuf.ReviewRecord.encode);
     }
 

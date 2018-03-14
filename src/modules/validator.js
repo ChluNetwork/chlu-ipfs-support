@@ -29,7 +29,7 @@ class Validator {
                     this.validatePoPRSignaturesAndKeys(rr.popr, v.expectedPoPRPublicKey)
                 ]);
             }
-            if (v.validateHistory) await this.validateHistory(rr);
+            if (v.validateHistory) await this.validateHistory(rr, v);
         } catch (error) {
             if (v.throwErrors) {
                 throw error;
@@ -58,12 +58,15 @@ class Validator {
         return valid;
     }
 
-    async validateHistory(reviewRecord) {
+    async validateHistory(reviewRecord, validations = {}) {
+        const v = Object.assign({}, this.defaultValidationSettings, validations, {
+            validateHistory: false
+        });
         const history = await this.chluIpfs.reviewRecords.getHistory(reviewRecord);
         if (history.length > 0) {
             const reviewRecords = [{ reviewRecord }].concat(history);
             const validations = reviewRecords.map(async (item, i) => {
-                await this.validateReviewRecord(item.reviewRecord, { validateHistory: false });
+                await this.validateReviewRecord(item.reviewRecord, v);
                 if (i !== reviewRecords.length-1) {
                     this.validatePrevious(item.reviewRecord, reviewRecords[i+1].reviewRecord);
                 }
@@ -106,7 +109,6 @@ class Validator {
     }
 
     async fetchMarketplaceKey(marketplaceUrl) {
-        // TODO: implementation
         const response = await axios.get(marketplaceUrl + '/.well-known');
         // TODO: handle errors
         return response.data.multihash;
@@ -123,7 +125,8 @@ class Validator {
             'amount',
             'currency_symbol',
             'customer_address',
-            'vendor_address'
+            'vendor_address',
+            'key_location'
         ]);
     }
 

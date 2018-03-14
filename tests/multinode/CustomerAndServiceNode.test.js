@@ -95,13 +95,14 @@ describe('Customer and Service Node integration', function() {
         sinon.spy(serviceNode.pinning, 'pin');
         // store review record and await for completion
         const hash = await customerNode.storeReviewRecord(reviewRecord);
+        const customerRecord = await customerNode.readReviewRecord(hash);
         // check hash validity
         expect(hash).to.be.a('string').that.is.not.empty;
         // the service node should already have pinned the hash
         expect(serviceNode.pinning.pin.called).to.be.true;
         // check that reading works
         const readRecord = await serviceNode.readReviewRecord(hash);
-        expect(withoutHashAndSig(readRecord)).to.deep.equal(reviewRecord);
+        expect(readRecord).to.deep.equal(customerRecord);
     });
 
     it('handles review updates', async () => {
@@ -126,6 +127,7 @@ describe('Customer and Service Node integration', function() {
                     expect(newHash).to.deep.equal(updatedMultihash);
                     const updatedRR = await serviceNode.readReviewRecord(updatedMultihash);
                     expect(rr).to.deep.equal(updatedRR);
+                    expect(rr.previous_version_multihash).to.equal(originalHash);
                     resolve();
                 } catch (err) {
                     reject(err);
@@ -209,8 +211,9 @@ describe('Customer and Service Node integration', function() {
                 try {
                     expect(newHash).to.not.equal(multihash);
                     expect(originalHash).to.equal(multihash);
-                    expect(withoutHashAndSig(rr)).to.not.deep.equal(reviewRecord);
-                    expect(withoutHashAndSig(rr)).to.deep.equal(reviewUpdate);
+                    expect(rr.previous_version_multihash).to.equal(originalHash);
+                    const customerUpdate = await customerNode.readReviewRecord(newHash);
+                    expect(rr).to.deep.equal(customerUpdate);
                     resolve();
                 } catch (err) {
                     reject(err);
