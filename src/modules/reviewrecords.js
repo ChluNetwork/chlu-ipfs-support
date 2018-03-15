@@ -125,6 +125,8 @@ class ReviewRecords {
         const keyPair = this.chluIpfs.crypto.keyPair;
         reviewRecord.key_location = '/ipfs/' + await this.chluIpfs.crypto.storePublicKey(keyPair.getPublicKeyBuffer());
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
+        // Remove hash in case it's wrong (or this is an update). It's going to be calculated by the signing function
+        reviewRecord.hash = '';
         reviewRecord = await this.chluIpfs.crypto.signReviewRecord(reviewRecord, keyPair);
         if (validate) await this.chluIpfs.validator.validateReviewRecord(reviewRecord);
         return reviewRecord;
@@ -139,9 +141,13 @@ class ReviewRecords {
         let rr = Object.assign({}, reviewRecord, {
             previous_version_multihash: previousVersionMultihash || ''
         });
+        this.chluIpfs.logger.debug('Preparing review record');
         rr = await this.prepareReviewRecord(rr, validate);
+        this.chluIpfs.logger.debug('Encoding (protobuf) review record');
         const buffer = protobuf.ReviewRecord.encode(rr);
+        this.chluIpfs.logger.debug('Encoding (dagnode) review record');
         const dagNode = await this.chluIpfs.ipfsUtils.createDAGNode(buffer); // don't store to IPFS yet
+        this.chluIpfs.logger.debug('Calculating review record multihash');
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         if (options.expectedMultihash) {
             if (options.expectedMultihash !== multihash) {
@@ -154,23 +160,28 @@ class ReviewRecords {
     }
 
     async publishReviewRecord(dagNode, previousVersionMultihash, expectedMultihash, reviewRecord) {
+        this.chluIpfs.logger.debug('Storing review record in IPFS');
         // Broadcast request for pin, then wait for response
         // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
         const multihash = await this.chluIpfs.ipfsUtils.storeDAGNode(dagNode); // store to IPFS
         if (expectedMultihash && multihash !== expectedMultihash) {
             throw new Error('Multihash mismatch when publishing');
         }
+        this.chluIpfs.logger.debug('Stored review record ' + multihash + ' in IPFS');
         // Wait for it to be remotely pinned
         let tasksToAwait = [this.waitForRemotePin(multihash)];
         if (previousVersionMultihash) {
             // This is a review update
             tasksToAwait.push(this.setForwardPointerForReviewRecord(previousVersionMultihash, multihash, reviewRecord));
         }
+        this.chluIpfs.logger.debug('Waiting for Publish tasks to complete for ' + multihash);
         await Promise.all(tasksToAwait);
         // Operation succeeded: set this as the last review record published
+        this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: executing post-publish tasks');
         this.chluIpfs.lastReviewRecordMultihash = multihash;
         await this.chluIpfs.persistence.persistData();
         this.chluIpfs.events.emit('published ReviewRecord', multihash);
+        this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: post-publish tasks executed');
     }
 
     async waitForRemotePin(multihash) {

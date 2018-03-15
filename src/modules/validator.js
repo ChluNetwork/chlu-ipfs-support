@@ -16,6 +16,7 @@ class Validator {
     }
 
     async validateReviewRecord(reviewRecord, validations = {}) {
+        this.chluIpfs.logger.debug('Validating review record');
         const rr = cloneDeep(reviewRecord);
         const v = Object.assign({}, this.defaultValidationSettings, validations);
         try {
@@ -28,7 +29,9 @@ class Validator {
                 ]);
             }
             if (v.validateHistory) await this.validateHistory(rr, v);
+            this.chluIpfs.logger.debug('Validated review record (was valid)');
         } catch (error) {
+            this.chluIpfs.logger.debug('Validated review record (was NOT valid)');
             if (v.throwErrors) {
                 throw error;
             } else {
@@ -39,6 +42,7 @@ class Validator {
     }
 
     async validateMultihash(obj, expected) {
+        this.chluIpfs.logger.debug('Validating multihash');
         const hashedObj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
         if (expected !== hashedObj.hash) {
             throw new Error('Mismatching hash: got ' + hashedObj.hash + ' instead of ' + expected);
@@ -46,6 +50,7 @@ class Validator {
     }
 
     async validateRRSignature(rr, expectedRRPublicKey = null) {
+        this.chluIpfs.logger.debug('Validating RR signature');
         const pubKeyMultihash = this.keyLocationToKeyMultihash(rr.key_location);
         const isExpectedKey = expectedRRPublicKey === null || expectedRRPublicKey === pubKeyMultihash;
         if (!isExpectedKey) {
@@ -57,6 +62,7 @@ class Validator {
     }
 
     async validateHistory(reviewRecord, validations = {}) {
+        this.chluIpfs.logger.debug('Validating History');
         const v = Object.assign({}, this.defaultValidationSettings, validations, {
             validateHistory: false
         });
@@ -74,6 +80,7 @@ class Validator {
     }
 
     async validatePoPRSignaturesAndKeys(popr, expectedPoPRPublicKey = null) {
+        this.chluIpfs.logger.debug('Validating PoPR Signatures and keys');
         if (!popr.hash) {
             popr = await this.chluIpfs.reviewRecords.hashPoPR(popr);
         }
@@ -107,9 +114,12 @@ class Validator {
     }
 
     async fetchMarketplaceKey(marketplaceUrl) {
+        this.chluIpfs.logger.debug('Fetching marketplace key for ' + marketplaceUrl);
         const response = await axios.get(marketplaceUrl + '/.well-known');
-        // TODO: handle errors
-        return response.data.multihash;
+        const multihash = response.data.multihash;
+        this.chluIpfs.logger.debug('Fetched marketplace key for ' + marketplaceUrl + ': located at ' + multihash);
+        // TODO: handle errors, check multihash validity
+        return multihash;
     }
 
     validatePrevious(reviewRecord, previousVersion) {
@@ -119,7 +129,7 @@ class Validator {
             throw new Error('PoPR was changed');
         }
         // Check other fields
-        assertFieldsEqual(reviewRecord, previousVersion, [
+        assertFieldsEqual(previousVersion, reviewRecord, [
             'amount',
             'currency_symbol',
             'customer_address',
@@ -138,7 +148,7 @@ class Validator {
 
 function assertFieldsEqual(a, b, fields) {
     for (const field of fields) {
-        if (!isEqual(a[field], b[field])) throw new Error(field + ' has changed');
+        if (!isEqual(a[field], b[field])) throw new Error(field + ' has changed from ' + a[field] + ' to ' + b[field]);
     }
 }
 

@@ -72,6 +72,7 @@ class ChluIPFS {
             // Generate a key pair
             // Note: this action requires IPFS to be already started
             await this.crypto.generateKeyPair();
+            await this.persistence.persistData();
         }
 
         if (this.type === constants.types.customer && !this.orbitDb.getPersonalDBAddress()) {

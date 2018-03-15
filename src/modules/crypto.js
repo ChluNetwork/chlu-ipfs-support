@@ -14,7 +14,10 @@ class Crypto {
     }
 
     async getPublicKey(multihash) {
-        return await this.chluIpfs.ipfsUtils.get(multihash);
+        this.chluIpfs.logger.debug('Fetching Public Key at ' + multihash);
+        const value = await this.chluIpfs.ipfsUtils.get(multihash);
+        this.chluIpfs.logger.debug('Fetched Public Key at ' + multihash + ': ' + value.toString('hex'));
+        return value;
     }
 
     async signMultihash(multihash, keyPair) {
