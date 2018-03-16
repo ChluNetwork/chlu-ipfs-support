@@ -119,7 +119,7 @@ describe('Validator Module', () => {
         } catch (err) {
             error = err;
         }
-        expect(error.message).to.equal('customer_address has changed');
+        expect(error.message).to.match(/^customer_address has changed/);
     });
 
     it('validates PoPR signatures and keys', async () => {
