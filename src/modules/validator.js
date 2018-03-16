@@ -104,7 +104,14 @@ class Validator {
         ]);
         // false if any validation is false
         const valid = validations.reduce((acc, v) => acc && v);
-        if (!valid) throw new Error('The PoPR is not correctly signed');
+        if (valid) {
+            // Emit events about keys discovered
+            this.chluIpfs.events.emit('vendor pubkey', vMultihash);
+            this.chluIpfs.events.emit('vendor-marketplace pubkey', vmMultihash);
+            this.chluIpfs.events.emit('marketplace pubkey', mMultihash);
+        } else {
+            throw new Error('The PoPR is not correctly signed');
+        }
         return valid;
     }
 
