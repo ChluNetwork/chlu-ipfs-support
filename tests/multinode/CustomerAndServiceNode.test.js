@@ -9,6 +9,7 @@ const sinon = require('sinon');
 const logger = require('../utils/logger');
 const cryptoTestUtils = require('../utils/crypto');
 const cloneDeep = require('lodash.clonedeep');
+const { milliseconds } = require('../../src/utils/timing');
 
 const testDir = '/tmp/chlu-test-' + Date.now() + Math.random();
 
@@ -69,11 +70,19 @@ describe('Customer and Service Node integration', function() {
         const fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
         serviceNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
         customerNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
+        
+        // Wait some time (TODO: remove this when it's fixed in ipfs/libp2p)
+        await milliseconds(3000);
     });
 
     afterEach(async () => {
         const indexedDBName = customerNode.orbitDbDirectory;
-        await Promise.all([customerNode.stop(), serviceNode.stop()]);
+        try {
+            await Promise.all([customerNode.stop(), serviceNode.stop()]);
+        } catch (error) {
+            console.log('[WARN] An error has occured while stopping ChluIPFS');
+            console.trace(error);
+        }
         if (env.isNode()) {
             rimraf.sync(testDir);
         } else {
@@ -129,7 +138,8 @@ describe('Customer and Service Node integration', function() {
                     reject(err);
                 }
             };
-            serviceNode.readReviewRecord(multihash, { notifyUpdate });
+            serviceNode.events.on('updated ReviewRecord', notifyUpdate);
+            serviceNode.readReviewRecord(multihash, { checkForUpdates: true });
         });
     });
 
@@ -151,7 +161,8 @@ describe('Customer and Service Node integration', function() {
                     reject(err);
                 }
             };
-            await serviceNode.readReviewRecord(multihash, { notifyUpdate });
+            serviceNode.events.on('updated ReviewRecord', notifyUpdate);
+            await serviceNode.readReviewRecord(multihash, { checkForUpdates: true });
             // Now create a fake update
             let reviewUpdate = await getFakeReviewRecord();
             reviewUpdate.popr = cloneDeep(reviewRecord.popr);
@@ -179,7 +190,7 @@ describe('Customer and Service Node integration', function() {
         const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, {
             previousVersionMultihash: multihash
         });
-        // Now try to fetch it from the service node while checking for updates
+        // Now try to fetch it from the customer node while checking for updates
         await new Promise((resolve, reject) => {
             const notifyUpdate = async (originalHash, newHash, rr) => {
                 try {
@@ -191,7 +202,8 @@ describe('Customer and Service Node integration', function() {
                     reject(err);
                 }
             };
-            customerNode.readReviewRecord(multihash, { notifyUpdate });
+            customerNode.events.on('updated ReviewRecord', notifyUpdate);
+            customerNode.readReviewRecord(multihash, { checkForUpdates: true });
         });
     });
 
@@ -202,7 +214,7 @@ describe('Customer and Service Node integration', function() {
             reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
             // Store the original review
             const multihash = await customerNode.storeReviewRecord(reviewRecord);
-            // Now try to fetch it from the service node while checking for updates
+            // Now try to fetch it from the customer node while checking for updates
             const notifyUpdate = async (originalHash, newHash, rr) => {
                 try {
                     expect(newHash).to.not.equal(multihash);
@@ -215,7 +227,8 @@ describe('Customer and Service Node integration', function() {
                     reject(err);
                 }
             };
-            await customerNode.readReviewRecord(multihash, { notifyUpdate });
+            customerNode.events.on('updated ReviewRecord', notifyUpdate);
+            await customerNode.readReviewRecord(multihash, { checkForUpdates: true });
             // Now create a fake update
             let reviewUpdate = await getFakeReviewRecord();
             reviewUpdate.popr = cloneDeep(reviewRecord.popr);

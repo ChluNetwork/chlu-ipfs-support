@@ -10,6 +10,8 @@ class ReviewRecords {
 
     constructor(chluIpfs) {
         this.chluIpfs = chluIpfs;
+        const self = this;
+        this.notifier = (...args) => self.notifyReviewUpdate(...args);
     }
 
     async getLastReviewRecordUpdate(db, multihash) {
@@ -66,6 +68,7 @@ class ReviewRecords {
                 }
             };
             this.chluIpfs.events.on('replicated', address => notify(address));
+            this.chluIpfs.events.on('write', address => notify(address));
             this.chluIpfs.events.on('updated ReviewRecord', (previousVersionMultihash, multihash, rr) => {
                 if (rr && rr.orbitDb) notify(rr.orbitDb);
             });
@@ -90,6 +93,10 @@ class ReviewRecords {
         }
     }
 
+    async notifyReviewUpdate(multihash, updatedMultihash, reviewRecord) {
+        this.chluIpfs.events.emit('updated ReviewRecord', multihash, updatedMultihash, reviewRecord);
+    }
+
     async getReviewRecord(multihash){
         const buffer = await this.chluIpfs.ipfsUtils.get(multihash);
         return protobuf.ReviewRecord.decode(buffer);
@@ -97,7 +104,7 @@ class ReviewRecords {
 
     async readReviewRecord(multihash, options = {}) {
         const {
-            notifyUpdate = null,
+            checkForUpdates = false,
             validate = true
         } = options;
         IPFSUtils.validateMultihash(multihash);
@@ -111,7 +118,7 @@ class ReviewRecords {
                 throw error;
             }
         }
-        if (notifyUpdate) this.findLastReviewRecordUpdate(multihash, notifyUpdate);
+        if (checkForUpdates) this.findLastReviewRecordUpdate(multihash, this.notifier);
         this.chluIpfs.events.emit('read ReviewRecord', { reviewRecord, multihash });
         return reviewRecord;
     }
@@ -181,6 +188,9 @@ class ReviewRecords {
         this.chluIpfs.lastReviewRecordMultihash = multihash;
         await this.chluIpfs.persistence.persistData();
         this.chluIpfs.events.emit('published ReviewRecord', multihash);
+        if (previousVersionMultihash) {
+            this.notifyReviewUpdate(previousVersionMultihash, multihash, reviewRecord);
+        }
         this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: post-publish tasks executed');
     }
 
