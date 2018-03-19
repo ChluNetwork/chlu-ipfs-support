@@ -15,11 +15,13 @@ class ReviewRecords {
     }
 
     async getLastReviewRecordUpdate(db, multihash) {
+        IPFSUtils.validateMultihash(multihash);
         this.chluIpfs.logger.debug('Checking for review updates for ' + multihash);
         let dbValue = multihash, updatedMultihash = multihash, path = [multihash];
         while (dbValue) {
             dbValue = await db.get(dbValue);
             if (typeof dbValue === 'string') {
+                IPFSUtils.validateMultihash(dbValue);
                 if (path.indexOf(dbValue) < 0) {
                     updatedMultihash = dbValue;
                     path.push(dbValue);
@@ -39,12 +41,20 @@ class ReviewRecords {
         }
     }
 
-    async notifyIfReviewIsUpdated(db, multihash, notifyUpdate) {
-        const updatedMultihash = await this.getLastReviewRecordUpdate(db, multihash);
+    async notifyIfReviewIsUpdated(db, multihash, notifyUpdate, validate = true) {
+        let updatedMultihash;
+        try {
+            updatedMultihash = await this.getLastReviewRecordUpdate(db, multihash);
+        } catch (err) {
+            this.chluIpfs.logger.warn('Thrown error while checking for updates for Review Record ' + multihash + ': '  + err.message || err);
+            updatedMultihash = null;
+        }
         if (updatedMultihash) {
-            // TODO: Check that the update is valid first
             try {
-                const reviewRecord = await this.readReviewRecord(updatedMultihash);
+                const reviewRecord = await this.readReviewRecord(updatedMultihash, {
+                    checkForUpdates: false,
+                    validate
+                });
                 notifyUpdate(multihash, updatedMultihash, reviewRecord);
             } catch (error) {
                 this.chluIpfs.logger.error('Review update ' + updatedMultihash + ' for ' + multihash + ' was invalid: ' + error);
@@ -52,7 +62,7 @@ class ReviewRecords {
         }
     }
 
-    async findLastReviewRecordUpdate(multihash, notifyUpdate) {
+    async findLastReviewRecordUpdate(multihash, notifyUpdate, validateUpdates = true) {
         const reviewRecord = await this.getReviewRecord(multihash);
         if (reviewRecord.orbitDb) {
             const getDb = async address => {
@@ -64,14 +74,11 @@ class ReviewRecords {
             };
             const notify = async address => {
                 if (address === reviewRecord.orbitDb) {
-                    this.notifyIfReviewIsUpdated(await getDb(address), multihash, notifyUpdate);
+                    this.notifyIfReviewIsUpdated(await getDb(address), multihash, notifyUpdate, validateUpdates);
                 }
             };
             this.chluIpfs.events.on('replicated', address => notify(address));
             this.chluIpfs.events.on('write', address => notify(address));
-            this.chluIpfs.events.on('updated ReviewRecord', (previousVersionMultihash, multihash, rr) => {
-                if (rr && rr.orbitDb) notify(rr.orbitDb);
-            });
             notify(reviewRecord.orbitDb);
         }
     }
@@ -82,7 +89,7 @@ class ReviewRecords {
             if (history.map(o => o.multihash).indexOf(prev) >= 0) {
                 throw new Error('Recursive history detected');
             }
-            const prevReviewRecord = await this.chluIpfs.reviewRecords.readReviewRecord(prev, { validate: false });
+            const prevReviewRecord = await this.chluIpfs.reviewRecords.getReviewRecord(prev);
             history.push({
                 multihash: prev,
                 reviewRecord: prevReviewRecord
@@ -98,6 +105,7 @@ class ReviewRecords {
     }
 
     async getReviewRecord(multihash){
+        IPFSUtils.validateMultihash(multihash);
         const buffer = await this.chluIpfs.ipfsUtils.get(multihash);
         return protobuf.ReviewRecord.decode(buffer);
     }
@@ -107,7 +115,6 @@ class ReviewRecords {
             checkForUpdates = false,
             validate = true
         } = options;
-        IPFSUtils.validateMultihash(multihash);
         const reviewRecord = await this.getReviewRecord(multihash);
         if (validate) {
             const validateOptions = typeof validate === 'object' ? validate : {};
@@ -118,7 +125,7 @@ class ReviewRecords {
                 throw error;
             }
         }
-        if (checkForUpdates) this.findLastReviewRecordUpdate(multihash, this.notifier);
+        if (checkForUpdates) this.findLastReviewRecordUpdate(multihash, this.notifier, validate);
         this.chluIpfs.events.emit('read ReviewRecord', { reviewRecord, multihash });
         return reviewRecord;
     }

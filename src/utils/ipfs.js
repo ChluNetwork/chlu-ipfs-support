@@ -33,7 +33,7 @@ function isValidMultihash(multihash) {
 }
 
 function validateMultihash(multihash) {
-    if (!isValidMultihash(multihash)) throw new Error('The given multihash is not valid');
+    if (!isValidMultihash(multihash)) throw new Error('Multihash is invalid: ' + multihash);
 }
 
 function multihashToString(multihash) {
