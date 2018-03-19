@@ -1,4 +1,5 @@
 const { cloneDeep, isEqual } = require('lodash');
+const IPFSUtils = require('../utils/ipfs');
 const axios = require('axios');
 
 class Validator {
@@ -11,6 +12,7 @@ class Validator {
             validateMultihash: true,
             validateHistory: true,
             validateSignatures: true,
+            expectedRRPublicKey: null,
             expectedPoPRPublicKey: null // TODO: pass this from readReviewRecord
         };
     }
@@ -121,12 +123,19 @@ class Validator {
     }
 
     async fetchMarketplaceKey(marketplaceUrl) {
-        this.chluIpfs.logger.debug('Fetching marketplace key for ' + marketplaceUrl);
-        const response = await axios.get(marketplaceUrl + '/.well-known');
-        const multihash = response.data.multihash;
-        this.chluIpfs.logger.debug('Fetched marketplace key for ' + marketplaceUrl + ': located at ' + multihash);
-        // TODO: handle errors, check multihash validity
-        return multihash;
+        try {
+            this.chluIpfs.logger.debug('Fetching marketplace key for ' + marketplaceUrl);
+            const response = await axios.get(marketplaceUrl + '/.well-known');
+            if (response.status !== 200) {
+                throw new Error('Expected HTTP Status Code 200, got ' + response.status + ' instead');
+            }
+            const multihash = response.data.multihash;
+            IPFSUtils.validateMultihash(multihash);
+            this.chluIpfs.logger.debug('Fetched marketplace key for ' + marketplaceUrl + ': located at ' + multihash);
+            return multihash;
+        } catch (error) {
+            throw new Error('Error while fetching the Marketplace key at ' + marketplaceUrl + ': ' + error.message || error);
+        }
     }
 
     validatePrevious(reviewRecord, previousVersion) {

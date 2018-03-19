@@ -134,14 +134,6 @@ class ChluIPFS {
     async importData(exportedData) {
         return await this.instance.importData(exportedData);
     }
-
-    async getVendorKeys(ipnsName) {
-        return await this.instance.getVendorKeys(ipnsName);
-    }
-    
-    async publishKeys(publicEncKey, publicSigKey) {
-        return await this.instance.publishKeys(publicEncKey, publicSigKey);
-    }
 }
 
 module.exports = Object.assign(ChluIPFS, constants);
