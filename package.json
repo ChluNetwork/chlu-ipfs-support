@@ -29,7 +29,7 @@
     "bitcoinjs-lib": "^3.3.2",
     "ipfs": "~0.28.0",
     "lodash": "^4.17.5",
-    "orbit-db": "~0.19.5",
+    "orbit-db": "~0.19.7",
     "protons": "~1.0.1"
   },
   "devDependencies": {
