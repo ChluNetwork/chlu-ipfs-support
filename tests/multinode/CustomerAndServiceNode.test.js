@@ -78,7 +78,8 @@ describe('Customer and Service Node integration', function() {
     afterEach(async () => {
         const indexedDBName = customerNode.orbitDbDirectory;
         try {
-            await Promise.all([customerNode.stop(), serviceNode.stop()]);
+            await customerNode.stop();
+            await serviceNode.stop();
         } catch (error) {
             console.log('[WARN] An error has occured while stopping ChluIPFS');
             console.trace(error);
