@@ -76,6 +76,7 @@ You can access the event emitter at `chluIpfs.instance.events` and listen to som
   - `vendor pubkey` to keep track of vendors encountered. Only emitted if the RR containing it is valid
   - `vendor-marketplace pubkey` Only emitted if the RR containing it is valid
   - `marketplace pubkey` to keep track of marketplaces encountered. Only emitted if the RR containing it is valid
+  - `customer pubkey` only emitted if a customer signed RR containing it is valid
 - PubSub
   - `pubsub subscribed`
   - `pubsub unsubscribed`

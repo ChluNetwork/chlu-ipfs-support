@@ -10,7 +10,20 @@ class ServiceNode {
         this.handler = message => {
             return self.handleMessage(message);
         };
+        this.pinner = async multihash => {
+            try {
+                this.chluIpfs.pinning.pin(multihash);
+            } catch (error) {
+                this.chluIpfs.logger.error('Pinning failed due to Error: ' + error.message);
+            }
+        };
+        // Handle Chlu network messages
         this.chluIpfs.events.on('message', this.handler);
+        // Pin public keys
+        this.chluIpfs.events.on('vendor pubkey', this.pinner);
+        this.chluIpfs.events.on('vendor-marketplace pubkey', this.pinner);
+        this.chluIpfs.events.on('marketplace pubkey', this.pinner);
+        this.chluIpfs.events.on('customer pubkey', this.pinner);
     }
 
     async stop() {

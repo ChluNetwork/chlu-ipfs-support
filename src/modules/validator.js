@@ -59,7 +59,11 @@ class Validator {
             throw new Error('Expected Review Record to be signed by ' + expectedRRPublicKey + ' but found ' + pubKeyMultihash);
         }
         const valid = await this.chluIpfs.crypto.verifyMultihash(pubKeyMultihash, rr.hash, rr.signature);
-        if (!valid) throw new Error('The ReviewRecord signature is invalid');
+        if (valid) {
+            this.chluIpfs.events.emit('customer pubkey', pubKeyMultihash);
+        } else {
+            throw new Error('The ReviewRecord signature is invalid');
+        }
         return valid;
     }
 
