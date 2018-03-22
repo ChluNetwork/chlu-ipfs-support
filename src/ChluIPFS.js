@@ -61,6 +61,9 @@ class ChluIPFS {
             this.ipfs = await IPFSUtils.createIPFS(this.ipfsOptions);
             this.logger.debug('Initialized IPFS');
         }
+        if (!this.ipfs.pin) {
+            this.logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
+        }
 
         await this.orbitDb.start();
         await this.room.start();
@@ -75,17 +78,10 @@ class ChluIPFS {
             await this.persistence.persistData();
         }
 
-        if (this.type === constants.types.customer && !this.orbitDb.getPersonalDBAddress()) {
-            await this.orbitDb.openPersonalOrbitDB(constants.customerDbName);
-            await this.persistence.persistData();
-        }
-
-        if (this.type === constants.types.customer) {
-            // Broadcast my review updates DB, but don't fail if nobody replicates
-            this.room.broadcastReviewUpdates(false);
-        } else if (this.type === constants.types.service) {
+        if (this.type === constants.types.service) {
             await this.serviceNode.start();
         }
+
         this.ready = true;
         this.starting = false;
         this.events.emit('ready');
@@ -135,10 +131,6 @@ class ChluIPFS {
             this.ready = true;
             this.events.emit('ready');
         }
-    }
-
-    getOrbitDBAddress(){
-        return this.orbitDb.getPersonalDBAddress();
     }
 
     async readReviewRecord(multihash, options = {}) {

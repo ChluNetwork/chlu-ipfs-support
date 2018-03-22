@@ -17,6 +17,26 @@ class ServiceNode {
                 this.chluIpfs.logger.error('Pinning failed due to Error: ' + error.message);
             }
         };
+        this.replicatedNotifier = async address => {
+            try {
+                await this.chluIpfs.room.broadcast({
+                    type: constants.eventTypes.replicated,
+                    address
+                });
+            } catch (error) {
+                this.chluIpfs.logger.warn('Could not send message due to Error: ' + error.message);
+            }
+        };
+        this.replicatingNotifier = async address => {
+            try {
+                await this.chluIpfs.room.broadcast({
+                    type: constants.eventTypes.replicating,
+                    address
+                });
+            } catch (error) {
+                this.chluIpfs.logger.warn('Could not send message due to Error: ' + error.message);
+            }
+        };
         // Handle Chlu network messages
         this.chluIpfs.events.on('message', this.handler);
         // Pin public keys
@@ -24,6 +44,9 @@ class ServiceNode {
         this.chluIpfs.events.on('vendor-marketplace pubkey', this.pinner);
         this.chluIpfs.events.on('marketplace pubkey', this.pinner);
         this.chluIpfs.events.on('customer pubkey', this.pinner);
+        // Send messages on replication
+        this.chluIpfs.events.on('replicate', this.replicatingNotifier);
+        this.chluIpfs.events.on('replicated', this.replicatedNotifier);
     }
 
     async stop() {
@@ -39,7 +62,6 @@ class ServiceNode {
 
     async handleMessage(message) {
         let obj = message;
-        const isOrbitDb = obj.type === constants.eventTypes.customerReviews || obj.type === constants.eventTypes.updatedReview;
         // handle ReviewRecord: pin hash
         if (obj.type === constants.eventTypes.wroteReviewRecord && typeof obj.multihash === 'string') {
             this.chluIpfs.logger.info('Reading and Pinning ReviewRecord ' + obj.multihash);
@@ -54,13 +76,6 @@ class ServiceNode {
                 this.chluIpfs.logger.info('Validated and Pinned ReviewRecord ' + obj.multihash);
             } catch(exception){
                 this.chluIpfs.logger.error('Pinning failed due to Error: ' + exception.message);
-            }
-        } else if (isOrbitDb && typeof obj.address === 'string') {
-            // handle OrbitDB: replicate
-            try {
-                this.chluIpfs.orbitDb.replicate(obj.address);
-            } catch(exception){
-                this.chluIpfs.logger.error('OrbitDB Replication Error: ' + exception.message);
             }
         }
     }

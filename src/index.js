@@ -34,16 +34,6 @@ class ChluIPFS {
     }
     
     /**
-     * Get the address of this Customer's OrbitDB
-     * database (used to index review updates)
-     * 
-     * @returns {string}
-     */
-    getOrbitDBAddress(){
-        return this.instance.getOrbitDBAddress();
-    }
-    
-    /**
      * Start subsystems. Call this before any ChluIPFS operations
      * but after you made any change to the internal modules or
      * configurations.
