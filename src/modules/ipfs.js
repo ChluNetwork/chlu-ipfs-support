@@ -6,6 +6,10 @@ class IPFS {
         this.chluIpfs = chluIpfs;
     }
 
+    async id() {
+        return (await this.chluIpfs.ipfs.id()).id;
+    }
+
     async get(multihash) {
         const dagNode = await this.chluIpfs.ipfs.object.get(utils.multihashToBuffer(multihash));
         return dagNode.data;

@@ -61,16 +61,14 @@ describe('ChluIPFS', () => {
         chluIpfs.dbs = {
             first: fakeDb
         };
-        chluIpfs.room = {
-            removeListener: sinon.stub()
-        };
+        sinon.spy(chluIpfs.events, 'removeListener');
         chluIpfs.serviceNodeRoomMessageListener = 'test';
         expect(chluIpfs.type).to.equal(ChluIPFS.types.service);
         await chluIpfs.switchType(ChluIPFS.types.customer);
         expect(chluIpfs.type).to.equal(ChluIPFS.types.customer);
         expect(chluIpfs.dbs).to.deep.equal({});
         expect(fakeDb.close.called).to.be.true;
-        expect(chluIpfs.room.removeListener.calledWith('message', chluIpfs.serviceNodeRoomMessageListener));
+        expect(chluIpfs.events.removeListener.calledWith('message', chluIpfs.serviceNodeRoomMessageListener));
     });
 
     it('switches type correctly from customer', async () => {

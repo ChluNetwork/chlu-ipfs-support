@@ -2,10 +2,11 @@ const expect = require('chai').expect;
 const sinon = require('sinon');
 
 const ChluIPFS = require('../src/ChluIPFS');
-const protons = require('protons');
-const protobuf = protons(require('../src/utils/protobuf'));
 const logger = require('./utils/logger');
 const { getFakeReviewRecord } = require('./utils/protobuf');
+const cloneDeep = require('lodash.clonedeep');
+const cryptoTestUtils = require('./utils/crypto');
+const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 
 describe('Validator Module', () => {
     let chluIpfs;
@@ -16,29 +17,32 @@ describe('Validator Module', () => {
             enablePersistence: false,
             logger: logger('Customer')
         });
+        // TODO: instead of disabling explicitly other validators in tests,
+        // make a system to explicity enable only the validator that needs to be tested
     });
 
     it('performs all validations', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
+        chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
         chluIpfs.validator.validateMultihash = sinon.stub().resolves();
         chluIpfs.validator.validateHistory = sinon.stub().resolves();
         await chluIpfs.validator.validateReviewRecord(reviewRecord);
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
         expect(chluIpfs.validator.validateHistory.called).to.be.true;
+        expect(chluIpfs.validator.validateVersion.called).to.be.true;
+        expect(chluIpfs.validator.validatePoPRSignaturesAndKeys.called).to.be.true;
+        expect(chluIpfs.validator.validateRRSignature.called).to.be.true;
     });
 
     it('is called by default but can be disabled', async () => {
-        sinon.spy(chluIpfs.validator, 'validateReviewRecord');
+        chluIpfs.validator.validateReviewRecord = sinon.stub().resolves();
         const reviewRecord = await getFakeReviewRecord();
-        const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
-        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
-        chluIpfs.ipfsUtils = {
-            get: sinon.stub().resolves({ data: buffer }),
-            createDAGNode: sinon.stub().callsFake(async buf => { return { data: buf, multihash }; }),
-            storeDAGNode: sinon.stub().resolves(multihash),
-            getDAGNodeMultihash: sinon.stub().returns(multihash)
-        };
+        const fakeStore = {};
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
         chluIpfs.waitUntilReady = sinon.stub().resolves();
+        chluIpfs.crypto.generateKeyPair();
         await chluIpfs.storeReviewRecord(reviewRecord, {
             publish: false
         });
@@ -52,6 +56,10 @@ describe('Validator Module', () => {
     });
 
     it('validates the internal multihash correctly', async () => {
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
+        chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
+        chluIpfs.validator.validateHistory = sinon.stub().resolves();
         sinon.spy(chluIpfs.validator, 'validateMultihash');
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(reviewRecord);
@@ -65,12 +73,12 @@ describe('Validator Module', () => {
         } catch (err) {
             error = err;
         }
-        expect(error.message).to.equal('Mismatching hash');
+        expect(error.message.slice(0, 'Mismatching hash'.length)).to.equal('Mismatching hash');
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
     });
 
     it('validates ancestors', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
+        // Prepare data
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.rating = 1;
         const reviewRecord2 = await getFakeReviewRecord();
@@ -86,8 +94,14 @@ describe('Validator Module', () => {
         chluIpfs.reviewRecords.getReviewRecord = sinon.stub().callsFake(async multihash => {
             return map[multihash];
         });
-        chluIpfs.validator.validateMultihash = sinon.stub().resolves(); // disable since we don't need it for this test
+        // Disable other validators
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
+        chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
+        chluIpfs.validator.validateMultihash = sinon.stub().resolves();
+        // Spy
         sinon.spy(chluIpfs.validator, 'validatePrevious');
+        // Test success case
         await chluIpfs.validator.validateReviewRecord(reviewRecord3);
         expect(chluIpfs.validator.validatePrevious.calledWith(reviewRecord3, reviewRecord2)).to.be.true;
         expect(chluIpfs.validator.validatePrevious.calledWith(reviewRecord2, reviewRecord)).to.be.true;
@@ -105,6 +119,81 @@ describe('Validator Module', () => {
         } catch (err) {
             error = err;
         }
-        expect(error.message).to.equal('customer_address has changed');
+        expect(error.message).to.match(/^customer_address has changed/);
+    });
+
+    it('validates PoPR signatures and keys', async () => {
+        // Disable other validators
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
+        chluIpfs.validator.validateHistory = sinon.stub().resolves();
+        chluIpfs.validator.validateMultihash = sinon.stub().resolves();
+        // --- Setup
+        const fakeStore = {};
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
+        const { makeKeyPair, preparePoPR } = cryptoTestUtils(chluIpfs);
+        const vm = await makeKeyPair();
+        const v = await makeKeyPair();
+        const m = await makeKeyPair();
+        chluIpfs.validator.fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
+        // --- Success Case
+        const popr = (await getFakeReviewRecord()).popr;
+        const signedPoPR = await preparePoPR(popr, vm, v, m);
+        let valid = await chluIpfs.validator.validatePoPRSignaturesAndKeys(cloneDeep(signedPoPR));
+        expect(valid).to.be.true;
+        // --- Failure Cases
+        const test = popr => {
+            return () => {
+                chluIpfs.validator.validatePoPRSignaturesAndKeys(popr);
+            };
+        };
+        let invalidPopr = cloneDeep(popr);
+        invalidPopr.hash = 'lol not the real hash';
+        expect(test(invalidPopr)).to.throw;
+        invalidPopr = cloneDeep(popr);
+        invalidPopr.signature = invalidPopr.vendor_signature;
+        expect(test(invalidPopr)).to.throw;
+        invalidPopr = cloneDeep(popr);
+        invalidPopr.marketplace_signature = invalidPopr.vendor_signature;
+        expect(test(invalidPopr)).to.throw;
+        invalidPopr = cloneDeep(popr);
+        invalidPopr.vendor_signature = invalidPopr.marketplace_signature;
+        expect(test(invalidPopr)).to.throw;
+    });
+
+    it('validates Review Record signature', async () => {
+        // Disable other validators
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
+        chluIpfs.validator.validateHistory = sinon.stub().resolves();
+        chluIpfs.validator.validateMultihash = sinon.stub().resolves();
+        // --- Setup
+        const fakeStore = {};
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
+        chluIpfs.crypto.generateKeyPair();
+        // --- Success Case
+        let reviewRecord = await getFakeReviewRecord();
+        reviewRecord = await chluIpfs.crypto.signReviewRecord(reviewRecord, chluIpfs.crypto.keyPair);
+        reviewRecord.key_location = '/ipfs/' + chluIpfs.crypto.pubKeyMultihash;
+        let valid = await chluIpfs.validator.validateRRSignature(reviewRecord);
+        expect(valid).to.be.true;
+        // --- Failure Cases
+        const test = rr => {
+            return () => {
+                chluIpfs.validator.validateRRSignature(rr);
+            };
+        };
+        let invalidRR = cloneDeep(reviewRecord);
+        invalidRR.hash = 'lol not the real hash';
+        expect(test(invalidRR)).to.throw;
+        invalidRR = cloneDeep(reviewRecord);
+        invalidRR.key_location = 'wrong';
+        expect(test(invalidRR)).to.throw;
+        invalidRR = cloneDeep(reviewRecord);
+        invalidRR.review_text = 'wrong again';
+        expect(test(invalidRR)).to.throw;
+        invalidRR = cloneDeep(reviewRecord);
+        invalidRR.signature = 'wrong again';
+        expect(test(invalidRR)).to.throw;
     });
 });

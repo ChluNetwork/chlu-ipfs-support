@@ -4,19 +4,24 @@ const multihashing = require('multihashing-async');
 const constants = require('../constants');
 const protobuf = protons(require('../utils/protobuf'));
 const IPFSUtils = require('./ipfs');
+const { cloneDeep } = require('lodash');
 
 class ReviewRecords {
 
     constructor(chluIpfs) {
         this.chluIpfs = chluIpfs;
+        const self = this;
+        this.notifier = (...args) => self.notifyReviewUpdate(...args);
     }
 
     async getLastReviewRecordUpdate(db, multihash) {
+        IPFSUtils.validateMultihash(multihash);
         this.chluIpfs.logger.debug('Checking for review updates for ' + multihash);
         let dbValue = multihash, updatedMultihash = multihash, path = [multihash];
         while (dbValue) {
             dbValue = await db.get(dbValue);
             if (typeof dbValue === 'string') {
+                IPFSUtils.validateMultihash(dbValue);
                 if (path.indexOf(dbValue) < 0) {
                     updatedMultihash = dbValue;
                     path.push(dbValue);
@@ -36,12 +41,20 @@ class ReviewRecords {
         }
     }
 
-    async notifyIfReviewIsUpdated(db, multihash, notifyUpdate) {
-        const updatedMultihash = await this.getLastReviewRecordUpdate(db, multihash);
+    async notifyIfReviewIsUpdated(db, multihash, notifyUpdate, validate = true) {
+        let updatedMultihash;
+        try {
+            updatedMultihash = await this.getLastReviewRecordUpdate(db, multihash);
+        } catch (err) {
+            this.chluIpfs.logger.warn('Thrown error while checking for updates for Review Record ' + multihash + ': '  + err.message || err);
+            updatedMultihash = null;
+        }
         if (updatedMultihash) {
-            // TODO: Check that the update is valid first
             try {
-                const reviewRecord = await this.readReviewRecord(updatedMultihash);
+                const reviewRecord = await this.readReviewRecord(updatedMultihash, {
+                    checkForUpdates: false,
+                    validate
+                });
                 notifyUpdate(multihash, updatedMultihash, reviewRecord);
             } catch (error) {
                 this.chluIpfs.logger.error('Review update ' + updatedMultihash + ' for ' + multihash + ' was invalid: ' + error);
@@ -49,7 +62,7 @@ class ReviewRecords {
         }
     }
 
-    async findLastReviewRecordUpdate(multihash, notifyUpdate) {
+    async findLastReviewRecordUpdate(multihash, notifyUpdate, validateUpdates = true) {
         const reviewRecord = await this.getReviewRecord(multihash);
         if (reviewRecord.orbitDb) {
             const getDb = async address => {
@@ -61,13 +74,11 @@ class ReviewRecords {
             };
             const notify = async address => {
                 if (address === reviewRecord.orbitDb) {
-                    this.notifyIfReviewIsUpdated(await getDb(address), multihash, notifyUpdate);
+                    this.notifyIfReviewIsUpdated(await getDb(address), multihash, notifyUpdate, validateUpdates);
                 }
             };
             this.chluIpfs.events.on('replicated', address => notify(address));
-            this.chluIpfs.events.on('updated ReviewRecord', (previousVersionMultihash, multihash, rr) => {
-                if (rr && rr.orbitDb) notify(rr.orbitDb);
-            });
+            this.chluIpfs.events.on('write', address => notify(address));
             notify(reviewRecord.orbitDb);
         }
     }
@@ -78,7 +89,7 @@ class ReviewRecords {
             if (history.map(o => o.multihash).indexOf(prev) >= 0) {
                 throw new Error('Recursive history detected');
             }
-            const prevReviewRecord = await this.chluIpfs.reviewRecords.readReviewRecord(prev, { validate: false });
+            const prevReviewRecord = await this.chluIpfs.reviewRecords.getReviewRecord(prev);
             history.push({
                 multihash: prev,
                 reviewRecord: prevReviewRecord
@@ -89,17 +100,21 @@ class ReviewRecords {
         }
     }
 
+    async notifyReviewUpdate(multihash, updatedMultihash, reviewRecord) {
+        this.chluIpfs.events.emit('updated ReviewRecord', multihash, updatedMultihash, reviewRecord);
+    }
+
     async getReviewRecord(multihash){
+        IPFSUtils.validateMultihash(multihash);
         const buffer = await this.chluIpfs.ipfsUtils.get(multihash);
         return protobuf.ReviewRecord.decode(buffer);
     }
 
     async readReviewRecord(multihash, options = {}) {
         const {
-            notifyUpdate = null,
+            checkForUpdates = false,
             validate = true
         } = options;
-        IPFSUtils.validateMultihash(multihash);
         const reviewRecord = await this.getReviewRecord(multihash);
         if (validate) {
             const validateOptions = typeof validate === 'object' ? validate : {};
@@ -110,20 +125,23 @@ class ReviewRecords {
                 throw error;
             }
         }
-        if (notifyUpdate) this.findLastReviewRecordUpdate(multihash, notifyUpdate);
+        if (checkForUpdates) this.findLastReviewRecordUpdate(multihash, this.notifier, validate);
         this.chluIpfs.events.emit('read ReviewRecord', { reviewRecord, multihash });
         return reviewRecord;
     }
 
     async prepareReviewRecord(reviewRecord, validate = true) {
-        // TODO: validate
         if(this.chluIpfs.type === constants.types.customer) {
             reviewRecord.orbitDb = this.chluIpfs.getOrbitDBAddress();
         } else if (!reviewRecord.orbitDb) {
             throw new Error('Can not set the orbitDb address since this is not a customer');
         }
+        const keyPair = this.chluIpfs.crypto.keyPair;
+        reviewRecord.key_location = '/ipfs/' + await this.chluIpfs.crypto.storePublicKey(keyPair.getPublicKeyBuffer());
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
-        reviewRecord = await this.hashReviewRecord(reviewRecord);
+        // Remove hash in case it's wrong (or this is an update). It's going to be calculated by the signing function
+        reviewRecord.hash = '';
+        reviewRecord = await this.chluIpfs.crypto.signReviewRecord(reviewRecord, keyPair);
         if (validate) await this.chluIpfs.validator.validateReviewRecord(reviewRecord);
         return reviewRecord;
     }
@@ -134,9 +152,16 @@ class ReviewRecords {
             publish = true,
             validate = true
         } = options;
-        const rr = await this.prepareReviewRecord(reviewRecord, validate);
+        let rr = Object.assign({}, reviewRecord, {
+            previous_version_multihash: previousVersionMultihash || ''
+        });
+        this.chluIpfs.logger.debug('Preparing review record');
+        rr = await this.prepareReviewRecord(rr, validate);
+        this.chluIpfs.logger.debug('Encoding (protobuf) review record');
         const buffer = protobuf.ReviewRecord.encode(rr);
+        this.chluIpfs.logger.debug('Encoding (dagnode) review record');
         const dagNode = await this.chluIpfs.ipfsUtils.createDAGNode(buffer); // don't store to IPFS yet
+        this.chluIpfs.logger.debug('Calculating review record multihash');
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         if (options.expectedMultihash) {
             if (options.expectedMultihash !== multihash) {
@@ -149,23 +174,31 @@ class ReviewRecords {
     }
 
     async publishReviewRecord(dagNode, previousVersionMultihash, expectedMultihash, reviewRecord) {
+        this.chluIpfs.logger.debug('Storing review record in IPFS');
         // Broadcast request for pin, then wait for response
         // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
         const multihash = await this.chluIpfs.ipfsUtils.storeDAGNode(dagNode); // store to IPFS
         if (expectedMultihash && multihash !== expectedMultihash) {
             throw new Error('Multihash mismatch when publishing');
         }
+        this.chluIpfs.logger.debug('Stored review record ' + multihash + ' in IPFS');
         // Wait for it to be remotely pinned
         let tasksToAwait = [this.waitForRemotePin(multihash)];
         if (previousVersionMultihash) {
             // This is a review update
             tasksToAwait.push(this.setForwardPointerForReviewRecord(previousVersionMultihash, multihash, reviewRecord));
         }
+        this.chluIpfs.logger.debug('Waiting for Publish tasks to complete for ' + multihash);
         await Promise.all(tasksToAwait);
         // Operation succeeded: set this as the last review record published
+        this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: executing post-publish tasks');
         this.chluIpfs.lastReviewRecordMultihash = multihash;
         await this.chluIpfs.persistence.persistData();
         this.chluIpfs.events.emit('published ReviewRecord', multihash);
+        if (previousVersionMultihash) {
+            this.notifyReviewUpdate(previousVersionMultihash, multihash, reviewRecord);
+        }
+        this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: post-publish tasks executed');
     }
 
     async waitForRemotePin(multihash) {
@@ -192,7 +225,8 @@ class ReviewRecords {
         return multihash;
     }
 
-    async hashObject(obj, encoder) {
+    async hashObject(object, encoder) {
+        const obj = cloneDeep(object);
         let name;
         try {
             // Try to detect existing multihash type
@@ -204,6 +238,10 @@ class ReviewRecords {
             name = 'sha2-256';
         }
         obj.hash = '';
+        if (typeof obj.signature !== 'undefined') {
+            // Signature is applied after hashing, so remove it for hashing
+            obj.signature = '';
+        }
         this.chluIpfs.logger.debug('Preparing to hash the object: ' + JSON.stringify(obj));
         const toHash = encoder(obj); 
         const multihash = await new Promise((resolve, reject) => {
@@ -212,14 +250,18 @@ class ReviewRecords {
             });
         });
         obj.hash = multihashes.toB58String(multihash);
+        if (typeof object.signature !== 'undefined') {
+            // Restore signature if it was present originally
+            obj.signature = object.signature;
+        }
         this.chluIpfs.logger.debug('Hashed to ' + obj.hash + ' the object ' + JSON.stringify(obj));
         return obj;
     }
 
     async hashReviewRecord(reviewRecord) {
-        if (!reviewRecord.last_reviewrecord_multihash) {
-            reviewRecord.last_reviewrecord_multihash = '';
-        }
+        // TODO: better checks
+        if (!reviewRecord.last_reviewrecord_multihash) reviewRecord.last_reviewrecord_multihash = '';
+        if (!reviewRecord.previous_version_multihash) reviewRecord.previous_version_multihash = '';
         return await this.hashObject(reviewRecord, protobuf.ReviewRecord.encode);
     }
 

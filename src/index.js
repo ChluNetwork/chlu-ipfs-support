@@ -102,7 +102,7 @@ class ChluIPFS {
      * @param {string} multihash 
      * @param {Object} options optional additional preferences
      * @param {boolean} options.validate whether to check for validity (default true). Throws if the review record is invalid
-     * @param {Function} options.notifyUpdate called with (multihash, updatedMultihash) if/when an update is found for the
+     * @param {Function} options.checkForUpdates default false, if true will emit 'updated ReviewRecords' events when this RR is updated
      * requested review record
      */
     async readReviewRecord(multihash, options = {}){
@@ -133,14 +133,6 @@ class ChluIPFS {
 
     async importData(exportedData) {
         return await this.instance.importData(exportedData);
-    }
-
-    async getVendorKeys(ipnsName) {
-        return await this.instance.getVendorKeys(ipnsName);
-    }
-    
-    async publishKeys(publicEncKey, publicSigKey) {
-        return await this.instance.publishKeys(publicEncKey, publicSigKey);
     }
 }
 

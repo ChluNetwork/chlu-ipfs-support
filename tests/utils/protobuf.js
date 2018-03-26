@@ -29,12 +29,18 @@ function getFakeReviewRecord() {
                     is_required: true
                 }
             ],
-            signature: '-'
+            signature: '',
+            vendor_key_location: '',
+            vendor_encryption_key_location: '',
+            marketplace_signature: '',
+            vendor_signature: ''
         },
         orbitDb: '/orbitdb/ipfshash/chlu-experimental-customer-review-updates',
         last_reviewrecord_multihash: '',
         chlu_version: 0,
-        hash: ''
+        hash: '',
+        signature: '',
+        key_location: ''
     };
 }
 

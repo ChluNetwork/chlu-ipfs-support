@@ -74,14 +74,14 @@ class DB {
         this.chluIpfs.logger.info('Replicating ' + address);
         const db = await this.openDbForReplication(address);
         if (db) {
-            this.chluIpfs.room.broadcast({ type: constants.eventTypes.replicating, address });
+            await this.chluIpfs.room.broadcast({ type: constants.eventTypes.replicating, address });
             await new Promise(resolve => {
                 this.chluIpfs.logger.debug('Waiting for next replication of ' + address);
                 db.events.once('replicated', resolve);
                 db.events.once('ready', resolve);
             });
             this.chluIpfs.events.emit('reviewUpdates', address);
-            this.chluIpfs.room.broadcast({ type: constants.eventTypes.replicated, address });
+            await this.chluIpfs.room.broadcast({ type: constants.eventTypes.replicated, address });
             this.chluIpfs.logger.info('Replicated ' + address);
         }
     }
