@@ -12,7 +12,7 @@ class Persistence {
             const data = {};
             if (this.chluIpfs.type === constants.types.customer) {
                 // Customer multihash of last review record created
-                if (IPFSUtils.isValidMultihash(data.lastReviewRecordMultihash)) {
+                if (IPFSUtils.isValidMultihash(this.chluIpfs.lastReviewRecordMultihash)) {
                     data.lastReviewRecordMultihash = this.chluIpfs.lastReviewRecordMultihash;
                 }
                 // Customer keys

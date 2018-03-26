@@ -114,7 +114,7 @@ describe('Customer and Service Node integration', function() {
         expect(readRecord).to.deep.equal(customerRecord);
     });
 
-    it.only('handles review updates', async () => {
+    it('handles review updates', async () => {
         // Create fake review record
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);

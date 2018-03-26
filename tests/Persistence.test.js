@@ -40,7 +40,7 @@ describe('Persistence module', () => {
 
     it('saves customer last review record multihash', async () => {
         const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
-        const lastReviewRecordMultihash = 'example data';
+        const lastReviewRecordMultihash = 'QmWBTzAwP8fz2zRsmzqUfSKEZ6GRTuPTsBVfJs6Y72D1hz'; // valid but not real
         api.lastReviewRecordMultihash = lastReviewRecordMultihash; 
         api.storage.save = sinon.stub().resolves();
         await api.persistence.persistData();
