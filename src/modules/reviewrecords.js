@@ -89,9 +89,17 @@ class ReviewRecords {
             }
         }
         if (checkForUpdates) this.findLastReviewRecordUpdate(m, this.notifier, validate);
-        const keyMultihash = this.chluIpfs.validator.keyLocationToKeyMultihash(reviewRecord.key_location)
+        const keyMultihash = this.chluIpfs.validator.keyLocationToKeyMultihash(reviewRecord.key_location);
         reviewRecord.editable = keyMultihash === this.chluIpfs.crypto.pubKeyMultihash;
-        this.chluIpfs.events.emit('read ReviewRecord', { reviewRecord, multihash: m });
+        reviewRecord.multihash = m;
+        reviewRecord.requestedMultihash = multihash;
+        reviewRecord.watching = Boolean(checkForUpdates);
+        reviewRecord.gotLatestVersion = Boolean(getLatestVersion);
+        this.chluIpfs.events.emit('read ReviewRecord', {
+            reviewRecord,
+            multihash: m,
+            requestedMultihash: multihash
+        });
         return reviewRecord;
     }
 

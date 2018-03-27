@@ -26,11 +26,10 @@ class ChluIndex {
                             this._index.reviewRecords.splice(0, 0, item.payload.multihash);
                         }
                     } else if (item.payload.op === operations.UPDATE_REVIEW_RECORD && IPFSUtils.isValidMultihash(item.payload.multihash) && IPFSUtils.isValidMultihash(item.payload.previousVersionMultihash)) {
-                        // Do not update a review record that is not in the DB
-                        if (this._index.reviewRecords.indexOf(item.payload.previousVersionMultihash) >= 0) {
-                            const from = this.getLatestReviewRecordUpdate(item.payload.previousVersionMultihash);
-                            this._index.updates[from] = item.payload.multihash;
-                        }
+                        // TODO: check that whatever is being updated is in the DB
+                        // the multihash to be updated might already be an update. Be careful!
+                        const from = this.getLatestReviewRecordUpdate(item.payload.previousVersionMultihash);
+                        this._index.updates[from] = item.payload.multihash;
                     }
                 }
             });
