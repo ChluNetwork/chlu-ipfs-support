@@ -23,6 +23,14 @@ function withoutHashAndSig(obj) {
     });
 }
 
+function strip(obj) {
+    delete obj.gotLatestVersion;
+    delete obj.multihash;
+    delete obj.requestedMultihhash;
+    delete obj.editable;
+    delete obj.watching;
+}
+
 describe('Customer and Service Node integration', function() {
     let customerNode, serviceNode, server, v, vm, m, makeKeyPair, preparePoPR;
 
@@ -110,8 +118,7 @@ describe('Customer and Service Node integration', function() {
         // check that reading works
         const readRecord = await serviceNode.readReviewRecord(hash);
         expect(readRecord.editable).to.be.false;
-        readRecord.editable = true; // otherwise equality won't pass
-        expect(readRecord).to.deep.equal(customerRecord);
+        expect(strip(readRecord)).to.deep.equal(strip(customerRecord));
     });
 
     it('handles review updates', async () => {
@@ -133,7 +140,7 @@ describe('Customer and Service Node integration', function() {
         });
         const rr = await serviceNode.readReviewRecord(multihash, { getLatestVersion: true });
         const rrUpdate = await serviceNode.readReviewRecord(updatedMultihash);
-        expect(rr).to.deep.equal(rrUpdate);
+        expect(strip(rr)).to.deep.equal(strip(rrUpdate));
         // Check that the review list is correct
         expect(customerNode.orbitDb.getReviewRecordList()).to.deep.equal([multihash]);
     });
@@ -187,7 +194,7 @@ describe('Customer and Service Node integration', function() {
         });
         const rr = await customerNode.readReviewRecord(multihash, { getLatestVersion: true });
         const rrUpdate = await customerNode.readReviewRecord(updatedMultihash);
-        expect(rrUpdate).to.deep.equal(rr);
+        expect(strip(rrUpdate)).to.deep.equal(strip(rr));
     });
 
     it('handles review updates written by the current node but that happened after the read', async () => {
@@ -204,8 +211,7 @@ describe('Customer and Service Node integration', function() {
                     expect(originalHash).to.equal(multihash);
                     expect(rr.previous_version_multihash).to.equal(originalHash);
                     const customerUpdate = await customerNode.readReviewRecord(newHash);
-                    delete customerUpdate.editable; // otherwise the equality check fails
-                    expect(rr).to.deep.equal(customerUpdate);
+                    expect(strip(rr)).to.deep.equal(strip(customerUpdate));
                     resolve();
                 } catch (err) {
                     reject(err);
