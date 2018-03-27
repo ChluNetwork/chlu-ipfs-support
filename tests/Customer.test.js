@@ -40,6 +40,7 @@ describe('Customer', () => {
                 publish
             }
         };
+        chluIpfs.orbitDb.setAndWaitForReplication = sinon.stub().resolves();
         await chluIpfs.room.start();
         // Crypto
         chluIpfs.crypto.generateKeyPair();

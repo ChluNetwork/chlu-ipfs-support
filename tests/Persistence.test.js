@@ -38,47 +38,13 @@ describe('Persistence module', () => {
         expect(api.storage.save.args[0][1].keyPair).to.equal(keyPair.toWIF());
     });
 
-    it('saves customer orbitdb address', async () => {
-        const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
-        const orbitDbAddress = 'fakeOrbitDBAddress';
-        api.getOrbitDBAddress = sinon.stub().returns(orbitDbAddress);
-        api.storage.save = sinon.stub().resolves();
-        await api.persistence.persistData();
-        expect(api.storage.save.args[0][1].orbitDbAddress).to.equal(orbitDbAddress);
-    });
-
     it('saves customer last review record multihash', async () => {
         const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
-        const lastReviewRecordMultihash = 'example data';
+        const lastReviewRecordMultihash = 'QmWBTzAwP8fz2zRsmzqUfSKEZ6GRTuPTsBVfJs6Y72D1hz'; // valid but not real
         api.lastReviewRecordMultihash = lastReviewRecordMultihash; 
         api.storage.save = sinon.stub().resolves();
         await api.persistence.persistData();
         expect(api.storage.save.args[0][1].lastReviewRecordMultihash).to.equal(lastReviewRecordMultihash);
-    });
-
-    it('saves service node orbitdb addresses', async () => {
-        const api = new ChluIPFS({ type: ChluIPFS.types.service, directory , logger: logger('Service')});
-        const dbs = {
-            'fakeOrbitDBAddress1': { fakeDb: true, id: 1 },
-            'fakeOrbitDBAddress2': { fakeDb: true, id: 2 },
-            'fakeOrbitDBAddress3': { fakeDb: true, id: 3 }
-        };
-        const orbitDbAddresses = [ 'fakeOrbitDBAddress1', 'fakeOrbitDBAddress2', 'fakeOrbitDBAddress3' ];
-        api.orbitDb.dbs = dbs;
-        api.storage.save = sinon.stub().resolves();
-        await api.persistence.persistData();
-        const expected = { orbitDbAddresses };
-        expect(api.storage.save.calledWith(api.directory, expected, api.type)).to.be.true;
-    });
-
-    it('saves the db address after it is opened for replication', async () => {
-        const api = new ChluIPFS({ type: ChluIPFS.types.service, directory, logger: logger('Service') });
-        const address = 'fakeOrbitDBAddress';
-        const expected = { orbitDbAddresses: [address] };
-        api.storage.save = sinon.stub().resolves();
-        api.orbitDb.openDb = sinon.stub().resolves({ fakeDb: true, id: 1 });
-        await api.orbitDb.openDbForReplication(address);
-        expect(api.storage.save.calledWith(api.directory, expected, api.type)).to.be.true;
     });
 
     it('loads customer keypair', async () => {
@@ -92,18 +58,6 @@ describe('Persistence module', () => {
         expect(api.crypto.importKeyPair.calledWith(keyPair.toWIF())).to.be.true;
     });
 
-    it('loads customer orbitdb address', async () => {
-        const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
-        const data = { orbitDbAddress: 'fakeOrbitDbAddress' };
-        const fakeDb = { address: 'fakeOrbitDbAddress', id: 1 };
-        api.storage.load = sinon.stub().resolves(data);
-        api.orbitDb.openDb = sinon.stub().resolves(fakeDb);
-        await api.persistence.loadPersistedData();
-        expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
-        expect(api.orbitDb.openDb.calledWith(fakeDb.address)).to.be.true;
-        expect(api.orbitDb.db).to.deep.equal(fakeDb);
-    });
-
     it('loads customer last review record multihash', async () => {
         const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
         const data = { lastReviewRecordMultihash: 'example data' };
@@ -111,21 +65,6 @@ describe('Persistence module', () => {
         await api.persistence.loadPersistedData();
         expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
         expect(api.lastReviewRecordMultihash).to.deep.equal(data.lastReviewRecordMultihash);
-    });
-
-    it('loads service node orbitdb addresses', async () => {
-        const api = new ChluIPFS({ type: ChluIPFS.types.service, directory, logger: logger('Service') });
-        const fakeDb = { address: 'fakeOrbitDbAddress', id: 1 };
-        const orbitDbAddresses = [ 'fakeOrbitDBAddress1', 'fakeOrbitDBAddress2', 'fakeOrbitDBAddress3' ];
-        const data = { orbitDbAddresses };
-        api.storage.load = sinon.stub().resolves(data);
-        api.orbitDb.openDb = sinon.stub().resolves(fakeDb);
-        await api.persistence.loadPersistedData();
-        expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
-        expect(api.orbitDb.openDb.firstCall.calledWith(orbitDbAddresses[0])).to.be.true;
-        expect(api.orbitDb.openDb.secondCall.calledWith(orbitDbAddresses[1])).to.be.true;
-        expect(api.orbitDb.openDb.thirdCall.calledWith(orbitDbAddresses[2])).to.be.true;
-        expect(Object.keys(api.orbitDb.dbs)).to.deep.equal(orbitDbAddresses);
     });
     
     it('skips loading if disabled', async () => {

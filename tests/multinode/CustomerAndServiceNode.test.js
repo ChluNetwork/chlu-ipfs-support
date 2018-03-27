@@ -23,6 +23,14 @@ function withoutHashAndSig(obj) {
     });
 }
 
+function strip(obj) {
+    delete obj.gotLatestVersion;
+    delete obj.multihash;
+    delete obj.requestedMultihhash;
+    delete obj.editable;
+    delete obj.watching;
+}
+
 describe('Customer and Service Node integration', function() {
     let customerNode, serviceNode, server, v, vm, m, makeKeyPair, preparePoPR;
 
@@ -76,7 +84,6 @@ describe('Customer and Service Node integration', function() {
     });
 
     afterEach(async () => {
-        const indexedDBName = customerNode.orbitDbDirectory;
         try {
             await customerNode.stop();
             await serviceNode.stop();
@@ -87,7 +94,8 @@ describe('Customer and Service Node integration', function() {
         if (env.isNode()) {
             rimraf.sync(testDir);
         } else {
-            indexedDB.deleteDatabase(indexedDBName);
+            indexedDB.deleteDatabase(customerNode.orbitDbDirectory);
+            indexedDB.deleteDatabase(serviceNode.orbitDbDirectory);
         }
         customerNode = undefined;
         serviceNode = undefined;
@@ -102,13 +110,15 @@ describe('Customer and Service Node integration', function() {
         // store review record and await for completion
         const hash = await customerNode.storeReviewRecord(reviewRecord);
         const customerRecord = await customerNode.readReviewRecord(hash);
+        expect(customerRecord.editable).to.be.true;
         // check hash validity
         expect(hash).to.be.a('string').that.is.not.empty;
         // the service node should already have pinned the hash
         expect(serviceNode.pinning.pin.called).to.be.true;
         // check that reading works
         const readRecord = await serviceNode.readReviewRecord(hash);
-        expect(readRecord).to.deep.equal(customerRecord);
+        expect(readRecord.editable).to.be.false;
+        expect(strip(readRecord)).to.deep.equal(strip(customerRecord));
     });
 
     it('handles review updates', async () => {
@@ -122,26 +132,17 @@ describe('Customer and Service Node integration', function() {
         reviewUpdate.rating = 1;
         // Store the original review
         const multihash = await customerNode.storeReviewRecord(reviewRecord);
+        // Check that the review list is correct
+        expect(customerNode.orbitDb.getReviewRecordList()).to.deep.equal([multihash]);
         // Store the update
         const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, {
             previousVersionMultihash: multihash
         });
-        // Now try to fetch it from the service node while checking for updates
-        await new Promise((resolve, reject) => {
-            const notifyUpdate = async (originalHash, newHash, rr) => {
-                try {
-                    expect(newHash).to.deep.equal(updatedMultihash);
-                    const updatedRR = await serviceNode.readReviewRecord(updatedMultihash);
-                    expect(rr).to.deep.equal(updatedRR);
-                    expect(rr.previous_version_multihash).to.equal(originalHash);
-                    resolve();
-                } catch (err) {
-                    reject(err);
-                }
-            };
-            serviceNode.events.on('updated ReviewRecord', notifyUpdate);
-            serviceNode.readReviewRecord(multihash, { checkForUpdates: true });
-        });
+        const rr = await serviceNode.readReviewRecord(multihash, { getLatestVersion: true });
+        const rrUpdate = await serviceNode.readReviewRecord(updatedMultihash);
+        expect(strip(rr)).to.deep.equal(strip(rrUpdate));
+        // Check that the review list is correct
+        expect(customerNode.orbitDb.getReviewRecordList()).to.deep.equal([multihash]);
     });
 
     it('handles review updates happening after calling readReviewRecord', async () => {
@@ -191,21 +192,9 @@ describe('Customer and Service Node integration', function() {
         const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, {
             previousVersionMultihash: multihash
         });
-        // Now try to fetch it from the customer node while checking for updates
-        await new Promise((resolve, reject) => {
-            const notifyUpdate = async (originalHash, newHash, rr) => {
-                try {
-                    expect(newHash).to.deep.equal(updatedMultihash);
-                    const updatedRR = await serviceNode.readReviewRecord(updatedMultihash);
-                    expect(rr).to.deep.equal(updatedRR);
-                    resolve();
-                } catch (err) {
-                    reject(err);
-                }
-            };
-            customerNode.events.on('updated ReviewRecord', notifyUpdate);
-            customerNode.readReviewRecord(multihash, { checkForUpdates: true });
-        });
+        const rr = await customerNode.readReviewRecord(multihash, { getLatestVersion: true });
+        const rrUpdate = await customerNode.readReviewRecord(updatedMultihash);
+        expect(strip(rrUpdate)).to.deep.equal(strip(rr));
     });
 
     it('handles review updates written by the current node but that happened after the read', async () => {
@@ -222,7 +211,7 @@ describe('Customer and Service Node integration', function() {
                     expect(originalHash).to.equal(multihash);
                     expect(rr.previous_version_multihash).to.equal(originalHash);
                     const customerUpdate = await customerNode.readReviewRecord(newHash);
-                    expect(rr).to.deep.equal(customerUpdate);
+                    expect(strip(rr)).to.deep.equal(strip(customerUpdate));
                     resolve();
                 } catch (err) {
                     reject(err);

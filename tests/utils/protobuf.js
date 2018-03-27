@@ -35,7 +35,6 @@ function getFakeReviewRecord() {
             marketplace_signature: '',
             vendor_signature: ''
         },
-        orbitDb: '/orbitdb/ipfshash/chlu-experimental-customer-review-updates',
         last_reviewrecord_multihash: '',
         chlu_version: 0,
         hash: '',

@@ -1,4 +1,5 @@
 const constants = require('../constants');
+const IPFSUtils = require('../utils/ipfs');
 
 class Persistence {
 
@@ -10,15 +11,12 @@ class Persistence {
         if (this.chluIpfs.enablePersistence) {
             const data = {};
             if (this.chluIpfs.type === constants.types.customer) {
-                // Customer OrbitDB Address
-                data.orbitDbAddress = this.chluIpfs.getOrbitDBAddress();
                 // Customer multihash of last review record created
-                data.lastReviewRecordMultihash = this.chluIpfs.lastReviewRecordMultihash;
+                if (IPFSUtils.isValidMultihash(this.chluIpfs.lastReviewRecordMultihash)) {
+                    data.lastReviewRecordMultihash = this.chluIpfs.lastReviewRecordMultihash;
+                }
                 // Customer keys
                 data.keyPair = await this.chluIpfs.crypto.exportKeyPair();
-            } else if (this.chluIpfs.type === constants.types.service) {
-                // Service Node Synced OrbitDB addresses
-                data.orbitDbAddresses = Object.keys(this.chluIpfs.orbitDb.dbs);
             }
             this.chluIpfs.logger.debug('Saving persisted data');
             try {
@@ -37,11 +35,6 @@ class Persistence {
         if (this.chluIpfs.enablePersistence) {
             this.chluIpfs.logger.debug('Loading persisted data');
             const data = await this.chluIpfs.storage.load(this.chluIpfs.directory, this.chluIpfs.type);
-            if (this.chluIpfs.type === constants.types.service) {
-                // Open known OrbitDBs so that we can seed them
-                if (data.orbitDbAddresses) await this.chluIpfs.orbitDb.openDbs(data.orbitDbAddresses);
-            }
-            if (data.orbitDbAddress) await this.chluIpfs.orbitDb.openPersonalOrbitDB(data.orbitDbAddress);
             if (data.lastReviewRecordMultihash) this.chluIpfs.lastReviewRecordMultihash = data.lastReviewRecordMultihash;
             if (data.keyPair) {
                 this.chluIpfs.crypto.keyPair = await this.chluIpfs.crypto.importKeyPair(data.keyPair);

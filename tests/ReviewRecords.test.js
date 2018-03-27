@@ -49,8 +49,7 @@ describe('ReviewRecords module', () => {
         chluIpfs.lastReviewRecordMultihash = lastReviewRecordMultihash.slice(0); // make a copy
         const fakeStore = {};
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
-        chluIpfs.getOrbitDBAddress = () => 'example data';
-        chluIpfs.reviewRecords.setForwardPointerForReviewRecord = sinon.stub().resolves();
+        chluIpfs.orbitDb.setAndWaitForReplication = sinon.stub().resolves();
         chluIpfs.reviewRecords.waitForRemotePin = sinon.stub().resolves();
         chluIpfs.crypto.generateKeyPair();
         const multihash = await chluIpfs.storeReviewRecord(fakeReviewRecord, { validate: false });

@@ -39,10 +39,6 @@ class ChluIPFS {
         await this._wait(3000);
     }
 
-    getOrbitDBAddress(){
-        return 'mockedorbitdbaddress';
-    }
-
     async readReviewRecord(){
         await this._wait(3000);
         return await getFakeReviewRecord();

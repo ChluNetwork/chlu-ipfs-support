@@ -1,5 +1,5 @@
 const constants = require('../constants');
-const IPFSUtils = require('../modules/ipfs');
+const IPFSUtils = require('../utils/ipfs');
 
 class Pinning {
 
@@ -18,7 +18,6 @@ class Pinning {
                 await this.chluIpfs.ipfs.pin.add(multihash, { recursive: true });
             } else {
                 // TODO: Chlu service node need to be able to pin, so we should support using go-ipfs
-                this.chluIpfs.logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
                 await this.chluIpfs.ipfsUtils.get(multihash);
             }
             this.chluIpfs.events.emit('pinned', multihash);

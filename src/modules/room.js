@@ -127,20 +127,6 @@ class Room {
         });
     }
 
-    async broadcastReviewUpdates(expectReplication = true){
-        const msg = {
-            type: constants.eventTypes.customerReviews,
-            address: this.chluIpfs.orbitDb.getPersonalDBAddress()
-        };
-        if (expectReplication) {
-            return await this.broadcastUntil(msg, constants.eventTypes.replicated + '_' + this.chluIpfs.getOrbitDBAddress());
-        } else {
-            // Wait for at least one peer before broadcasting. TODO: review this
-            await this.waitForAnyPeer();
-            return await this.broadcast(msg);
-        }
-    }
-
     async handleMessage(message) {
         try {
             const myId = await this.chluIpfs.ipfsUtils.id();

@@ -14,42 +14,15 @@ class ReviewRecords {
         this.notifier = (...args) => self.notifyReviewUpdate(...args);
     }
 
-    async getLastReviewRecordUpdate(db, multihash) {
-        IPFSUtils.validateMultihash(multihash);
-        this.chluIpfs.logger.debug('Checking for review updates for ' + multihash);
-        let dbValue = multihash, updatedMultihash = multihash, path = [multihash];
-        while (dbValue) {
-            dbValue = await db.get(dbValue);
-            if (typeof dbValue === 'string') {
-                IPFSUtils.validateMultihash(dbValue);
-                if (path.indexOf(dbValue) < 0) {
-                    updatedMultihash = dbValue;
-                    path.push(dbValue);
-                    this.chluIpfs.logger.debug('Found forward pointer from ' + multihash + ' to ' + updatedMultihash);
-                } else {
-                    const error = new Error('Recursive references detected in this OrbitDB: ' + db.address.toString());
-                    this.chluIpfs.events.emit('error', error);
-                    throw error;
-                }
-            }
-        }
-        if (multihash != updatedMultihash) {
-            this.chluIpfs.logger.debug(multihash + ' updates to ' + updatedMultihash);
-            return updatedMultihash;
-        } else {
-            this.chluIpfs.logger.debug('no updates found for ' + multihash);
-        }
-    }
-
-    async notifyIfReviewIsUpdated(db, multihash, notifyUpdate, validate = true) {
+    async notifyIfReviewIsUpdated(multihash, notifyUpdate, validate = true) {
         let updatedMultihash;
         try {
-            updatedMultihash = await this.getLastReviewRecordUpdate(db, multihash);
+            updatedMultihash = await this.chluIpfs.orbitDb.get(multihash);
         } catch (err) {
             this.chluIpfs.logger.warn('Thrown error while checking for updates for Review Record ' + multihash + ': '  + err.message || err);
             updatedMultihash = null;
         }
-        if (updatedMultihash) {
+        if (updatedMultihash && updatedMultihash !== multihash) {
             try {
                 const reviewRecord = await this.readReviewRecord(updatedMultihash, {
                     checkForUpdates: false,
@@ -63,24 +36,9 @@ class ReviewRecords {
     }
 
     async findLastReviewRecordUpdate(multihash, notifyUpdate, validateUpdates = true) {
-        const reviewRecord = await this.getReviewRecord(multihash);
-        if (reviewRecord.orbitDb) {
-            const getDb = async address => {
-                if (this.chluIpfs.orbitDb.getPersonalDBAddress() === address) {
-                    return this.chluIpfs.orbitDb.db;
-                } else {
-                    return await this.chluIpfs.orbitDb.openDbForReplication(address);
-                }
-            };
-            const notify = async address => {
-                if (address === reviewRecord.orbitDb) {
-                    this.notifyIfReviewIsUpdated(await getDb(address), multihash, notifyUpdate, validateUpdates);
-                }
-            };
-            this.chluIpfs.events.on('replicated', address => notify(address));
-            this.chluIpfs.events.on('write', address => notify(address));
-            notify(reviewRecord.orbitDb);
-        }
+        const notify = () => this.notifyIfReviewIsUpdated(multihash, notifyUpdate, validateUpdates);
+        this.chluIpfs.events.on('replicated', notify);
+        this.chluIpfs.events.on('write', notify);
     }
 
     async getHistory(reviewRecord, history = []) {
@@ -113,29 +71,39 @@ class ReviewRecords {
     async readReviewRecord(multihash, options = {}) {
         const {
             checkForUpdates = false,
+            getLatestVersion = false,
             validate = true
         } = options;
-        const reviewRecord = await this.getReviewRecord(multihash);
+        let m = multihash;
+        if (getLatestVersion) {
+            m = await this.chluIpfs.orbitDb.get(multihash);
+        }
+        const reviewRecord = await this.getReviewRecord(m);
         if (validate) {
             const validateOptions = typeof validate === 'object' ? validate : {};
             try {
                 await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
             } catch (error) {
-                this.chluIpfs.events.emit('validation error', error, multihash);
+                this.chluIpfs.events.emit('validation error', error, m);
                 throw error;
             }
         }
-        if (checkForUpdates) this.findLastReviewRecordUpdate(multihash, this.notifier, validate);
-        this.chluIpfs.events.emit('read ReviewRecord', { reviewRecord, multihash });
+        if (checkForUpdates) this.findLastReviewRecordUpdate(m, this.notifier, validate);
+        const keyMultihash = this.chluIpfs.validator.keyLocationToKeyMultihash(reviewRecord.key_location);
+        reviewRecord.editable = keyMultihash === this.chluIpfs.crypto.pubKeyMultihash;
+        reviewRecord.multihash = m;
+        reviewRecord.requestedMultihash = multihash;
+        reviewRecord.watching = Boolean(checkForUpdates);
+        reviewRecord.gotLatestVersion = Boolean(getLatestVersion);
+        this.chluIpfs.events.emit('read ReviewRecord', {
+            reviewRecord,
+            multihash: m,
+            requestedMultihash: multihash
+        });
         return reviewRecord;
     }
 
     async prepareReviewRecord(reviewRecord, validate = true) {
-        if(this.chluIpfs.type === constants.types.customer) {
-            reviewRecord.orbitDb = this.chluIpfs.getOrbitDBAddress();
-        } else if (!reviewRecord.orbitDb) {
-            throw new Error('Can not set the orbitDb address since this is not a customer');
-        }
         const keyPair = this.chluIpfs.crypto.keyPair;
         reviewRecord.key_location = '/ipfs/' + await this.chluIpfs.crypto.storePublicKey(keyPair.getPublicKeyBuffer());
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
@@ -187,6 +155,8 @@ class ReviewRecords {
         if (previousVersionMultihash) {
             // This is a review update
             tasksToAwait.push(this.setForwardPointerForReviewRecord(previousVersionMultihash, multihash, reviewRecord));
+        } else {
+            tasksToAwait.push(this.setReferenceForReviewRecord(multihash));
         }
         this.chluIpfs.logger.debug('Waiting for Publish tasks to complete for ' + multihash);
         await Promise.all(tasksToAwait);
@@ -208,18 +178,26 @@ class ReviewRecords {
         }, constants.eventTypes.pinned + '_' + multihash);
     }
 
+    async setReferenceForReviewRecord(multihash) {
+        this.chluIpfs.logger.debug('Setting OrbitDB reference to ' + multihash);
+        try {
+            await this.chluIpfs.orbitDb.setAndWaitForReplication(multihash);
+        } catch (error) {
+            this.chluIpfs.logger.error('OrbitDB Error: ' + error.message || error);
+            throw error;
+        }
+        this.chluIpfs.logger.debug('Done setting reference, the db has been replicated remotely');
+        return multihash;
+    }
+
     async setForwardPointerForReviewRecord(previousVersionMultihash, multihash, reviewRecord) {
         this.chluIpfs.logger.debug('Setting forward pointer for ' + previousVersionMultihash + ' to ' + multihash);
-        // TODO: verify that the update is valid
-        await new Promise(async resolve => {
-            this.chluIpfs.room.broadcastReviewUpdates().then(() => resolve());
-            try {
-                await this.chluIpfs.orbitDb.db.set(previousVersionMultihash, multihash);
-            } catch (error) {
-                this.chluIpfs.logger.error('OrbitDB Error: ' + error.message || error);
-            }
-            this.chluIpfs.logger.debug('Waiting for remote replication');
-        });
+        try {
+            await this.chluIpfs.orbitDb.setAndWaitForReplication(multihash, previousVersionMultihash);
+        } catch (error) {
+            this.chluIpfs.logger.error('OrbitDB Error: ' + error.message || error);
+            throw error;
+        }
         this.chluIpfs.logger.debug('Done setting forward pointer, the db has been replicated remotely');
         this.chluIpfs.events.emit('updated ReviewRecord', previousVersionMultihash, multihash, reviewRecord);
         return multihash;

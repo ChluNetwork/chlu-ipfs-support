@@ -23,12 +23,11 @@ module.exports = function (config) {
         ],
         // run the bundle through the webpack and sourcemap plugins
         preprocessors: {
-            'tests/**/*.test.js': [ 'webpack', 'sourcemap' ]
+            'tests/**/*.test.js': [ 'webpack' ]
         },
         reporters: [ 'dots' ],
         // webpack config object
         webpack: {
-            devtool: 'inline-source-map',
             node: {
                 // Required by js-ipfs
                 fs: 'empty',

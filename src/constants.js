@@ -16,7 +16,7 @@ module.exports = {
         replicating: 'REPLICATING',
         replicated: 'REPLICATED'
     },
-    customerDbName: 'chlu-experimental-customer-review-updates',
+    orbitDbName: 'chlu-experimental',
     pubsubTopic: 'chlu-experimental',
     defaultIPFSOptions:  {
         EXPERIMENTAL: {
