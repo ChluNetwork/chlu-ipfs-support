@@ -2,15 +2,13 @@
   "name": "chlu-ipfs-support",
   "version": "0.1.0",
   "description": "Libraries providing IPFS integration for Chlu",
-  "main": "lib/index.js",
+  "main": "src/index.js",
   "engines": {
     "node": ">=8.0.0",
     "npm": ">=5.6.0"
   },
   "scripts": {
-    "build": "npm run build-node; npm run build-browser",
-    "build-browser": "webpack",
-    "build-node": "rimraf lib/* && babel src -d lib",
+    "build": "webpack",
     "test": "npm run test-node && npm run test-browser",
     "test-node": "mocha --opts tests/mocha.opts",
     "test-browser": "karma start --single-run",
@@ -34,9 +32,6 @@
     "protons": "~1.0.1"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-plugin-transform-runtime": "^6.23.0",
-    "babel-preset-env": "1.6.1",
     "chai": "^4.1.2",
     "clean-webpack-plugin": "^0.1.17",
     "documentation": "^6.1.0",
