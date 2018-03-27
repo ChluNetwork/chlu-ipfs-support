@@ -42,11 +42,11 @@ module.exports = `
         repeated DetailedReview detailed_review = 7;
         required PoPR popr = 8;
         required uint32 chlu_version = 9;
-        optional string last_reviewrecord_multihash = 10;
-        required string hash = 11;
-        required string signature = 12;
-        required string key_location = 13;
-        optional string previous_version_multihash = 14;
+        optional string last_reviewrecord_multihash = 11;
+        required string hash = 12;
+        required string signature = 13;
+        required string key_location = 14;
+        optional string previous_version_multihash = 15;
     }
 
     message PaymentRecord {
