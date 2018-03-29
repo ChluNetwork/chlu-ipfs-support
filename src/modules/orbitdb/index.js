@@ -68,6 +68,8 @@ class DB {
 
     async open() {
         this.chluIpfs.logger.debug('Opening Chlu OrbitDB');
+        this.dbName = this.chluIpfs.network ? ('chlu-' + this.chluIpfs.network) : 'chlu';
+        this.chluIpfs.logger.debug('Using OrbitDB type ' + ChluStore.type + ' named ' + this.dbName);
         this.db = await this.orbitDb.open(constants.orbitDbName, {
             type: ChluStore.type,
             create: true,

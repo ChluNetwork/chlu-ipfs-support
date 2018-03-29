@@ -31,7 +31,10 @@ function strip(obj) {
     delete obj.watching;
 }
 
-describe('Customer and Service Node integration', function() {
+// TODO: don't skip these on the browser
+const d = env.isNode() ? describe : describe.skip;
+
+d('Customer and Service Node integration', function() {
     let customerNode, serviceNode, server, v, vm, m, makeKeyPair, preparePoPR;
 
     before(async () => {
@@ -59,6 +62,9 @@ describe('Customer and Service Node integration', function() {
             directory: customerDir,
             enablePersistence: false
         });
+        // Make sure they don't connect to production
+        expect(customerNode.network).to.equal(ChluIPFS.networks.experimental);
+        expect(serviceNode.network).to.equal(ChluIPFS.networks.experimental);
 
         serviceNode.ipfs = await utils.createIPFS({ repo: serviceNode.ipfsOptions.repo });
         customerNode.ipfs = await utils.createIPFS({ repo: customerNode.ipfsOptions.repo });

@@ -33,7 +33,12 @@
             async function main(){
                 const type = ChluIPFS.types.customer;
                 log("Starting " + type);
-                var chluIpfs = window.chluIpfs = new ChluIPFS({ type, logger });
+                // Store the instance to window object so that we can tinker with it from the browser console
+                var chluIpfs = window.chluIpfs = new ChluIPFS({
+                    type,
+                    logger,
+                    network: ChluIPFS.networks.experimental
+                });
                 await chluIpfs.start();
             };
 

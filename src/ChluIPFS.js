@@ -14,7 +14,15 @@ const defaultLogger = require('./utils/logger');
 
 class ChluIPFS {
     constructor(options = {}){
+        if (process.env.CHLU_NETWORK) {
+            this.defaultNetwork = process.env.CHLU_NETWORK;
+        } else if (process.env.NODE_ENV === 'production') {
+            this.defaultNetwork = constants.networks.default;
+        } else {
+            this.defaultNetwork = constants.networks.experimental;
+        }
         // Configuration
+        this.network = options.network || this.defaultNetwork;
         this.storage = storageUtils;
         if (typeof options.enablePersistence === 'undefined') {
             this.enablePersistence = true;
@@ -56,6 +64,7 @@ class ChluIPFS {
         this.starting = true;
         this.events.emit('starting');
         this.logger.debug('Starting ChluIPFS, directory: ' + this.directory);
+        this.logger.debug('Using Network: ' + (this.network || '----- PRODUCTION -----'));
         if (!this.ipfs) {
             this.logger.debug('Initializing IPFS');
             this.ipfs = await IPFSUtils.createIPFS(this.ipfsOptions);

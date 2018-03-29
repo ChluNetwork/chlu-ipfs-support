@@ -30,7 +30,11 @@
                 const type = ChluIPFS.types.service;
                 log("Starting " + type);
                 // Store the instance to window object so that we can tinker with it from the browser console
-                var chluIpfs = window.chluIpfs = new ChluIPFS({ type, logger });
+                var chluIpfs = window.chluIpfs = new ChluIPFS({
+                    type,
+                    logger,
+                    network: ChluIPFS.networks.experimental
+                });
                 // Start the instance and wait for it to be ready
                 await chluIpfs.start();
             };

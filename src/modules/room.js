@@ -13,7 +13,7 @@ class Room {
     async start() {
         // PubSub setup
         if (!this.subscription) {
-            this.topic = constants.pubsubTopic;
+            this.topic = this.chluIpfs.network ? ('chlu-' + this.chluIpfs.network) : 'chlu';
             this.subscription = msg => this.handleMessage(msg);
             await this.chluIpfs.ipfs.pubsub.subscribe(this.topic, this.subscription);
             await this.updatePeers();

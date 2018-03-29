@@ -18,6 +18,10 @@ module.exports = {
     },
     orbitDbName: 'chlu-experimental',
     pubsubTopic: 'chlu-experimental',
+    networks: {
+        default: '',
+        experimental: 'experimental'
+    },
     defaultIPFSOptions:  {
         EXPERIMENTAL: {
             pubsub: true
