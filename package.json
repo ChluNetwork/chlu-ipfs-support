@@ -26,6 +26,7 @@
   "dependencies": {
     "axios": "^0.18.0",
     "bitcoinjs-lib": "^3.3.2",
+    "commander": "^2.15.1",
     "ipfs": "~0.28.0",
     "lodash": "^4.17.5",
     "orbit-db": "~0.19.7",

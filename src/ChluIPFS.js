@@ -23,6 +23,10 @@ class ChluIPFS {
         }
         // Configuration
         this.network = options.network || this.defaultNetwork;
+        if (this.network === constants.networks.default) {
+            // Unset so that modules know to connect to main net
+            this.network = '';
+        }
         this.storage = storageUtils;
         if (typeof options.enablePersistence === 'undefined') {
             this.enablePersistence = true;

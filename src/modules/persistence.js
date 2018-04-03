@@ -35,7 +35,9 @@ class Persistence {
         if (this.chluIpfs.enablePersistence) {
             this.chluIpfs.logger.debug('Loading persisted data');
             const data = await this.chluIpfs.storage.load(this.chluIpfs.directory, this.chluIpfs.type);
-            if (data.lastReviewRecordMultihash) this.chluIpfs.lastReviewRecordMultihash = data.lastReviewRecordMultihash;
+            if (IPFSUtils.isValidMultihash(data.lastReviewRecordMultihash)) {
+                this.chluIpfs.lastReviewRecordMultihash = data.lastReviewRecordMultihash;
+            }
             if (data.keyPair) {
                 this.chluIpfs.crypto.keyPair = await this.chluIpfs.crypto.importKeyPair(data.keyPair);
             }
