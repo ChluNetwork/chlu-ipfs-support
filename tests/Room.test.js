@@ -22,7 +22,10 @@ function getMockIpfsWithPubSub() {
 describe('Room module', () => {
 
     it('chooses the pubsub topic correctly', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+        const chluIpfs = new ChluIPFS({
+            type: ChluIPFS.types.customer,
+            logger: logger('Customer')
+        });
         // Mock
         chluIpfs.ipfs = {
             pubsub: {

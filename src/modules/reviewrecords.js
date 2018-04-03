@@ -79,10 +79,12 @@ class ReviewRecords {
             m = await this.chluIpfs.orbitDb.get(multihash);
         }
         const reviewRecord = await this.getReviewRecord(m);
+        reviewRecord.errors = [];
         if (validate) {
             const validateOptions = typeof validate === 'object' ? validate : {};
             try {
-                await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
+                const error = await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
+                if (error) reviewRecord.errors = reviewRecord.errors.concat(error);
             } catch (error) {
                 this.chluIpfs.events.emit('validation error', error, m);
                 throw error;

@@ -35,7 +35,9 @@ Keep in mind that you will run into the same limitations of running ChluIPFS in 
 
 ### Running a Service Node
 
-You can install this module globally and use `chlu-service-node` to run a (barebones) Chlu Service Node. The binary will probably be moved in a different repository in the future.
+You can install this module globally and use `chlu-service-node start` to run a (barebones) Chlu Service Node. The binary will probably be moved in a different repository in the future.
+
+If you want to run it on the experimental network (please do if you are using an unreleased or custom version) use `chlu-service-node start --experimental-network`, otherwise you would start replicating all the data in the Chlu main net.
 
 In the examples folder you can find out how to run a Service Node in a browser tab although this won't be a good idea outside of testing.
 
@@ -107,19 +109,12 @@ This is a collection of features and design choices not compatible with the Chlu
 
 Chlu Service Nodes:
 
-- chlu service nodes listen for chlu events and take actions to help replicate data. The events are written to the pubsub topic "chlu-experimental"
-- they react to review updates by pinning the review after verifying the validity
-- they replicate the customers' orbitDbs to keep track of review updates
-- they pin public keys used in review records
+- chlu service nodes listen for chlu events and take actions to help replicate data. The events are written to IPFS Pubsub
+- the review history and pointers to new versions are kept in a custom OrbitDB Store
 
 Writing Reviews:
 
 - when a review is written, the API will not return until a service node has replied saying it successfully pinned the review
-
-Updating Reviews:
-
-- the implementation uses an OrbitDB key value store for every customer that wishes to update his review
-- for each update, an entry is created in the kvstore with the mulithash of the old version as key and the multihash of the update as value
-- the orbitDb address is embedded into the ReviewRecords using the `orbitDb` field
+- an OrbitDB database with a custom store is used to write all new review records and all updates
 
 All of these are subject to change.

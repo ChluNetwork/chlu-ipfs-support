@@ -60,7 +60,7 @@ describe('Persistence module', () => {
 
     it('loads customer last review record multihash', async () => {
         const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
-        const data = { lastReviewRecordMultihash: 'example data' };
+        const data = { lastReviewRecordMultihash: 'QmWBTzAwP8fz2zRsmzqUfSKEZ6GRTuPTsBVfJs6Y72D1hz' };
         api.storage.load = sinon.stub().resolves(data);
         await api.persistence.loadPersistedData();
         expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
