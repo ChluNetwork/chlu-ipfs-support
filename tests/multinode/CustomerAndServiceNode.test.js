@@ -9,12 +9,6 @@ const sinon = require('sinon');
 const logger = require('../utils/logger');
 const cryptoTestUtils = require('../utils/crypto');
 const cloneDeep = require('lodash.clonedeep');
-const { milliseconds } = require('../../src/utils/timing');
-
-const testDir = '/tmp/chlu-test-' + Date.now() + Math.random();
-
-const serviceNodeDir = testDir + '/chlu-service-node';
-const customerDir = testDir + '/chlu-customer';
 
 function withoutHashAndSig(obj) {
     return Object.assign({}, obj, {
@@ -31,11 +25,8 @@ function strip(obj) {
     delete obj.watching;
 }
 
-// TODO: don't skip these on the browser
-const d = env.isNode() ? describe : describe.skip;
-
-d('Customer and Service Node integration', function() {
-    let customerNode, serviceNode, server, v, vm, m, makeKeyPair, preparePoPR;
+describe('Customer and Service Node integration', function() {
+    let testDir, customerNode, serviceNode, server, v, vm, m, makeKeyPair, preparePoPR;
 
     before(async () => {
         if (env.isNode()) {
@@ -50,6 +41,12 @@ d('Customer and Service Node integration', function() {
     });
 
     beforeEach(async () => {    
+
+        testDir = env.isNode() ? '/tmp/chlu-test-' + Date.now() + Math.random() + '/' : Date.now() + Math.random();
+
+        const serviceNodeDir = testDir + 'chlu-service-node';
+        const customerDir = testDir + 'chlu-customer';
+
         serviceNode = new ChluIPFS({
             type: ChluIPFS.types.service,
             logger: logger('Service'),
@@ -84,9 +81,6 @@ d('Customer and Service Node integration', function() {
         const fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
         serviceNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
         customerNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
-        
-        // Wait some time (TODO: remove this when it's fixed in ipfs/libp2p)
-        await milliseconds(3000);
     });
 
     afterEach(async () => {
@@ -99,9 +93,6 @@ d('Customer and Service Node integration', function() {
         }
         if (env.isNode()) {
             rimraf.sync(testDir);
-        } else {
-            indexedDB.deleteDatabase(customerNode.orbitDbDirectory);
-            indexedDB.deleteDatabase(serviceNode.orbitDbDirectory);
         }
         customerNode = undefined;
         serviceNode = undefined;
