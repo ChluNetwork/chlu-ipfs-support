@@ -37,7 +37,9 @@ Keep in mind that you will run into the same limitations of running ChluIPFS in 
 
 You can install this module globally and use `chlu-service-node start` to run a (barebones) Chlu Service Node. The binary will probably be moved in a different repository in the future.
 
-If you want to run it on the experimental network (please do if you are using an unreleased or custom version) use `chlu-service-node start --experimental-network`, otherwise you would start replicating all the data in the Chlu main net.
+If you want to run it on a custom network, use `chlu-service-node start --network <custom>`, otherwise it runs on the `experimental` network (used in development) by default.
+
+The only other network in use is the `staging` network, used by our official demo at [demo.chlu.io](https://demo.chlu.io)
 
 In the examples folder you can find out how to run a Service Node in a browser tab although this won't be a good idea outside of testing.
 

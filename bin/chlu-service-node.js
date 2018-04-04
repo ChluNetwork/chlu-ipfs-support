@@ -14,11 +14,11 @@ function handleErrors(fn) {
     };
 }
 
-async function start(experimentalNetwork){
+async function start(network){
     console.log('Starting Chlu IPFS Service Node');
     serviceNode = new ChluIPFS({
         type: ChluIPFS.types.service,
-        network: experimentalNetwork ? ChluIPFS.networks.experimental : ChluIPFS.networks.default
+        network: network || ChluIPFS.networks.experimental
     });
     await serviceNode.start();
     console.log('Chlu Service node ready');
@@ -45,9 +45,9 @@ cli
 cli
     .command('start')
     .description('run the Service Node')
-    .option('--experimental-network', 'use experimental network instead of production')
+    .option('-n, --network <s>', 'use a custom network instead of production')
     .action(handleErrors(async cmd => {
-        await start(cmd.experimentalNetwork);
+        await start(cmd.network);
     }));
 
 cli.parse(process.argv);
