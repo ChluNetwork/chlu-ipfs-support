@@ -1,4 +1,3 @@
-const constants = require('../constants');
 const IPFSUtils = require('../utils/ipfs');
 
 class Persistence {
@@ -10,12 +9,13 @@ class Persistence {
     async persistData() {
         if (this.chluIpfs.enablePersistence) {
             const data = {};
-            if (this.chluIpfs.type === constants.types.customer) {
-                // Customer multihash of last review record created
-                if (IPFSUtils.isValidMultihash(this.chluIpfs.lastReviewRecordMultihash)) {
-                    data.lastReviewRecordMultihash = this.chluIpfs.lastReviewRecordMultihash;
-                }
-                // Customer keys
+            data.cache = this.chluIpfs.cache.export();
+            if (IPFSUtils.isValidMultihash(this.chluIpfs.lastReviewRecordMultihash)) {
+                // multihash of last review record created
+                data.lastReviewRecordMultihash = this.chluIpfs.lastReviewRecordMultihash;
+            }
+            if (this.chluIpfs.crypto.keyPair) {
+                // Crypto keypair
                 data.keyPair = await this.chluIpfs.crypto.exportKeyPair();
             }
             this.chluIpfs.logger.debug('Saving persisted data');
@@ -40,6 +40,9 @@ class Persistence {
             }
             if (data.keyPair) {
                 this.chluIpfs.crypto.keyPair = await this.chluIpfs.crypto.importKeyPair(data.keyPair);
+            }
+            if (data.cache) {
+                this.chluIpfs.cache.import(data.cache);
             }
             this.chluIpfs.events.emit('loaded');
             this.chluIpfs.logger.debug('Loaded persisted data');

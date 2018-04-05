@@ -4,6 +4,7 @@ const sinon = require('sinon');
 const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
+const { genMultihash } = require('./utils/ipfs');
 const { ECPair } = require('bitcoinjs-lib');
 
 const directory = '/tmp/chlu-test-' + Date.now() + Math.random();
@@ -16,8 +17,7 @@ describe('Persistence module', () => {
         api = new ChluIPFS({
             type: ChluIPFS.types.customer,
             directory,
-            logger: logger('Customer'),
-            cache: { enabled: false }
+            logger: logger('Customer')
         });
     });
 
@@ -44,6 +44,25 @@ describe('Persistence module', () => {
         api.storage.save = sinon.stub().resolves();
         await api.persistence.persistData();
         expect(api.storage.save.args[0][1].lastReviewRecordMultihash).to.equal(lastReviewRecordMultihash);
+    });
+
+    it('saves cache', async () => {
+        api.cache.cacheValidity(genMultihash()); 
+        api.storage.save = sinon.stub().resolves();
+        await api.persistence.persistData();
+        expect(api.storage.save.args[0][1].cache).to.deep.equal(api.cache.export());
+    });
+
+    it('loads cache', async () => {
+        api.cache.cacheValidity(genMultihash()); 
+        const data = { cache: api.cache.export() };
+        api.cache.cache.reset();
+        sinon.spy(api.cache, 'import');
+        api.storage.load = sinon.stub().resolves(data);
+        await api.persistence.loadPersistedData();
+        expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
+        expect(api.cache.import.calledWith(data.cache)).to.be.true;
+        expect(data.cache).to.deep.equal(api.cache.export());
     });
 
     it('loads customer keypair', async () => {
