@@ -3,7 +3,7 @@ const logger = require('./utils/logger');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const ChluIndex = require('../src/modules/orbitdb/db-index');
-const IPFSUtils = require('../src/utils/ipfs');
+const { genMultihash } = require('./utils/ipfs');
 
 function applyOperation(idx, op) {
     return idx.updateIndex({
@@ -13,13 +13,6 @@ function applyOperation(idx, op) {
             }, op)
         }]
     });
-}
-
-function genMultihash(n = 1) {
-    const s = String(n);
-    const m = 'Qma3oMFcX16P4P5R2UEs5aAP2HiPymSGgc8ZGf2MBPgaRC'.slice(0, -s.length) + s;
-    IPFSUtils.validateMultihash(m);
-    return m;
 }
 
 describe('OrbitDB Module', () => {

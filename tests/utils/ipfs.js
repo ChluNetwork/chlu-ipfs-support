@@ -17,7 +17,15 @@ async function connect(ipfs1, ipfs2){
     await ipfs1.swarm.connect(ipfs2._peerInfo.multiaddrs._multiaddrs[0].toString());
 }
 
+function genMultihash(n = 1) {
+    const s = String(n);
+    const m = 'Qma3oMFcX16P4P5R2UEs5aAP2HiPymSGgc8ZGf2MBPgaRC'.slice(0, -s.length) + s;
+    ipfsUtils.validateMultihash(m);
+    return m;
+}
+
 module.exports = {
     createIPFS,
-    connect
+    connect,
+    genMultihash
 };

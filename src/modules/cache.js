@@ -13,9 +13,8 @@ class Cache {
     
     constructor(chluIpfs, options = {}) {
         this.chluIpfs = chluIpfs;
-        this.options = Object.assign({}, defaultOptions, options);
-        this.cache = LRU(this.options);
         this.log = this.chluIpfs.logger.debug;
+        this.init(options);
     }
 
     isValidityCached(multihash) {
@@ -79,7 +78,13 @@ class Cache {
     }
 
     import(exported) {
+        this.init(exported.options);
         if (exported.data) this.cache.load(exported.data);
+    }
+
+    init(options = {}) {
+        this.options = Object.assign({}, defaultOptions, options);
+        this.cache = LRU(this.options);
     }
 
 }

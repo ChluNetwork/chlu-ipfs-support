@@ -52,14 +52,12 @@ describe('Customer and Service Node integration', function() {
             type: ChluIPFS.types.service,
             logger: logger('Service'),
             directory: serviceNodeDir,
-            cache: { enabled: false },
             enablePersistence: false
         });
         customerNode = new ChluIPFS({
             type: ChluIPFS.types.customer,
             logger: logger('Customer'),
             directory: customerDir,
-            cache: { enabled: false },
             enablePersistence: false
         });
         // Make sure they don't connect to production
