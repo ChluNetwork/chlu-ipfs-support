@@ -1,4 +1,5 @@
 const expect = require('chai').expect;
+const logger = require('./utils/logger');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const ChluIndex = require('../src/modules/orbitdb/db-index');
@@ -25,7 +26,12 @@ describe('OrbitDB Module', () => {
     let chluIpfs;
 
     beforeEach(() => {
-        chluIpfs = new ChluIPFS({ type: ChluIPFS.types.service });
+        chluIpfs = new ChluIPFS({
+            type: ChluIPFS.types.service,
+            logger: logger('Service'),
+            cache: { enabled: false },
+            enablePersistence: false
+        });
     });
 
     it('exposes method to get the list of review records', () => {

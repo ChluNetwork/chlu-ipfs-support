@@ -6,6 +6,7 @@ const logger = require('./utils/logger');
 const { getFakeReviewRecord } = require('./utils/protobuf');
 const cloneDeep = require('lodash.clonedeep');
 const cryptoTestUtils = require('./utils/crypto');
+const http = require('./utils/http');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 
 describe('Validator Module', () => {
@@ -15,6 +16,7 @@ describe('Validator Module', () => {
         chluIpfs = new ChluIPFS({
             type: ChluIPFS.types.service,
             enablePersistence: false,
+            cache: { enabled: false },
             logger: logger('Customer')
         });
         // TODO: instead of disabling explicitly other validators in tests,
@@ -135,7 +137,7 @@ describe('Validator Module', () => {
         const vm = await makeKeyPair();
         const v = await makeKeyPair();
         const m = await makeKeyPair();
-        chluIpfs.validator.fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
+        chluIpfs.http = http(() => ({ multihash: m.multihash }));
         // --- Success Case
         const popr = (await getFakeReviewRecord()).popr;
         const signedPoPR = await preparePoPR(popr, vm, v, m);

@@ -8,6 +8,7 @@ const rimraf = require('rimraf');
 const sinon = require('sinon');
 const logger = require('../utils/logger');
 const cryptoTestUtils = require('../utils/crypto');
+const fakeHttpModule = require('../utils/http');
 const cloneDeep = require('lodash.clonedeep');
 
 function withoutHashAndSig(obj) {
@@ -51,12 +52,14 @@ describe('Customer and Service Node integration', function() {
             type: ChluIPFS.types.service,
             logger: logger('Service'),
             directory: serviceNodeDir,
+            cache: { enabled: false },
             enablePersistence: false
         });
         customerNode = new ChluIPFS({
             type: ChluIPFS.types.customer,
             logger: logger('Customer'),
             directory: customerDir,
+            cache: { enabled: false },
             enablePersistence: false
         });
         // Make sure they don't connect to production
@@ -78,9 +81,9 @@ describe('Customer and Service Node integration', function() {
         vm = await makeKeyPair();
         v = await makeKeyPair();
         m = await makeKeyPair();
-        const fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
-        serviceNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
-        customerNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
+        const http = fakeHttpModule(() => ({ multihash: m.multihash }));
+        serviceNode.http = http;
+        customerNode.http = http;
     });
 
     afterEach(async () => {

@@ -8,6 +8,7 @@ const { getFakeReviewRecord } = require('./utils/protobuf');
 const logger = require('./utils/logger');
 const { isValidMultihash } = require('../src/utils/ipfs');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
+const http = require('./utils/http');
 const cryptoTestUtils = require('./utils/crypto');
 
 describe('Customer', () => {
@@ -18,7 +19,10 @@ describe('Customer', () => {
         chluIpfs = new ChluIPFS({
             type: ChluIPFS.types.customer,
             enablePersistence: false,
-            logger: logger('Customer')
+            logger: logger('Customer'),
+            cache: {
+                enabled: false
+            }
         });
         chluIpfs.waitUntilReady = sinon.stub().resolves();
         chluIpfs.orbitDb.db = { address: { toString: () => 'example' } };
@@ -50,7 +54,7 @@ describe('Customer', () => {
         vm = await makeKeyPair();
         v = await makeKeyPair();
         m = await makeKeyPair();
-        chluIpfs.validator.fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
+        chluIpfs.http = http(() => ({ multihash: m.multihash }));
     });
 
     it('stores ReviewRecords and automatically publishes them', async () => {

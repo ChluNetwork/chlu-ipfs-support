@@ -1,4 +1,5 @@
 const IPFSUtils = require('./modules/ipfs');
+const Cache = require('./modules/cache');
 const Pinning = require('./modules/pinning');
 const Room = require('./modules/room');
 const ReviewRecords = require('./modules/reviewrecords');
@@ -10,6 +11,7 @@ const Crypto = require('./modules/crypto');
 const storageUtils = require('./utils/storage');
 const EventEmitter = require('events');
 const constants = require('./constants');
+const http = require('./utils/http');
 const defaultLogger = require('./utils/logger');
 
 class ChluIPFS {
@@ -51,6 +53,10 @@ class ChluIPFS {
         this.events = new EventEmitter();
         this.logger = options.logger || defaultLogger;
         // Modules
+        if (options.cache !== false) {
+            this.cache = new Cache(this, options.cache);
+        }
+        this.http = http;
         this.ipfsUtils = new IPFSUtils(this);
         this.orbitDb = new DB(this);
         this.pinning = new Pinning(this);

@@ -16,12 +16,12 @@ describe('Persistence module', () => {
         api = new ChluIPFS({
             type: ChluIPFS.types.customer,
             directory,
-            logger: logger('Customer')
+            logger: logger('Customer'),
+            cache: { enabled: false }
         });
     });
 
     it('saves and loads in this environment', async () => {
-        const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
         const data = { hello: 'world' };
         await api.storage.save(api.directory, data, api.type);
         const loaded = await api.storage.load(api.directory, api.type);
@@ -39,7 +39,6 @@ describe('Persistence module', () => {
     });
 
     it('saves customer last review record multihash', async () => {
-        const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
         const lastReviewRecordMultihash = 'QmWBTzAwP8fz2zRsmzqUfSKEZ6GRTuPTsBVfJs6Y72D1hz'; // valid but not real
         api.lastReviewRecordMultihash = lastReviewRecordMultihash; 
         api.storage.save = sinon.stub().resolves();
@@ -48,7 +47,6 @@ describe('Persistence module', () => {
     });
 
     it('loads customer keypair', async () => {
-        const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
         const keyPair = ECPair.makeRandom();
         const data = { keyPair: keyPair.toWIF() };
         api.storage.load = sinon.stub().resolves(data);
@@ -59,7 +57,6 @@ describe('Persistence module', () => {
     });
 
     it('loads customer last review record multihash', async () => {
-        const api = new ChluIPFS({ type: ChluIPFS.types.customer, directory, logger: logger('Customer') });
         const data = { lastReviewRecordMultihash: 'QmWBTzAwP8fz2zRsmzqUfSKEZ6GRTuPTsBVfJs6Y72D1hz' };
         api.storage.load = sinon.stub().resolves(data);
         await api.persistence.loadPersistedData();
@@ -68,14 +65,26 @@ describe('Persistence module', () => {
     });
     
     it('skips loading if disabled', async () => {
-        const api = new ChluIPFS({ type: ChluIPFS.types.service, directory, enablePersistence: false, logger: logger('Service') });
+        api = new ChluIPFS({
+            type: ChluIPFS.types.customer,
+            directory,
+            logger: logger('Customer'),
+            cache: { enabled: false },
+            enablePersistence: false
+        });
         api.storage.load = sinon.stub().resolves({});
         await api.persistence.loadPersistedData();
         expect(api.storage.load.called).to.be.false;
     });
     
     it('skips saving if disabled', async () => {
-        const api = new ChluIPFS({ type: ChluIPFS.types.service, directory, enablePersistence: false, logger: logger('Service') });
+        api = new ChluIPFS({
+            type: ChluIPFS.types.customer,
+            directory,
+            logger: logger('Customer'),
+            cache: { enabled: false },
+            enablePersistence: false
+        });
         api.storage.save = sinon.stub().resolves();
         await api.persistence.persistData();
         expect(api.storage.save.called).to.be.false;

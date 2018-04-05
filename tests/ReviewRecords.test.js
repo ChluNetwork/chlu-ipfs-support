@@ -13,6 +13,17 @@ const cloneDeep = require('lodash.clonedeep');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 
 describe('ReviewRecords module', () => {
+    let chluIpfs;
+
+    beforeEach(() => {
+        chluIpfs = new ChluIPFS({
+            type: ChluIPFS.types.customer,
+            enablePersistence: false,
+            cache: { enabled: false },
+            logger: logger('Customer')
+        });
+        chluIpfs.waitUntilReady = sinon.stub().resolves();
+    });
 
     it('reads ReviewRecords from IPFS', async () => {
         const fakeReviewRecord = await getFakeReviewRecord();
@@ -24,8 +35,6 @@ describe('ReviewRecords module', () => {
                 get: sinon.stub().resolves({ data: buffer })
             }
         };
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
-        chluIpfs.waitUntilReady = sinon.stub().resolves();
         chluIpfs.ipfs = ipfs;
         const reviewRecord = await chluIpfs.readReviewRecord(multihash, { validate: false });
         expect(ipfs.object.get.args[0][0]).to.deep.equal(multihashBuffer);
@@ -43,8 +52,6 @@ describe('ReviewRecords module', () => {
 
     it('sets the last review record multihash into new reviews and updates it after storing the review', async () => {
         const fakeReviewRecord = await getFakeReviewRecord();
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
-        chluIpfs.waitUntilReady = sinon.stub().resolves();
         const lastReviewRecordMultihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPZ';
         chluIpfs.lastReviewRecordMultihash = lastReviewRecordMultihash.slice(0); // make a copy
         const fakeStore = {};
@@ -59,8 +66,6 @@ describe('ReviewRecords module', () => {
     });
     
     it('computes the ReviewRecord hash', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
-        chluIpfs.waitUntilReady = sinon.stub().resolves();
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.hash = 'fake';
         const hashedReviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(reviewRecord);
@@ -71,8 +76,6 @@ describe('ReviewRecords module', () => {
     });
 
     it('can rebuild the history of an updated ReviewRecord', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
-        chluIpfs.waitUntilReady = sinon.stub().resolves();
         const reviewRecord = await getFakeReviewRecord();
         const reviewRecord2 = await getFakeReviewRecord();
         reviewRecord2.previous_version_multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1';
@@ -108,8 +111,6 @@ describe('ReviewRecords module', () => {
     });
 
     it('hashes consistently in weird edge cases', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
-        chluIpfs.waitUntilReady = sinon.stub().resolves();
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.last_reviewrecord_multihash = '';
 
