@@ -8,6 +8,9 @@ const cloneDeep = require('lodash.clonedeep');
 const cryptoTestUtils = require('./utils/crypto');
 const http = require('./utils/http');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
+const protons = require('protons');
+const protobuf = protons(require('../src/utils/protobuf'));
+const IPFSUtils = require('../src/utils/ipfs');
 
 describe('Validator Module', () => {
     let chluIpfs;
@@ -19,12 +22,18 @@ describe('Validator Module', () => {
             cache: { enabled: false },
             logger: logger('Customer')
         });
+        sinon.spy(chluIpfs.cache, 'cacheValidity');
+        sinon.spy(chluIpfs.cache, 'cacheMarketplacePubKeyMultihash');
         // TODO: instead of disabling explicitly other validators in tests,
         // make a system to explicity enable only the validator that needs to be tested
     });
 
-    it('performs all validations', async () => {
+    it('performs all ReviewRecord validations', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
+        const dagNode = await chluIpfs.ipfsUtils.createDAGNode(buffer);
+        const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
+        reviewRecord.multihash = multihash;
         chluIpfs.validator.validateVersion = sinon.stub().resolves();
         chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
         chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
@@ -36,6 +45,12 @@ describe('Validator Module', () => {
         expect(chluIpfs.validator.validateVersion.called).to.be.true;
         expect(chluIpfs.validator.validatePoPRSignaturesAndKeys.called).to.be.true;
         expect(chluIpfs.validator.validateRRSignature.called).to.be.true;
+        // --- Cache behavior
+        expect(chluIpfs.cache.cacheValidity.calledWith(multihash)).to.be.true;
+        chluIpfs.cache.cacheValidity.resetHistory();
+        expect(chluIpfs.cache.cacheValidity.called).to.be.false;
+        await chluIpfs.validator.validateReviewRecord(reviewRecord, { useCache: false });
+        expect(chluIpfs.cache.cacheValidity.calledWith(multihash)).to.be.false;
     });
 
     it('is called by default but can be disabled', async () => {
@@ -143,6 +158,13 @@ describe('Validator Module', () => {
         const signedPoPR = await preparePoPR(popr, vm, v, m);
         let valid = await chluIpfs.validator.validatePoPRSignaturesAndKeys(cloneDeep(signedPoPR));
         expect(valid).to.be.true;
+        // --- Cache behavior
+        const hashed = await chluIpfs.reviewRecords.hashPoPR(cloneDeep(signedPoPR));
+        expect(chluIpfs.cache.cacheValidity.calledWith(hashed.hash)).to.be.true;
+        chluIpfs.cache.cacheValidity.resetHistory();
+        expect(chluIpfs.cache.cacheValidity.called).to.be.false;
+        await chluIpfs.validator.validatePoPRSignaturesAndKeys(cloneDeep(signedPoPR), null, false);
+        expect(chluIpfs.cache.cacheValidity.calledWith(hashed.hash)).to.be.false;
         // --- Failure Cases
         const test = popr => {
             return () => {

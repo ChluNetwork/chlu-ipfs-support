@@ -16,25 +16,29 @@ describe('Cache Module', () => {
             type: ChluIPFS.types.service,
             enablePersistence: false,
             // cache should be enabled by default
+            cache: {
+                // do not delay writes to storage to speed up tests
+                // that check if storage has been written
+                persistDelay: 0 
+            },
             logger: logger('Customer')
         });
         cache = chluIpfs.cache;
-        sinon.spy(cache.cacheMarketplacePubKeyMultihash);
-        sinon.spy(cache.cacheValidity);
-        sinon.spy(cache.isValidityCached);
-        sinon.spy(cache.getMarketplacePubKeyMultihash);
+        sinon.spy(cache, 'persistData');
     });
 
     it('caches validation info correctly', () => {
         expect(cache.isValidityCached(genMultihash())).to.be.false;
         cache.cacheValidity(genMultihash());
         expect(cache.isValidityCached(genMultihash())).to.be.true;
+        expect(cache.persistData.called).to.be.true;
     });
 
     it('caches marketplace pub key multihash correctly', () => {
         expect(cache.getMarketplacePubKeyMultihash(url)).to.be.null;
         cache.cacheMarketplacePubKeyMultihash(url, genMultihash());
         expect(cache.getMarketplacePubKeyMultihash(url)).to.equal(genMultihash());
+        expect(cache.persistData.called).to.be.true;
     });
 
     it('does not cache when disabled', () => {

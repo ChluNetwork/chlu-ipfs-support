@@ -23,8 +23,8 @@ class Validator {
         const v = Object.assign({}, this.defaultValidationSettings, validations);
         try {
             if (v.validateVersion) this.validateVersion(rr);
-            if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
             if (!rr.multihash || !v.useCache || !this.chluIpfs.cache.isValidityCached(rr.multihash)) {
+                if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
                 if (v.validateSignatures){
                     await Promise.all([
                         this.validateRRSignature(rr, v.expectedRRPublicKey),
@@ -33,7 +33,7 @@ class Validator {
                 }
                 if (v.validateHistory) await this.validateHistory(rr, v);
             }
-            if (rr.multihash) this.chluIpfs.cache.cacheValidity(rr.multihash);
+            if (rr.multihash && v.useCache) this.chluIpfs.cache.cacheValidity(rr.multihash);
             this.chluIpfs.logger.debug('Validated review record (was valid)');
         } catch (error) {
             this.chluIpfs.logger.debug('Validated review record (was NOT valid)');
@@ -115,7 +115,7 @@ class Validator {
             // false if any validation is false
             const valid = validations.reduce((acc, v) => acc && v);
             if (valid) {
-                this.chluIpfs.cache.cacheValidity(hash);
+                if (useCache) this.chluIpfs.cache.cacheValidity(hash);
                 // Emit events about keys discovered
                 this.chluIpfs.events.emit('vendor pubkey', vMultihash);
                 this.chluIpfs.events.emit('vendor-marketplace pubkey', vmMultihash);
