@@ -47,7 +47,7 @@ class ReviewRecords {
             if (history.map(o => o.multihash).indexOf(prev) >= 0) {
                 throw new Error('Recursive history detected');
             }
-            const prevReviewRecord = await this.chluIpfs.reviewRecords.getReviewRecord(prev);
+            const prevReviewRecord = await this.getReviewRecord(prev);
             history.push({
                 multihash: prev,
                 reviewRecord: prevReviewRecord
@@ -65,7 +65,9 @@ class ReviewRecords {
     async getReviewRecord(multihash){
         IPFSUtils.validateMultihash(multihash);
         const buffer = await this.chluIpfs.ipfsUtils.get(multihash);
-        return protobuf.ReviewRecord.decode(buffer);
+        const rr = protobuf.ReviewRecord.decode(buffer);
+        rr.multihash = multihash;
+        return rr;
     }
 
     async readReviewRecord(multihash, options = {}) {
@@ -79,10 +81,12 @@ class ReviewRecords {
             m = await this.chluIpfs.orbitDb.get(multihash);
         }
         const reviewRecord = await this.getReviewRecord(m);
+        reviewRecord.errors = [];
         if (validate) {
             const validateOptions = typeof validate === 'object' ? validate : {};
             try {
-                await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
+                const error = await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
+                if (error) reviewRecord.errors = reviewRecord.errors.concat(error);
             } catch (error) {
                 this.chluIpfs.events.emit('validation error', error, m);
                 throw error;
@@ -118,7 +122,8 @@ class ReviewRecords {
         const {
             previousVersionMultihash,
             publish = true,
-            validate = true
+            validate = true,
+            useCache = true
         } = options;
         let rr = Object.assign({}, reviewRecord, {
             previous_version_multihash: previousVersionMultihash || ''
@@ -136,6 +141,7 @@ class ReviewRecords {
                 throw new Error('Expected a different multihash');
             }
         }
+        if (validate && useCache) this.chluIpfs.cache.cacheValidity(multihash); 
         this.chluIpfs.events.emit('stored ReviewRecord', { multihash, reviewRecord: rr });
         if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash, rr);
         return multihash;

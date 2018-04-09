@@ -21,6 +21,33 @@ function getMockIpfsWithPubSub() {
 
 describe('Room module', () => {
 
+    it('chooses the pubsub topic correctly', async () => {
+        const chluIpfs = new ChluIPFS({
+            type: ChluIPFS.types.customer,
+            logger: logger('Customer')
+        });
+        // Mock
+        chluIpfs.ipfs = {
+            pubsub: {
+                subscribe: sinon.stub().resolves()
+            }
+        };
+        chluIpfs.room.updatePeers = sinon.stub().resolves();
+        chluIpfs.room.pollPeers = sinon.stub();
+        // Test
+        chluIpfs.network = 'mynet';
+        await chluIpfs.room.start();
+        expect(chluIpfs.room.topic).to.equal('chlu-mynet');
+        chluIpfs.network = '';
+        delete chluIpfs.room.subscription;
+        await chluIpfs.room.start();
+        expect(chluIpfs.room.topic).to.equal('chlu');
+        chluIpfs.network = 'another';
+        delete chluIpfs.room.subscription;
+        await chluIpfs.room.start();
+        expect(chluIpfs.room.topic).to.equal('chlu-another');
+    });
+
     describe('broadcastUntil', () => {
         let chluIpfs;
 

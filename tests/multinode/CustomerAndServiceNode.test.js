@@ -8,13 +8,8 @@ const rimraf = require('rimraf');
 const sinon = require('sinon');
 const logger = require('../utils/logger');
 const cryptoTestUtils = require('../utils/crypto');
+const fakeHttpModule = require('../utils/http');
 const cloneDeep = require('lodash.clonedeep');
-const { milliseconds } = require('../../src/utils/timing');
-
-const testDir = '/tmp/chlu-test-' + Date.now() + Math.random();
-
-const serviceNodeDir = testDir + '/chlu-service-node';
-const customerDir = testDir + '/chlu-customer';
 
 function withoutHashAndSig(obj) {
     return Object.assign({}, obj, {
@@ -32,7 +27,7 @@ function strip(obj) {
 }
 
 describe('Customer and Service Node integration', function() {
-    let customerNode, serviceNode, server, v, vm, m, makeKeyPair, preparePoPR;
+    let testDir, customerNode, serviceNode, server, v, vm, m, makeKeyPair, preparePoPR;
 
     before(async () => {
         if (env.isNode()) {
@@ -47,6 +42,12 @@ describe('Customer and Service Node integration', function() {
     });
 
     beforeEach(async () => {    
+
+        testDir = env.isNode() ? '/tmp/chlu-test-' + Date.now() + Math.random() + '/' : Date.now() + Math.random();
+
+        const serviceNodeDir = testDir + 'chlu-service-node';
+        const customerDir = testDir + 'chlu-customer';
+
         serviceNode = new ChluIPFS({
             type: ChluIPFS.types.service,
             logger: logger('Service'),
@@ -59,6 +60,9 @@ describe('Customer and Service Node integration', function() {
             directory: customerDir,
             enablePersistence: false
         });
+        // Make sure they don't connect to production
+        expect(customerNode.network).to.equal(ChluIPFS.networks.experimental);
+        expect(serviceNode.network).to.equal(ChluIPFS.networks.experimental);
 
         serviceNode.ipfs = await utils.createIPFS({ repo: serviceNode.ipfsOptions.repo });
         customerNode.ipfs = await utils.createIPFS({ repo: customerNode.ipfsOptions.repo });
@@ -75,12 +79,9 @@ describe('Customer and Service Node integration', function() {
         vm = await makeKeyPair();
         v = await makeKeyPair();
         m = await makeKeyPair();
-        const fetchMarketplaceKey = sinon.stub().resolves(m.multihash);
-        serviceNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
-        customerNode.validator.fetchMarketplaceKey = fetchMarketplaceKey;
-        
-        // Wait some time (TODO: remove this when it's fixed in ipfs/libp2p)
-        await milliseconds(3000);
+        const http = fakeHttpModule(() => ({ multihash: m.multihash }));
+        serviceNode.http = http;
+        customerNode.http = http;
     });
 
     afterEach(async () => {
@@ -93,9 +94,6 @@ describe('Customer and Service Node integration', function() {
         }
         if (env.isNode()) {
             rimraf.sync(testDir);
-        } else {
-            indexedDB.deleteDatabase(customerNode.orbitDbDirectory);
-            indexedDB.deleteDatabase(serviceNode.orbitDbDirectory);
         }
         customerNode = undefined;
         serviceNode = undefined;

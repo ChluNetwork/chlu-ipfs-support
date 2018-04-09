@@ -1,4 +1,5 @@
 const IPFSUtils = require('./modules/ipfs');
+const Cache = require('./modules/cache');
 const Pinning = require('./modules/pinning');
 const Room = require('./modules/room');
 const ReviewRecords = require('./modules/reviewrecords');
@@ -10,11 +11,24 @@ const Crypto = require('./modules/crypto');
 const storageUtils = require('./utils/storage');
 const EventEmitter = require('events');
 const constants = require('./constants');
+const http = require('./utils/http');
 const defaultLogger = require('./utils/logger');
 
 class ChluIPFS {
     constructor(options = {}){
+        if (process.env.CHLU_NETWORK) {
+            this.defaultNetwork = process.env.CHLU_NETWORK;
+        } else if (process.env.NODE_ENV === 'production') {
+            this.defaultNetwork = constants.networks.default;
+        } else {
+            this.defaultNetwork = constants.networks.experimental;
+        }
         // Configuration
+        this.network = options.network || this.defaultNetwork;
+        if (this.network === constants.networks.default) {
+            // Unset so that modules know to connect to main net
+            this.network = '';
+        }
         this.storage = storageUtils;
         if (typeof options.enablePersistence === 'undefined') {
             this.enablePersistence = true;
@@ -39,6 +53,10 @@ class ChluIPFS {
         this.events = new EventEmitter();
         this.logger = options.logger || defaultLogger;
         // Modules
+        if (options.cache !== false) {
+            this.cache = new Cache(this, options.cache);
+        }
+        this.http = http;
         this.ipfsUtils = new IPFSUtils(this);
         this.orbitDb = new DB(this);
         this.pinning = new Pinning(this);
@@ -56,6 +74,7 @@ class ChluIPFS {
         this.starting = true;
         this.events.emit('starting');
         this.logger.debug('Starting ChluIPFS, directory: ' + this.directory);
+        this.logger.debug('Using Network: ' + (this.network || '----- PRODUCTION -----'));
         if (!this.ipfs) {
             this.logger.debug('Initializing IPFS');
             this.ipfs = await IPFSUtils.createIPFS(this.ipfsOptions);

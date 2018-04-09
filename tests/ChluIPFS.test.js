@@ -1,5 +1,6 @@
 const expect = require('chai').expect;
 const sinon = require('sinon');
+const { cloneDeep } = require('lodash');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
@@ -19,6 +20,26 @@ describe('ChluIPFS', () => {
         expect(chluIpfs.type).to.equal(type);
         type = 'anything else';
         expect(() => new ChluIPFS({ type })).to.throw();
+    });
+
+    it('chooses the network correctly', () => {
+        const backupEnv = cloneDeep(process.env);
+        let chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, network: 'mynet' });
+        expect(chluIpfs.network).to.equal('mynet');
+        chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+        expect(chluIpfs.network).to.equal('experimental');
+        process.env.NODE_ENV = 'test';
+        chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+        expect(chluIpfs.network).to.equal(ChluIPFS.networks.experimental);
+        process.env.CHLU_NETWORK = 'mynet';
+        chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+        expect(chluIpfs.network).to.equal('mynet');
+        delete process.env.CHLU_NETWORK;
+        process.env.NODE_ENV = 'production';
+        chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+        expect(chluIpfs.network).to.equal('');
+        // Restore env
+        process.env = backupEnv;
     });
 
     it('exportData', async () => {
@@ -41,16 +62,31 @@ describe('ChluIPFS', () => {
         if (env.isNode()) {
             server = await require('./utils/nodejs').startRendezvousServer();
         }
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.service, enablePersistence: false, logger: logger('Service') });
-        // Use the test IPFS configuration to avoid depending on an internet connection
-        chluIpfs.ipfs = await utils.createIPFS();
-        await chluIpfs.start();
-        expect(chluIpfs.ipfs).to.not.be.undefined;
-        await chluIpfs.stop();
-        expect(chluIpfs.ipfs).to.be.undefined;
-        if (env.isNode()) {
-            await server.stop();
+        try {
+            const testDir = '/tmp/chlu-test-' + Date.now() + Math.random() + '/startandstop';
+            const chluIpfs = new ChluIPFS({
+                type: ChluIPFS.types.service,
+                enablePersistence: false,
+                directory: testDir,
+                logger: logger('Service'),
+                network: ChluIPFS.networks.experimental
+            });
+            // Make sure it doesnt get stuck waiting for peers
+            chluIpfs.room.waitForAnyPeer = sinon.stub().resolves();
+            // Make sure to not use the production network
+            expect(chluIpfs.network).to.equal(ChluIPFS.networks.experimental);
+            // Use the test IPFS configuration to avoid depending on an internet connection
+            chluIpfs.ipfs = await utils.createIPFS();
+            await chluIpfs.start();
+            expect(chluIpfs.ipfs).to.not.be.undefined;
+            await chluIpfs.stop();
+            expect(chluIpfs.ipfs).to.be.undefined;
+
+        } catch (error) {
+            if (env.isNode()) await server.stop();
+            throw error;
         }
+        if (env.isNode()) await server.stop();
     });
 
     it('switches type correctly from service node', async () => {

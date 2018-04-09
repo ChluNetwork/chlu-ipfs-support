@@ -14,7 +14,7 @@ class ServiceNode {
             try {
                 this.chluIpfs.pinning.pin(multihash);
             } catch (error) {
-                this.chluIpfs.logger.error('Pinning failed due to Error: ' + error.message);
+                this.chluIpfs.logger.error('Service Node Pinning failed due to Error: ' + error.message);
             }
         };
         this.replicatedNotifier = async address => {
@@ -23,8 +23,9 @@ class ServiceNode {
                     type: constants.eventTypes.replicated,
                     address
                 });
+                this.chluIpfs.logger.info('Database replicated');
             } catch (error) {
-                this.chluIpfs.logger.warn('Could not send message due to Error: ' + error.message);
+                this.chluIpfs.logger.warn('Could not send Service Node message due to Error: ' + error.message);
             }
         };
         this.replicatingNotifier = async address => {
@@ -34,7 +35,7 @@ class ServiceNode {
                     address
                 });
             } catch (error) {
-                this.chluIpfs.logger.warn('Could not send message due to Error: ' + error.message);
+                this.chluIpfs.logger.warn('Could not send Service Node message due to Error: ' + error.message);
             }
         };
         // Handle Chlu network messages
@@ -68,9 +69,7 @@ class ServiceNode {
             try {
                 // Read review record first. This caches the content, the history, and throws if it's not valid
                 this.chluIpfs.logger.debug('Reading and validating ReviewRecord ' + obj.multihash);
-                await this.chluIpfs.readReviewRecord(obj.multihash, {
-                    checkForUpdates: true
-                });
+                await this.chluIpfs.readReviewRecord(obj.multihash);
                 this.chluIpfs.logger.debug('Pinning validated ReviewRecord ' + obj.multihash);
                 await this.chluIpfs.pinning.pin(obj.multihash);
                 this.chluIpfs.logger.info('Validated and Pinned ReviewRecord ' + obj.multihash);

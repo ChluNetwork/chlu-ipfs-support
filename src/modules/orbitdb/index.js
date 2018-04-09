@@ -36,8 +36,10 @@ class DB {
     }
 
     async stop() {
+        this.chluIpfs.logger.debug('Stopping OrbitDB Module');
         if (this.db) await this.db.close();
         if (this.orbitDb) await this.orbitDb.stop();
+        this.chluIpfs.logger.debug('Stopped OrbitDB Module');
     }
 
     getReviewRecordList() {
@@ -68,7 +70,9 @@ class DB {
 
     async open() {
         this.chluIpfs.logger.debug('Opening Chlu OrbitDB');
-        this.db = await this.orbitDb.open(constants.orbitDbName, {
+        this.dbName = this.chluIpfs.network ? ('chlu-' + this.chluIpfs.network) : 'chlu';
+        this.chluIpfs.logger.debug('Using OrbitDB type ' + ChluStore.type + ' named ' + this.dbName);
+        this.db = await this.orbitDb.open(this.dbName, {
             type: ChluStore.type,
             create: true,
             write: ['*']

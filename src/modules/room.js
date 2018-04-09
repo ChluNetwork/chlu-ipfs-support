@@ -13,9 +13,11 @@ class Room {
     async start() {
         // PubSub setup
         if (!this.subscription) {
-            this.topic = constants.pubsubTopic;
+            this.topic = this.chluIpfs.network ? ('chlu-' + this.chluIpfs.network) : 'chlu';
             this.subscription = msg => this.handleMessage(msg);
             await this.chluIpfs.ipfs.pubsub.subscribe(this.topic, this.subscription);
+            this.chluIpfs.logger.debug('Subscribed to pubsub topic: ' + this.topic);
+            this.listenToPubSubEvents();
             await this.updatePeers();
             this.pollPeers();
             this.chluIpfs.events.emit('pubsub subscribed', this.topic);
@@ -27,6 +29,7 @@ class Room {
     async stop() {
         if (this.topic && this.subscription) {
             await this.chluIpfs.ipfs.pubsub.unsubscribe(this.topic, this.subscription);
+            this.chluIpfs.logger.debug('Unsubscribed from pubsub topic: ' + this.topic);
             this.chluIpfs.events.emit('pubsub unsubscribed', this.topic);
         }
         this.subscription = null;

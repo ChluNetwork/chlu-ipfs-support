@@ -4,8 +4,9 @@
     </head>
     <body>
         <!-- Currently using non minified version of IPFS due to https://github.com/ipfs/js-ipfs/issues/1136 -->
-        <script src="https://unpkg.com/ipfs@0.27.5/dist/index.js"></script>
-        <script src="https://unpkg.com/orbit-db@0.18.12/dist/orbitdb.min.js"></script>
+        <script src="https://unpkg.com/ipfs@0.28.0/dist/index.js"></script>
+        <!-- OrbitDB -->
+        <script src="https://unpkg.com/orbit-db@0.19.7/dist/orbitdb.min.js"></script>
         <script src="../dist/ChluIPFS.min.js"></script>
         <script>
 
@@ -30,7 +31,11 @@
                 const type = ChluIPFS.types.service;
                 log("Starting " + type);
                 // Store the instance to window object so that we can tinker with it from the browser console
-                var chluIpfs = window.chluIpfs = new ChluIPFS({ type, logger });
+                var chluIpfs = window.chluIpfs = new ChluIPFS({
+                    type,
+                    logger,
+                    network: ChluIPFS.networks.experimental
+                });
                 // Start the instance and wait for it to be ready
                 await chluIpfs.start();
             };

@@ -1,12 +1,12 @@
 const { cloneDeep, isEqual } = require('lodash');
 const IPFSUtils = require('../utils/ipfs');
-const axios = require('axios');
 
 class Validator {
 
     constructor(chluIpfs) {
         this.chluIpfs = chluIpfs;
         this.defaultValidationSettings = {
+            useCache: true,
             throwErrors: true,
             validateVersion: true,
             validateMultihash: true,
@@ -23,14 +23,17 @@ class Validator {
         const v = Object.assign({}, this.defaultValidationSettings, validations);
         try {
             if (v.validateVersion) this.validateVersion(rr);
-            if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
-            if (v.validateSignatures){
-                await Promise.all([
-                    this.validateRRSignature(rr, v.expectedRRPublicKey),
-                    this.validatePoPRSignaturesAndKeys(rr.popr, v.expectedPoPRPublicKey)
-                ]);
+            if (!rr.multihash || !v.useCache || !this.chluIpfs.cache.isValidityCached(rr.multihash)) {
+                if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
+                if (v.validateSignatures){
+                    await Promise.all([
+                        this.validateRRSignature(rr, v.expectedRRPublicKey),
+                        this.validatePoPRSignaturesAndKeys(rr.popr, v.expectedPoPRPublicKey, v.useCache)
+                    ]);
+                }
+                if (v.validateHistory) await this.validateHistory(rr, v);
+                if (rr.multihash && v.useCache) this.chluIpfs.cache.cacheValidity(rr.multihash);
             }
-            if (v.validateHistory) await this.validateHistory(rr, v);
             this.chluIpfs.logger.debug('Validated review record (was valid)');
         } catch (error) {
             this.chluIpfs.logger.debug('Validated review record (was NOT valid)');
@@ -85,40 +88,45 @@ class Validator {
         }
     }
 
-    async validatePoPRSignaturesAndKeys(popr, expectedPoPRPublicKey = null) {
+    async validatePoPRSignaturesAndKeys(popr, expectedPoPRPublicKey = null, useCache = true) {
         this.chluIpfs.logger.debug('Validating PoPR Signatures and keys');
         if (!popr.hash) {
             popr = await this.chluIpfs.reviewRecords.hashPoPR(popr);
         }
         const hash = popr.hash;
-        const vmMultihash = this.keyLocationToKeyMultihash(popr.key_location);
-        const isExpectedKey = expectedPoPRPublicKey === null || expectedPoPRPublicKey === vmMultihash;
-        if (!isExpectedKey) {
-            throw new Error('Expected PoPR to be signed by ' + expectedPoPRPublicKey + ' but found ' + vmMultihash);
-        }
-        const mSignature = popr.marketplace_signature;
-        const vSignature = popr.vendor_signature;
-        const vMultihash = this.keyLocationToKeyMultihash(popr.vendor_key_location);
-        const vmSignature = popr.signature;
-        const marketplaceUrl = popr.marketplace_url;
-        const mMultihash = await this.fetchMarketplaceKey(marketplaceUrl);
-        const c = this.chluIpfs.crypto;
-        const validations = await Promise.all([
-            c.verifyMultihash(vMultihash, vmMultihash, vSignature),
-            c.verifyMultihash(mMultihash, vmMultihash, mSignature),
-            c.verifyMultihash(vmMultihash, hash, vmSignature)
-        ]);
-        // false if any validation is false
-        const valid = validations.reduce((acc, v) => acc && v);
-        if (valid) {
-            // Emit events about keys discovered
-            this.chluIpfs.events.emit('vendor pubkey', vMultihash);
-            this.chluIpfs.events.emit('vendor-marketplace pubkey', vmMultihash);
-            this.chluIpfs.events.emit('marketplace pubkey', mMultihash);
+        if (!useCache || !this.chluIpfs.cache.isValidityCached(hash)) {
+            const vmMultihash = this.keyLocationToKeyMultihash(popr.key_location);
+            const isExpectedKey = expectedPoPRPublicKey === null || expectedPoPRPublicKey === vmMultihash;
+            if (!isExpectedKey) {
+                throw new Error('Expected PoPR to be signed by ' + expectedPoPRPublicKey + ' but found ' + vmMultihash);
+            }
+            const mSignature = popr.marketplace_signature;
+            const vSignature = popr.vendor_signature;
+            const vMultihash = this.keyLocationToKeyMultihash(popr.vendor_key_location);
+            const vmSignature = popr.signature;
+            const marketplaceUrl = popr.marketplace_url;
+            const mMultihash = await this.fetchMarketplaceKey(marketplaceUrl, useCache);
+            const c = this.chluIpfs.crypto;
+            const validations = await Promise.all([
+                c.verifyMultihash(vMultihash, vmMultihash, vSignature),
+                c.verifyMultihash(mMultihash, vmMultihash, mSignature),
+                c.verifyMultihash(vmMultihash, hash, vmSignature)
+            ]);
+            // false if any validation is false
+            const valid = validations.reduce((acc, v) => acc && v);
+            if (valid) {
+                if (useCache) this.chluIpfs.cache.cacheValidity(hash);
+                // Emit events about keys discovered
+                this.chluIpfs.events.emit('vendor pubkey', vMultihash);
+                this.chluIpfs.events.emit('vendor-marketplace pubkey', vmMultihash);
+                this.chluIpfs.events.emit('marketplace pubkey', mMultihash);
+            } else {
+                throw new Error('The PoPR is not correctly signed');
+            }
+            return valid;
         } else {
-            throw new Error('The PoPR is not correctly signed');
+            return true;
         }
-        return valid;
     }
 
     keyLocationToKeyMultihash(l) {
@@ -126,15 +134,17 @@ class Validator {
         return l;
     }
 
-    async fetchMarketplaceKey(marketplaceUrl) {
+    async fetchMarketplaceKey(marketplaceUrl, useCache = true) {
         try {
             this.chluIpfs.logger.debug('Fetching marketplace key for ' + marketplaceUrl);
-            const response = await axios.get(marketplaceUrl + '/.well-known');
-            if (response.status !== 200) {
-                throw new Error('Expected HTTP Status Code 200, got ' + response.status + ' instead');
+            if (useCache) {
+                const multihash = this.chluIpfs.cache.getMarketplacePubKeyMultihash(marketplaceUrl);
+                if (multihash) return multihash;
             }
+            const response = await this.chluIpfs.http.get(marketplaceUrl + '/.well-known');
             const multihash = response.data.multihash;
             IPFSUtils.validateMultihash(multihash);
+            if (useCache) this.chluIpfs.cache.cacheMarketplacePubKeyMultihash(marketplaceUrl, multihash);
             this.chluIpfs.logger.debug('Fetched marketplace key for ' + marketplaceUrl + ': located at ' + multihash);
             return multihash;
         } catch (error) {
