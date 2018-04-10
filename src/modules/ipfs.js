@@ -1,6 +1,7 @@
 const DAGNode = require('ipld-dag-pb').DAGNode;
 const utils = require('../utils/ipfs');
 const constants = require('../constants');
+const env = require('../utils/env');
 
 class IPFS {
     constructor(chluIpfs) {
@@ -17,8 +18,10 @@ class IPFS {
             const ipfs = this.chluIpfs.ipfs = await utils.createIPFS(this.chluIpfs.ipfsOptions);
             const ipfsVersion = await ipfs.version();
             logger.info('IPFS ID: ' + (await ipfs.id()).id);
+            logger.debug('Detected environment: ' + env.isNode() ? 'Node.JS' : 'Browser');
+            const nodes = env.isNode() ? constants.chluBootstrapNodes.nodeJs : constants.chluBootstrapNodes.browser;
             logger.debug('Connecting to bootstrap Chlu nodes');
-            await this.connectToNodes(constants.chluBootstrapNodes);
+            await this.connectToNodes(nodes);
             logger.debug('Connected to bootstrap Chlu nodes');
             logger.debug('Initialized IPFS, version ' + ipfsVersion.version);
             if (!ipfs.pin) {
@@ -37,6 +40,7 @@ class IPFS {
                 this.chluIpfs.logger.debug('Connected to IPFS address (' + i + '/' + total + ') ' + addr);
             } catch (error) {
                 this.chluIpfs.logger.warn('Connection FAILED to IPFS address (' + i + '/' + total + ') ' + addr);
+                console.trace(error);
             }
         }));
     }
