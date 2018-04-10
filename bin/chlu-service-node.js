@@ -8,22 +8,32 @@ let serviceNode = null;
 function handleErrors(fn) {
     return function (...args) {
         fn(...args).catch(err => {
+            console.log(err);
             console.trace(err);
             process.exit(1);
         });
     };
 }
 
-async function start(network, externalIpfs, enableRelayHop){
+async function start(options){
     console.log('Starting Chlu IPFS Service Node');
-    serviceNode = new ChluIPFS({
+    const config = {
         type: ChluIPFS.types.service,
-        network: network || ChluIPFS.networks.experimental,
+        network: options.network || ChluIPFS.networks.experimental,
+        directory: options.directory,
         ipfs: {
-            type: externalIpfs ? ChluIPFS.ipfsTypes.remote : null,
-            enableRelayHop
-        }
-    });
+            type: options.externalIpfs ? ChluIPFS.ipfsTypes.remote : null,
+            enableRelayHop: options.enableRelayHop
+        },
+    };
+    if (!options.listen) {
+        config.ipfs.config = {
+            Addresses: {
+                Swarm: []
+            }
+        };
+    }
+    serviceNode = new ChluIPFS(config);
     await serviceNode.start();
     console.log('Chlu Service node ready');
 }
@@ -50,10 +60,12 @@ cli
     .command('start')
     .description('run the Service Node')
     .option('-n, --network <s>', 'use a custom network instead of production')
+    .option('-d, --directory <s>', 'where to store chlu data, defaults to ~/.chlu')
     .option('-e, --external-ipfs', 'connect to a running IPFS node at localhost:5001')
     .option('-r, --relay', 'act as libp2p relay to help nodes connect to each other')
+    .option('--no-listen', "don't listen for incoming connections")
     .action(handleErrors(async cmd => {
-        await start(cmd.network, cmd.externalIpfs, cmd.relay);
+        await start(cmd);
     }));
 
 cli.parse(process.argv);

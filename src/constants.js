@@ -47,9 +47,24 @@ module.exports = {
         port: 5001,
         protocol: 'http'
     },
-    chluBootstrapNodes: [
-        // '/dns4/ws-star-signal-1.servep2p.com/wss/p2p-websocket-star/ipfs/',
-        '/ip4/5.189.146.239/tcp/4001/ipfs/QmSQZrsqarpjGnw3Ey1ZRwCjCBBpiJTKivENsePVWMKaho',
-        '/p2p-circuit/QmdHqyJAXPModr2omDhLt5HifHGZFdCfZyhkD74jiAKyzd', // Service Node running on EC2
-    ]
+    chluBootstrapNodes: {
+        nodeJs: [
+            '/ip4/127.0.0.1/tcp/4003/ws/ipfs/QmZ8uomcZCT4z4y5b1YzbSBrKvXb72TmFf1oS3z5NPELTo',
+            // go-ipfs running on EC2
+            '/dns4/replicator.chlu.io/tcp/4001/ipfs/QmYkctX9Wg5g2mBD8mnnNiCQE5toy3RqAkmzAmGEXY4dVU',
+            '/dns4/replicator.chlu.io/tcp/443/wss/ipfs/QmYkctX9Wg5g2mBD8mnnNiCQE5toy3RqAkmzAmGEXY4dVU',
+            // a go-ipfs node with relay-hop
+            '/ip4/5.189.146.239/tcp/4001/ipfs/QmSQZrsqarpjGnw3Ey1ZRwCjCBBpiJTKivENsePVWMKaho',
+            // js-ipfs Service Node running on EC2
+            // '/p2p-circuit/ipfs/QmdHqyJAXPModr2omDhLt5HifHGZFdCfZyhkD74jiAKyzd',
+        ],
+        browser: [
+            // go-ipfs running on EC2
+            '/dns4/replicator.chlu.io/tcp/443/wss/ipfs/QmYkctX9Wg5g2mBD8mnnNiCQE5toy3RqAkmzAmGEXY4dVU',
+            // a go-ipfs node with relay-hop
+            // TODO: configure that node to accept WSS connections
+            // js-ipfs Service Node running on EC2
+            // '/p2p-circuit/ipfs/QmdHqyJAXPModr2omDhLt5HifHGZFdCfZyhkD74jiAKyzd',
+        ]
+    }
 };
