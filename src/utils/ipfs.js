@@ -1,15 +1,23 @@
 const IPFS = require('ipfs');
+const IPFSAPI = require('ipfs-api');
 const multihashes = require('multihashes');
 const path = require('path');  
 const storage = require('./storage');
 const env = require('./env');
+const constants = require('../constants');
+const { set } = require('lodash');
 
 async function createIPFS(options) {
-    return await new Promise(resolve => {
-        const node = new IPFS(options);
+    if (options.enableRelayHop) set(options, 'EXPERIMENTAL.relay.hop.enable', true);
+    if (options.type === constants.ipfsTypes.remote) {
+        return IPFSAPI(options);
+    } else {
+        return await new Promise(resolve => {
+            const node = new IPFS(options);
 
-        node.on('ready', () => resolve(node));
-    });
+            node.on('ready', () => resolve(node));
+        });
+    }
 }
 
 function isValidMultihash(multihash) {

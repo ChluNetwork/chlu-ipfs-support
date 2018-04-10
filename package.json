@@ -28,10 +28,10 @@
     "bitcoinjs-lib": "^3.3.2",
     "commander": "^2.15.1",
     "debounce-async": "^0.0.1",
-    "ipfs": "~0.28.0",
+    "ipfs": "ipfs/js-ipfs#master",
     "lodash": "^4.17.5",
     "lru-cache": "^4.1.2",
-    "orbit-db": "~0.19.7",
+    "orbit-db": "orbitdb/orbit-db#master",
     "protons": "~1.0.1"
   },
   "devDependencies": {

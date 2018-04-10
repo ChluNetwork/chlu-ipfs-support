@@ -14,11 +14,15 @@ function handleErrors(fn) {
     };
 }
 
-async function start(network){
+async function start(network, externalIpfs, enableRelayHop){
     console.log('Starting Chlu IPFS Service Node');
     serviceNode = new ChluIPFS({
         type: ChluIPFS.types.service,
-        network: network || ChluIPFS.networks.experimental
+        network: network || ChluIPFS.networks.experimental,
+        ipfs: {
+            type: externalIpfs ? ChluIPFS.ipfsTypes.remote : null,
+            enableRelayHop
+        }
     });
     await serviceNode.start();
     console.log('Chlu Service node ready');
@@ -46,8 +50,10 @@ cli
     .command('start')
     .description('run the Service Node')
     .option('-n, --network <s>', 'use a custom network instead of production')
+    .option('-e, --external-ipfs', 'connect to a running IPFS node at localhost:5001')
+    .option('-r, --relay', 'act as libp2p relay to help nodes connect to each other')
     .action(handleErrors(async cmd => {
-        await start(cmd.network);
+        await start(cmd.network, cmd.externalIpfs, cmd.relay);
     }));
 
 cli.parse(process.argv);

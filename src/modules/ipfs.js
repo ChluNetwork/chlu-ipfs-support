@@ -1,9 +1,44 @@
 const DAGNode = require('ipld-dag-pb').DAGNode;
 const utils = require('../utils/ipfs');
+const constants = require('../constants');
 
 class IPFS {
     constructor(chluIpfs) {
         this.chluIpfs = chluIpfs;
+    }
+
+    async start() {
+        const logger = this.chluIpfs.logger;
+        if (!this.chluIpfs.ipfs) {
+            logger.debug('Initializing IPFS, type: ' + (this.chluIpfs.ipfsOptions.type || 'JS (Internal)'));
+            if (this.chluIpfs.ipfsOptions.enableRelayHop) {
+                logger.info('Acting as libp2p relay');
+            }
+            const ipfs = this.chluIpfs.ipfs = await utils.createIPFS(this.chluIpfs.ipfsOptions);
+            const ipfsVersion = await ipfs.version();
+            logger.info('IPFS ID: ' + (await ipfs.id()).id);
+            logger.debug('Connecting to bootstrap Chlu nodes');
+            await this.connectToNodes(constants.chluBootstrapNodes);
+            logger.debug('Connected to bootstrap Chlu nodes');
+            logger.debug('Initialized IPFS, version ' + ipfsVersion.version);
+            if (!ipfs.pin) {
+                logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
+            }
+        }
+    }
+    
+    async connectToNodes(addrs) {
+        const total = addrs.length;
+        return Promise.all(addrs.map(async (addr, ii) => {
+            const i = ii + 1;
+            try {
+                this.chluIpfs.logger.debug('Connecting to IPFS address (' + i + '/' + total + ') ' + addr);
+                await this.chluIpfs.ipfs.swarm.connect(addr);
+                this.chluIpfs.logger.debug('Connected to IPFS address (' + i + '/' + total + ') ' + addr);
+            } catch (error) {
+                this.chluIpfs.logger.warn('Connection FAILED to IPFS address (' + i + '/' + total + ') ' + addr);
+            }
+        }));
     }
 
     async id() {
