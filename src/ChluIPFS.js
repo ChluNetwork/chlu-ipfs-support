@@ -16,6 +16,12 @@ const defaultLogger = require('./utils/logger');
 
 class ChluIPFS {
     constructor(options = {}){
+        // Prepare logger and event emitter
+        this.events = new EventEmitter();
+        this.logger = options.logger || defaultLogger;
+        // Load storage module
+        this.storage = storageUtils;
+        // Choose default network
         if (process.env.CHLU_NETWORK) {
             this.defaultNetwork = process.env.CHLU_NETWORK;
         } else if (process.env.NODE_ENV === 'production') {
@@ -23,39 +29,39 @@ class ChluIPFS {
         } else {
             this.defaultNetwork = constants.networks.experimental;
         }
-        // Configuration
+        // Choose network
         this.network = options.network || this.defaultNetwork;
         if (this.network === constants.networks.default) {
             // Unset so that modules know to connect to main net
             this.network = '';
         }
-        this.storage = storageUtils;
+        // See if enabling persistence
         if (typeof options.enablePersistence === 'undefined') {
             this.enablePersistence = true;
         } else {
             this.enablePersistence = options.enablePersistence;
         }
+        // Choose Chlu directory
         this.directory = options.directory || this.storage.getDefaultDirectory();
+        // Set up IPFS options
         const additionalOptions = {
             repo: IPFSUtils.getDefaultRepoPath(this.directory)
         };
-        this.orbitDbDirectory = options.orbitDbDirectory || IPFSUtils.getDefaultOrbitDBPath(this.directory);
         this.ipfsOptions = Object.assign(
             {},
             constants.defaultIPFSOptions,
             additionalOptions,
             options.ipfs || {}
         );
+        // Set up OrbitDB Directory/Path
+        this.orbitDbDirectory = options.orbitDbDirectory || IPFSUtils.getDefaultOrbitDBPath(this.directory);
+        // Check Chlu node type
         this.type = options.type;
         if (Object.values(constants.types).indexOf(this.type) < 0) {
             throw new Error('Invalid type');
         }
-        this.events = new EventEmitter();
-        this.logger = options.logger || defaultLogger;
-        // Modules
-        if (options.cache !== false) {
-            this.cache = new Cache(this, options.cache);
-        }
+        // Load Modules
+        this.cache = new Cache(this, options.cache);
         this.http = http;
         this.ipfsUtils = new IPFSUtils(this);
         this.orbitDb = new DB(this);
@@ -75,15 +81,8 @@ class ChluIPFS {
         this.events.emit('starting');
         this.logger.debug('Starting ChluIPFS, directory: ' + this.directory);
         this.logger.debug('Using Network: ' + (this.network || '----- PRODUCTION -----'));
-        if (!this.ipfs) {
-            this.logger.debug('Initializing IPFS');
-            this.ipfs = await IPFSUtils.createIPFS(this.ipfsOptions);
-            this.logger.debug('Initialized IPFS');
-        }
-        if (!this.ipfs.pin) {
-            this.logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
-        }
 
+        await this.ipfsUtils.start();
         await this.orbitDb.start();
         await this.room.start();
 
