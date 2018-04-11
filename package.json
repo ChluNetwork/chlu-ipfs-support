@@ -29,10 +29,15 @@
     "commander": "^2.15.1",
     "debounce-async": "^0.0.1",
     "ipfs": "ipfs/js-ipfs#master",
+    "ipfs-api": "^20.0.0",
     "lodash": "^4.17.5",
     "lru-cache": "^4.1.2",
     "orbit-db": "orbitdb/orbit-db#master",
     "protons": "~1.0.1"
+  },
+  "resolutions": {
+    "ipfs-log": "ChluNetwork/ipfs-log#custom-verification",
+    "ipfs-pubsub-1on1": "ChluNetwork/ipfs-pubsub-1on1#ipfs-api-fix"
   },
   "devDependencies": {
     "chai": "^4.1.2",

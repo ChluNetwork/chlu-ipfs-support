@@ -69,7 +69,8 @@ describe('ChluIPFS', () => {
                 enablePersistence: false,
                 directory: testDir,
                 logger: logger('Service'),
-                network: ChluIPFS.networks.experimental
+                network: ChluIPFS.networks.experimental,
+                useRendezvous: false
             });
             // Make sure it doesnt get stuck waiting for peers
             chluIpfs.room.waitForAnyPeer = sinon.stub().resolves();
