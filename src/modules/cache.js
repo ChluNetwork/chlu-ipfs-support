@@ -88,7 +88,12 @@ class Cache {
 
     persistData() {
         this._persistData().catch(err => {
-            this.log('PersistData call from has rejected. Too close cache writes? : ' + err.message);
+            if (err === 'canceled') {
+                this.log('PersistData call from Cache has rejected due to too close cache writes');
+            } else {
+                // TODO: propagate error?
+                this.log('PersistData call from Cache has rejected with an error: ' + (err.message || err));
+            }
         });
     }
 

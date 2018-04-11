@@ -1,6 +1,5 @@
 const DAGNode = require('ipld-dag-pb').DAGNode;
 const utils = require('../utils/ipfs');
-const constants = require('../constants');
 const env = require('../utils/env');
 
 class IPFS {
@@ -19,15 +18,24 @@ class IPFS {
             const ipfsVersion = await ipfs.version();
             logger.info('IPFS ID: ' + (await ipfs.id()).id);
             logger.debug('Detected environment: ' + env.isNode() ? 'Node.JS' : 'Browser');
-            const nodes = env.isNode() ? constants.chluBootstrapNodes.nodeJs : constants.chluBootstrapNodes.browser;
-            logger.debug('Connecting to bootstrap Chlu nodes');
-            await this.connectToNodes(nodes);
-            logger.debug('Connected to bootstrap Chlu nodes');
+            if (this.chluIpfs.bootstrap) {
+                logger.debug('Connecting to bootstrap Chlu nodes');
+                const nodes = env.isNode() ? this.chluIpfs.chluBootstrapNodes.nodeJs : this.chluIpfs.chluBootstrapNodes.browser;
+                await this.connectToNodes(nodes);
+                logger.debug('Connected to bootstrap Chlu nodes');
+            } else {
+                logger.debug('Skipping Chlu bootstrap phase');
+            }
             logger.debug('Initialized IPFS, version ' + ipfsVersion.version);
             if (!ipfs.pin) {
                 logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
             }
         }
+    }
+
+    async stop() {
+        await this.chluIpfs.ipfs.stop();
+        this.chluIpfs.ipfs = undefined;
     }
     
     async connectToNodes(addrs) {

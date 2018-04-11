@@ -27,17 +27,27 @@ function strip(obj) {
 }
 
 describe('Customer and Service Node integration', function() {
-    let testDir, customerNode, serviceNode, server, v, vm, m, makeKeyPair, preparePoPR;
+    let testDir, ipfsDir, customerNode, customerIpfs, serviceNode, serviceIpfs;
+    let server, v, vm, m, makeKeyPair, preparePoPR;
 
     before(async () => {
         if (env.isNode()) {
             server = await require('../utils/nodejs').startRendezvousServer();
         }
+
+        ipfsDir = env.isNode() ? '/tmp/chlu-test-ipfs-' + Date.now() + Math.random() + '/' : Date.now() + Math.random();
+        serviceIpfs = await utils.createIPFS({ repo: ipfsDir + '/' + 'service' });
+        customerIpfs = await utils.createIPFS({ repo: ipfsDir + '/' + 'customer' });
+
+        // Connect the peers manually to speed up test times
+        // await utils.connect(serviceNode.ipfs, customerNode.ipfs);
     });
 
     after(async () => {
+        await Promise.all([serviceIpfs.stop(), customerIpfs.stop()]);
         if (env.isNode()) {
             await server.stop();
+            rimraf.sync(ipfsDir);
         }
     });
 
@@ -52,23 +62,22 @@ describe('Customer and Service Node integration', function() {
             type: ChluIPFS.types.service,
             logger: logger('Service'),
             directory: serviceNodeDir,
-            enablePersistence: false
+            enablePersistence: false,
+            bootstrap: false
         });
         customerNode = new ChluIPFS({
             type: ChluIPFS.types.customer,
             logger: logger('Customer'),
             directory: customerDir,
-            enablePersistence: false
+            enablePersistence: false,
+            bootstrap: false
         });
         // Make sure they don't connect to production
         expect(customerNode.network).to.equal(ChluIPFS.networks.experimental);
         expect(serviceNode.network).to.equal(ChluIPFS.networks.experimental);
 
-        serviceNode.ipfs = await utils.createIPFS({ repo: serviceNode.ipfsOptions.repo });
-        customerNode.ipfs = await utils.createIPFS({ repo: customerNode.ipfsOptions.repo });
-
-        // Connect the peers manually to speed up test times
-        await utils.connect(serviceNode.ipfs, customerNode.ipfs);
+        serviceNode.ipfs = serviceIpfs;
+        customerNode.ipfs = customerIpfs;
     
         await Promise.all([serviceNode.start(), customerNode.start()]);
 
@@ -82,6 +91,8 @@ describe('Customer and Service Node integration', function() {
         const http = fakeHttpModule(() => ({ multihash: m.multihash }));
         serviceNode.http = http;
         customerNode.http = http;
+        serviceNode.ipfsUtils.stop = sinon.stub().resolves();
+        customerNode.ipfsUtils.stop = sinon.stub().resolves();
     });
 
     afterEach(async () => {

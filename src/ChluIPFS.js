@@ -13,6 +13,7 @@ const EventEmitter = require('events');
 const constants = require('./constants');
 const http = require('./utils/http');
 const defaultLogger = require('./utils/logger');
+const { cloneDeep } = require('lodash');
 
 class ChluIPFS {
     constructor(options = {}){
@@ -55,6 +56,14 @@ class ChluIPFS {
         );
         // Set up OrbitDB Directory/Path
         this.orbitDbDirectory = options.orbitDbDirectory || IPFSUtils.getDefaultOrbitDBPath(this.directory);
+        // Set up Chlu bootstrap nodes
+        this.chluBootstrapNodes = cloneDeep(constants.chluBootstrapNodes);
+        // enable Chlu bootstrap by default
+        if (options.bootstrap === false) {
+            this.bootstrap = false;
+        } else {
+            this.bootstrap = true;
+        }
         // Check Chlu node type
         this.type = options.type;
         if (Object.values(constants.types).indexOf(this.type) < 0) {
@@ -113,9 +122,8 @@ class ChluIPFS {
         await this.persistence.persistData();
         await this.orbitDb.stop();
         await this.room.stop();
-        await this.ipfs.stop();
+        await this.ipfsUtils.stop();
         this.events.emit('stop');
-        this.ipfs = undefined;
     }
 
     async waitUntilReady() {
