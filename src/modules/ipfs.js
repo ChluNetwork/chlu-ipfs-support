@@ -1,6 +1,8 @@
 const DAGNode = require('ipld-dag-pb').DAGNode;
 const utils = require('../utils/ipfs');
 const env = require('../utils/env');
+const IPFSAPI = require('ipfs-api');
+const { set } = require('lodash');
 
 class IPFS {
     constructor(chluIpfs) {
@@ -11,13 +13,26 @@ class IPFS {
         const logger = this.chluIpfs.logger;
         if (!this.chluIpfs.ipfs) {
             logger.debug('Initializing IPFS, type: ' + (this.chluIpfs.ipfsOptions.type || 'JS (Internal)'));
+            logger.debug('Detected environment: ' + env.isNode() ? 'Node.JS' : 'Browser');
             if (this.chluIpfs.ipfsOptions.enableRelayHop) {
                 logger.info('Acting as libp2p relay');
             }
-            const ipfs = this.chluIpfs.ipfs = await utils.createIPFS(this.chluIpfs.ipfsOptions);
+            let ipfs;
+            if (this.chluIpfs.ipfsOptions.remote) {
+                logger.debug('Connecting to IPFS API');
+                // Connect to existing IPFS Node
+                ipfs = IPFSAPI(this.chluIpfs.ipfsOptions);
+            } else {
+                logger.debug('Starting JS-IPFS in this process');
+                // Default: Start a local IPFS Node
+                if (this.chluIpfs.ipfsOptions.enableRelayHop) {
+                    set(this.chluIpfs.ipfsOptions, 'EXPERIMENTAL.relay.hop.enable', true);
+                }
+                ipfs = await utils.createIPFS(this.chluIpfs.ipfsOptions);
+            }
+            this.chluIpfs.ipfs = ipfs;
             const ipfsVersion = await ipfs.version();
             logger.info('IPFS ID: ' + (await ipfs.id()).id);
-            logger.debug('Detected environment: ' + env.isNode() ? 'Node.JS' : 'Browser');
             if (this.chluIpfs.bootstrap) {
                 logger.debug('Connecting to bootstrap Chlu nodes');
                 const nodes = env.isNode() ? this.chluIpfs.chluBootstrapNodes.nodeJs : this.chluIpfs.chluBootstrapNodes.browser;

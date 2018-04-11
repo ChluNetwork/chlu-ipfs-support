@@ -14,6 +14,7 @@ const constants = require('./constants');
 const http = require('./utils/http');
 const defaultLogger = require('./utils/logger');
 const { cloneDeep } = require('lodash');
+const env = require('./utils/env');
 
 class ChluIPFS {
     constructor(options = {}){
@@ -48,9 +49,23 @@ class ChluIPFS {
         const additionalOptions = {
             repo: IPFSUtils.getDefaultRepoPath(this.directory)
         };
+        const defaultSwarmAddresses = env.isNode()
+            ? constants.defaultSwarmAddresses.nodeJs
+            : constants.defaultSwarmAddresses.browser;
+        if (options.useRendezvous !== false) {
+            // By default, use rendezvous points for websocket-star
+            defaultSwarmAddresses.push(...constants.defaultSwarmAddresses.rendezvous);
+        }
         this.ipfsOptions = Object.assign(
             {},
             constants.defaultIPFSOptions,
+            {
+                config: {
+                    Addresses: {
+                        Swarm: defaultSwarmAddresses
+                    }
+                }
+            },
             additionalOptions,
             options.ipfs || {}
         );
@@ -91,12 +106,12 @@ class ChluIPFS {
         this.logger.debug('Starting ChluIPFS, directory: ' + this.directory);
         this.logger.debug('Using Network: ' + (this.network || '----- PRODUCTION -----'));
 
+        // Load previously persisted data
+        await this.persistence.loadPersistedData();
+
         await this.ipfsUtils.start();
         await this.orbitDb.start();
         await this.room.start();
-
-        // Load previously persisted data
-        await this.persistence.loadPersistedData();
 
         if (this.type === constants.types.customer && this.crypto.keyPair === null) {
             // Generate a key pair
