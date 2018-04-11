@@ -28,7 +28,7 @@ function strip(obj) {
 
 describe('Customer and Service Node integration', function() {
     let testDir, ipfsDir, customerNode, customerIpfs, serviceNode, serviceIpfs;
-    let server, v, vm, m, makeKeyPair, preparePoPR;
+    let v, vm, m, makeKeyPair, preparePoPR;
 
     before(async () => {
         if (env.isNode()) {
@@ -46,7 +46,6 @@ describe('Customer and Service Node integration', function() {
     after(async () => {
         await Promise.all([serviceIpfs.stop(), customerIpfs.stop()]);
         if (env.isNode()) {
-            await server.stop();
             rimraf.sync(ipfsDir);
         }
     });

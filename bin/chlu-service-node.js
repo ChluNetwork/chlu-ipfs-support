@@ -22,7 +22,7 @@ async function start(options){
         network: options.network || ChluIPFS.networks.experimental,
         directory: options.directory,
         ipfs: {
-            type: options.externalIpfs ? ChluIPFS.ipfsTypes.remote : null,
+            remote: options.externalIpfs,
             enableRelayHop: options.enableRelayHop
         },
     };
