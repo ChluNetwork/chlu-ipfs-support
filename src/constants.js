@@ -33,7 +33,7 @@ module.exports = {
         config: {
             Addresses: {
                 Swarm: [
-                    '/dns4/ws-star-signal-2.servep2p.com/tcp/443/wss/p2p-websocket-star'
+                    '/dns4/ren.chlu.io/tcp/443/wss/p2p-websocket-star'
                 ]
             }
         }
