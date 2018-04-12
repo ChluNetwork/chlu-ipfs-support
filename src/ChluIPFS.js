@@ -52,9 +52,10 @@ class ChluIPFS {
         const defaultSwarmAddresses = env.isNode()
             ? constants.defaultSwarmAddresses.nodeJs
             : constants.defaultSwarmAddresses.browser;
+        const swarmAddresses = options.listen === false ? [] : defaultSwarmAddresses;
         if (options.useRendezvous !== false) {
             // By default, use rendezvous points for websocket-star
-            defaultSwarmAddresses.push(...constants.defaultSwarmAddresses.rendezvous);
+            swarmAddresses.push(...constants.defaultSwarmAddresses.rendezvous);
         }
         this.ipfsOptions = Object.assign(
             {},
@@ -62,7 +63,7 @@ class ChluIPFS {
             {
                 config: {
                     Addresses: {
-                        Swarm: defaultSwarmAddresses
+                        Swarm: swarmAddresses
                     }
                 }
             },
