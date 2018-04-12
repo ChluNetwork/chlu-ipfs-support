@@ -205,10 +205,10 @@ class Room {
 
     listenToPubSubEvents() {
         this.chluIpfs.events.on('peer joined', peer => {
-            this.chluIpfs.logger.debug(peer, ' joined the pubsub room');
+            this.chluIpfs.logger.debug(peer + ' joined the pubsub room');
         });
         this.chluIpfs.events.on('peer left', peer => {
-            this.chluIpfs.logger.debug(peer, ' left the pubsub room', peer);
+            this.chluIpfs.logger.debug(peer + ' left the pubsub room');
         });
         this.chluIpfs.events.on('subscribed', () => {
             this.chluIpfs.logger.debug('Connected to the pubsub room');
