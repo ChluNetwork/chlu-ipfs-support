@@ -4,41 +4,39 @@ const multihashing = require('multihashing-async');
 const constants = require('../constants');
 const protobuf = protons(require('../utils/protobuf'));
 const IPFSUtils = require('./ipfs');
-const { cloneDeep } = require('lodash');
+const { cloneDeep, findIndex } = require('lodash');
 
 class ReviewRecords {
 
     constructor(chluIpfs) {
         this.chluIpfs = chluIpfs;
         const self = this;
-        this.notifier = (...args) => self.notifyReviewUpdate(...args);
+        this.notifier = (...args) => self.notifyReviewUpdates(...args);
+        this.watched = [];
+        this.chluIpfs.events.on('replicated', this.notifier);
     }
 
-    async notifyIfReviewIsUpdated(multihash, notifyUpdate, validate = true) {
-        let updatedMultihash;
-        try {
-            updatedMultihash = await this.chluIpfs.orbitDb.get(multihash);
-        } catch (err) {
-            this.chluIpfs.logger.warn('Thrown error while checking for updates for Review Record ' + multihash + ': '  + err.message || err);
-            updatedMultihash = null;
-        }
-        if (updatedMultihash && updatedMultihash !== multihash) {
+    async watchReviewRecord(multihash, validate = true) {
+        this.watched.push({ multihash, validate });
+    }
+
+    async notifyReviewUpdates() {
+        [...this.watched].forEach(async item => {
             try {
-                const reviewRecord = await this.readReviewRecord(updatedMultihash, {
-                    checkForUpdates: false,
-                    validate
-                });
-                notifyUpdate(multihash, updatedMultihash, reviewRecord);
+                const { multihash, validate } = item;
+                const update = await this.chluIpfs.orbitDb.get(multihash);
+                if (update && update !== multihash) {
+                    const reviewRecord = await this.readReviewRecord(multihash, { validate });
+                    // TODO: validate update!!
+                    const i = findIndex(this.watched, o => o.multihash === multihash);
+                    this.watched.splice(i, 1, [update]);
+                    await this.notifyReviewUpdate(multihash, update, reviewRecord);
+                }
             } catch (error) {
-                this.chluIpfs.logger.error('Review update ' + updatedMultihash + ' for ' + multihash + ' was invalid: ' + error);
+                this.chluIpfs.logger.error('Failed update check for ' + item.multihash);
+                console.trace(error);
             }
-        }
-    }
-
-    async findLastReviewRecordUpdate(multihash, notifyUpdate, validateUpdates = true) {
-        const notify = () => this.notifyIfReviewIsUpdated(multihash, notifyUpdate, validateUpdates);
-        this.chluIpfs.events.on('replicated', notify);
-        this.chluIpfs.events.on('write', notify);
+        });
     }
 
     async getHistory(reviewRecord, history = []) {
@@ -92,7 +90,7 @@ class ReviewRecords {
                 throw error;
             }
         }
-        if (checkForUpdates) this.findLastReviewRecordUpdate(m, this.notifier, validate);
+        if (checkForUpdates) this.watchReviewRecord(m, validate);
         const keyMultihash = this.chluIpfs.validator.keyLocationToKeyMultihash(reviewRecord.key_location);
         reviewRecord.editable = keyMultihash === this.chluIpfs.crypto.pubKeyMultihash;
         reviewRecord.multihash = m;
