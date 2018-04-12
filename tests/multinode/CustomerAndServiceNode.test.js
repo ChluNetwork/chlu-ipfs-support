@@ -9,7 +9,7 @@ const sinon = require('sinon');
 const logger = require('../utils/logger');
 const cryptoTestUtils = require('../utils/crypto');
 const fakeHttpModule = require('../utils/http');
-const cloneDeep = require('lodash.clonedeep');
+const { cloneDeep } = require('lodash');
 
 function withoutHashAndSig(obj) {
     return Object.assign({}, obj, {
