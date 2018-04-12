@@ -9,7 +9,7 @@ const protobuf = protons(require('../src/utils/protobuf'));
 const { getFakeReviewRecord } = require('./utils/protobuf');
 const multihashes = require('multihashes');
 const { isValidMultihash } = require('../src/utils/ipfs');
-const cloneDeep = require('lodash.clonedeep');
+const { cloneDeep } = require('lodash');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 
 describe('ReviewRecords module', () => {
