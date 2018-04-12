@@ -1,4 +1,4 @@
-const cloneDeep = require('lodash.clonedeep');
+const { cloneDeep } = require('lodash');
 const ipfsUtils = require('../../src/utils/ipfs');
 const constants = require('../../src/constants');
 const { isNode } = require('../../src/utils/env');
