@@ -25,14 +25,9 @@ async function start(options){
             remote: options.externalIpfs,
             enableRelayHop: options.enableRelayHop
         },
+        listen: options.listen,
+        useRendezvous: options.rendezvous
     };
-    if (!options.listen) {
-        config.ipfs.config = {
-            Addresses: {
-                Swarm: []
-            }
-        };
-    }
     serviceNode = new ChluIPFS(config);
     await serviceNode.start();
     console.log('Chlu Service node ready');
@@ -63,6 +58,7 @@ cli
     .option('-d, --directory <s>', 'where to store chlu data, defaults to ~/.chlu')
     .option('-e, --external-ipfs', 'connect to a running IPFS node at localhost:5001')
     .option('-r, --relay', 'act as libp2p relay to help nodes connect to each other')
+    .option('--no-rendezvous', 'disable usage of rendezvous servers (not recommended right now)')
     .option('--no-listen', "don't listen for incoming connections")
     .action(handleErrors(async cmd => {
         await start(cmd);
