@@ -52,14 +52,25 @@ class ChluIPFS {
         const defaultSwarmAddresses = env.isNode()
             ? constants.defaultSwarmAddresses.nodeJs
             : constants.defaultSwarmAddresses.browser;
-        const swarmAddresses = options.listen === false ? [] : defaultSwarmAddresses;
+        const swarmAddresses = options.listen ? defaultSwarmAddresses : [];
         if (options.useRendezvous !== false) {
             // By default, use rendezvous points for websocket-star
             swarmAddresses.push(...constants.defaultSwarmAddresses.rendezvous);
         }
+        if (options.circuit || options.relay) {
+            // Do not use circuit relay by default
+            // Acting as relay requires enabling circuit
+            this.circuit = true;
+        }
+        if (options.relay) {
+            // Do not act as relay by default
+            this.relay = true;
+        }
         this.ipfsOptions = Object.assign(
             {},
+            // default IPFS config
             constants.defaultIPFSOptions,
+            // pass swarm addresses determined just now
             {
                 config: {
                     Addresses: {
@@ -67,19 +78,17 @@ class ChluIPFS {
                     }
                 }
             },
+            // additional options set up just now
             additionalOptions,
+            // finally options passed by the caller
             options.ipfs || {}
         );
         // Set up OrbitDB Directory/Path
         this.orbitDbDirectory = options.orbitDbDirectory || IPFSUtils.getDefaultOrbitDBPath(this.directory);
         // Set up Chlu bootstrap nodes
         this.chluBootstrapNodes = cloneDeep(constants.chluBootstrapNodes);
-        // enable Chlu bootstrap by default
-        if (options.bootstrap === false) {
-            this.bootstrap = false;
-        } else {
-            this.bootstrap = true;
-        }
+        // disable Chlu bootstrap by default
+        this.bootstrap = options.bootstrap;
         // Check Chlu node type
         this.type = options.type;
         if (Object.values(constants.types).indexOf(this.type) < 0) {
