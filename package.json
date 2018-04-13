@@ -35,7 +35,7 @@
     "orbit-db": "orbitdb/orbit-db#master",
     "protons": "~1.0.1"
   },
-  "resolutions": {
+  "//resolutions": {
     "ipfs-log": "ChluNetwork/ipfs-log#custom-verification",
     "ipfs-pubsub-1on1": "ChluNetwork/ipfs-pubsub-1on1#ipfs-api-fix"
   },

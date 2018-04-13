@@ -4004,7 +4004,7 @@ ipfs-block@~0.6.1:
   dependencies:
     cids "^0.5.2"
 
-ipfs-log@ChluNetwork/ipfs-log#custom-verification, ipfs-log@~4.1.0:
+ipfs-log@~4.1.0:
   version "4.1.0"
   resolved "https://codeload.github.com/ChluNetwork/ipfs-log/tar.gz/36129b31913706183e2b625c7aae658a713aba6c"
   dependencies:
@@ -4018,7 +4018,7 @@ ipfs-multipart@~0.1.0:
     content "^3.0.0"
     dicer "^0.2.5"
 
-ipfs-pubsub-1on1@ChluNetwork/ipfs-pubsub-1on1#ipfs-api-fix, ipfs-pubsub-1on1@~0.0.3:
+ipfs-pubsub-1on1@~0.0.3:
   version "0.0.3"
   resolved "https://codeload.github.com/ChluNetwork/ipfs-pubsub-1on1/tar.gz/f6214bb3ecce9bd25243465d09a0211f88c895ba"
   dependencies:

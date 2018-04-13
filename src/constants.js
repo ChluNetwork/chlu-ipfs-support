@@ -27,11 +27,11 @@ module.exports = {
     defaultIPFSOptions:  {
         // ipfs
         EXPERIMENTAL: {
-            pubsub: true,
+            pubsub: true, // REQUIRED for chlu to work
             relay: {
-                enabled: true, // enable this to use relays to connect to nodes
+                enabled: false, // enable this to use relays to connect to nodes
                 hop: {
-                    enabled: false // disable this, we don't want to act as relay to save bandwidth
+                    enabled: false // enable this to act as relay
                 }
             }
         },
@@ -52,7 +52,7 @@ module.exports = {
         ],
         rendezvous: [
             // Helps browser connectivity, until circuit relay can replace this
-            '/dns4/ws-star-signal-2.servep2p.com/tcp/443/wss/p2p-websocket-star'
+            '/dns4/ren.chlu.io/tcp/443/wss/p2p-websocket-star'
         ]
     },
     chluBootstrapNodes: {
