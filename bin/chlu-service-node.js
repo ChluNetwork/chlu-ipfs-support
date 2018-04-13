@@ -23,9 +23,10 @@ async function start(options){
         directory: options.directory,
         ipfs: {
             remote: options.externalIpfs,
-            enableRelayHop: options.enableRelayHop
+            enableRelayHop: options.relay
         },
         listen: options.listen,
+        useCircuit: options.circuit || options.relay,
         useRendezvous: options.rendezvous
     };
     serviceNode = new ChluIPFS(config);
@@ -54,12 +55,14 @@ cli
 cli
     .command('start')
     .description('run the Service Node')
-    .option('-n, --network <s>', 'use a custom network instead of production')
+    .option('-n, --network <s>', 'use a custom network instead of experimental')
     .option('-d, --directory <s>', 'where to store chlu data, defaults to ~/.chlu')
-    .option('-e, --external-ipfs', 'connect to a running IPFS node at localhost:5001')
-    .option('-r, --relay', 'act as libp2p relay to help nodes connect to each other')
     .option('--no-rendezvous', 'disable usage of rendezvous servers (not recommended right now)')
-    .option('--no-listen', "don't listen for incoming connections")
+    .option('--listen', 'listen for incoming connections (not recommended right now)')
+    // TODO: reenable these when they are supported again
+//  .option('-e, --external-ipfs', 'connect to a running IPFS node at localhost:5001 instead of running IPFS internally')
+//  .option('-c, --circuit', 'enable libp2p circuit relay to use relays to connect to peers')
+//  .option('-r, --relay', 'act as libp2p relay to help nodes connect to each other (implicitly turns on --circuit)')
     .action(handleErrors(async cmd => {
         await start(cmd);
     }));

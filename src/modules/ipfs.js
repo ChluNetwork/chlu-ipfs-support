@@ -14,19 +14,20 @@ class IPFS {
         if (!this.chluIpfs.ipfs) {
             logger.debug('Initializing IPFS, type: ' + (this.chluIpfs.ipfsOptions.type || 'JS (Internal)'));
             logger.debug('Detected environment: ' + env.isNode() ? 'Node.JS' : 'Browser');
-            if (this.chluIpfs.ipfsOptions.enableRelayHop) {
-                logger.info('Acting as libp2p relay');
-            }
             let ipfs;
             if (this.chluIpfs.ipfsOptions.remote) {
                 logger.debug('Connecting to IPFS API');
                 // Connect to existing IPFS Node
                 ipfs = IPFSAPI(this.chluIpfs.ipfsOptions);
+                // TODO: check that pubsub is supported (it might be disabled)
             } else {
                 logger.debug('Starting JS-IPFS in this process');
                 // Default: Start a local IPFS Node
-                if (this.chluIpfs.ipfsOptions.enableRelayHop) {
-                    set(this.chluIpfs.ipfsOptions, 'EXPERIMENTAL.relay.hop.enable', true);
+                if (this.chluIpfs.circuit) {
+                    set(this.chluIpfs.ipfsOptions, 'EXPERIMENTAL.relay.enabled', true);
+                }
+                if (this.chluIpfs.relay) {
+                    set(this.chluIpfs.ipfsOptions, 'EXPERIMENTAL.relay.hop.enabled', true);
                 }
                 ipfs = await utils.createIPFS(this.chluIpfs.ipfsOptions);
             }
@@ -36,8 +37,7 @@ class IPFS {
             if (this.chluIpfs.bootstrap) {
                 logger.debug('Connecting to bootstrap Chlu nodes');
                 const nodes = env.isNode() ? this.chluIpfs.chluBootstrapNodes.nodeJs : this.chluIpfs.chluBootstrapNodes.browser;
-                await this.connectToNodes(nodes);
-                logger.debug('Connected to bootstrap Chlu nodes');
+                this.connectToNodes(nodes); // do not await for this, let it run in the background
             } else {
                 logger.debug('Skipping Chlu bootstrap phase');
             }
@@ -55,17 +55,25 @@ class IPFS {
     
     async connectToNodes(addrs) {
         const total = addrs.length;
-        return Promise.all(addrs.map(async (addr, ii) => {
-            const i = ii + 1;
-            try {
-                this.chluIpfs.logger.debug('Connecting to IPFS address (' + i + '/' + total + ') ' + addr);
-                await this.chluIpfs.ipfs.swarm.connect(addr);
-                this.chluIpfs.logger.debug('Connected to IPFS address (' + i + '/' + total + ') ' + addr);
-            } catch (error) {
-                this.chluIpfs.logger.warn('Connection FAILED to IPFS address (' + i + '/' + total + ') ' + addr);
-                console.trace(error);
-            }
-        }));
+        this.chluIpfs.logger.debug('Started connection attempt to ' + total + ' addresses');
+        let connectedCount = 0;
+        return new Promise(resolve => {
+            addrs.map(async (addr, ii) => {
+                const i = ii + 1;
+                try {
+                    this.chluIpfs.logger.debug('Connecting to IPFS address (' + i + '/' + total + ') ' + addr);
+                    await this.chluIpfs.ipfs.swarm.connect(addr);
+                    connectedCount++;
+                    this.chluIpfs.logger.debug('Connected to IPFS address (' + i + '/' + total + ') ' + addr);
+                } catch (error) {
+                    this.chluIpfs.logger.debug('Connection FAILED to IPFS address (' + i + '/' + total + ') ' + addr);
+                }
+                if (i === total) {
+                    this.chluIpfs.logger.debug('Connect attempts finished. Connected to ' + connectedCount + '/' + total);
+                    resolve(connectedCount);
+                }
+            });
+        });
     }
 
     async id() {
