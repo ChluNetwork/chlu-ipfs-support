@@ -116,10 +116,10 @@ class ChluIPFS {
         this.logger.debug('Starting ChluIPFS, directory: ' + this.directory);
         this.logger.debug('Using Network: ' + (this.network || '----- PRODUCTION -----'));
 
+        // First start IPFS stuff, because some of the persistence loading stuff requires it
+        await this.ipfsUtils.start();
         // Load previously persisted data
         await this.persistence.loadPersistedData();
-
-        await this.ipfsUtils.start();
         await this.orbitDb.start();
         await this.room.start();
 
