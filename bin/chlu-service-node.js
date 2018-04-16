@@ -2,8 +2,9 @@
 const ChluIPFS = require('../src/index.js');
 const cli = require('commander');
 const package = require('../package.json');
+const { startRendezvousServer } = require('../src/utils/rendezvous');
 
-let serviceNode = null;
+let serviceNode = null, rendezvous = null;
 
 function handleErrors(fn) {
     return function (...args) {
@@ -27,21 +28,31 @@ async function start(options){
         },
         listen: options.listen,
         useCircuit: options.circuit || options.relay,
-        useRendezvous: options.rendezvous
+        useRendezvous: options.rendezvous,
+        bootstrap: options.bootstrap
     };
+    if (options.offline) {
+        console.log('Starting rendezvous server for OFFLINE mode');
+        rendezvous = await startRendezvousServer(ChluIPFS.rendezvousPorts.local);
+    }
     serviceNode = new ChluIPFS(config);
     await serviceNode.start();
-    console.log('Chlu Service node ready');
 }
 
 process.on('SIGINT', async function() {
-    console.log('Stopping gracefully');
     try {
+        console.log('Stopping gracefully');
         if (serviceNode) {
             await serviceNode.stop();
         }
+        if (rendezvous) {
+            console.log('Stopping rendezvous server');
+            await rendezvous.stop();
+        }
+        console.log('Goodbye!');
         process.exit(0);
     } catch(exception) {
+        console.trace(exception);
         process.exit(1);
     }
 });
@@ -57,8 +68,10 @@ cli
     .description('run the Service Node')
     .option('-n, --network <s>', 'use a custom network instead of experimental')
     .option('-d, --directory <s>', 'where to store chlu data, defaults to ~/.chlu')
-    .option('--no-rendezvous', 'disable usage of rendezvous servers (not recommended right now)')
+    .option('--offline', 'signal other Chlu apps on your machine to ONLY connect to this service node and work offline')
     .option('--listen', 'listen for incoming connections (not recommended right now)')
+    .option('--no-rendezvous', 'disable usage of rendezvous servers (not recommended right now)')
+    .option('--bootstrap', 'connect to Chlu bootstrap nodes (not recommended right now)')
     // TODO: reenable these when they are supported again
 //  .option('-e, --external-ipfs', 'connect to a running IPFS node at localhost:5001 instead of running IPFS internally')
 //  .option('-c, --circuit', 'enable libp2p circuit relay to use relays to connect to peers')

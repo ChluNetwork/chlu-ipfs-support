@@ -55,6 +55,13 @@ module.exports = {
             '/dns4/ren.chlu.io/tcp/443/wss/p2p-websocket-star'
         ]
     },
+    localRendezvousAddress: '/ip4/127.0.0.1/tcp/13580/ws/p2p-websocket-star',
+    rendezvousPorts: {
+        default: 13579,
+        local: 13580,
+        test: 13581,
+        wss: 443
+    },
     chluBootstrapNodes: {
         nodeJs: [
             // go-ipfs running on EC2 (TCP)

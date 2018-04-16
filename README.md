@@ -43,6 +43,12 @@ The only other network in use is the `staging` network, used by our official dem
 
 In the examples folder you can find out how to run a Service Node in a browser tab although this won't be a good idea outside of testing.
 
+### Running Offline
+
+You can start the service node with `chlu-service-node start --offline`. Other apps using chlu-ipfs on the same
+machine should detect the service node in offline mode and enter offline mode as well, making sure all of your Chlu
+apps on your machine will talk to each other even if you are completely disconnected.
+
 ## API Docs
 
 https://ipfs.io/ipfs/QmTHQog37CpVHrdwWt1EpS8feymig8N2RpoTBY66P9D8cE

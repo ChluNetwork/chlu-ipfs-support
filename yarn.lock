@@ -5335,7 +5335,7 @@ libp2p-webrtc-star@~0.13.4:
     stream-to-pull-stream "^1.7.2"
     webrtcsupport "github:ipfs/webrtcsupport"
 
-libp2p-websocket-star-rendezvous@^0.2.2:
+libp2p-websocket-star-rendezvous@^0.2.3:
   version "0.2.3"
   resolved "https://registry.yarnpkg.com/libp2p-websocket-star-rendezvous/-/libp2p-websocket-star-rendezvous-0.2.3.tgz#f59fab9a39d52715c703180619dcb1f0ebe1c921"
   dependencies:
