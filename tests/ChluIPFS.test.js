@@ -60,7 +60,7 @@ describe('ChluIPFS', () => {
     it('starts and stops', async () => {
         let server;
         if (env.isNode()) {
-            server = await require('./utils/nodejs').startRendezvousServer();
+            server = await require('../src/utils/rendezvous').startRendezvousServer(ChluIPFS.rendezvousPorts.test);
         }
         try {
             const testDir = '/tmp/chlu-test-' + Date.now() + Math.random() + '/startandstop';
@@ -70,7 +70,13 @@ describe('ChluIPFS', () => {
                 directory: testDir,
                 logger: logger('Service'),
                 network: ChluIPFS.networks.experimental,
-                useRendezvous: false
+                ipfs: {
+                    config: {
+                        Addresses: {
+                            Swarm: [`/ip4/127.0.0.1/tcp/${ChluIPFS.rendezvousPorts.test}/ws/p2p-websocket-star`]
+                        }
+                    }
+                }
             });
             // Make sure it doesnt get stuck waiting for peers
             chluIpfs.room.waitForAnyPeer = sinon.stub().resolves();
@@ -82,7 +88,6 @@ describe('ChluIPFS', () => {
             expect(chluIpfs.ipfs).to.not.be.undefined;
             await chluIpfs.stop();
             expect(chluIpfs.ipfs).to.be.undefined;
-
         } catch (error) {
             if (env.isNode()) await server.stop();
             throw error;

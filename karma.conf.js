@@ -1,8 +1,9 @@
-const { startRendezvousServer } = require('./tests/utils/nodejs');
+const { startRendezvousServer } = require('./src/utils/rendezvous');
+const constants = require('./src/constants');
 const webpack = require('webpack');
 
 module.exports = function (config) {
-    startRendezvousServer();
+    startRendezvousServer(constants.rendezvousPorts.test);
     config.set({
         browsers: [ 'Firefox' ],
         files: [
