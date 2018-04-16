@@ -2,7 +2,9 @@ const DAGNode = require('ipld-dag-pb').DAGNode;
 const utils = require('../utils/ipfs');
 const env = require('../utils/env');
 const IPFSAPI = require('ipfs-api');
-const { set } = require('lodash');
+const { set, get } = require('lodash');
+const axios = require('axios');
+const constants = require('../constants');
 
 class IPFS {
     constructor(chluIpfs) {
@@ -29,6 +31,13 @@ class IPFS {
                 if (this.chluIpfs.relay) {
                     set(this.chluIpfs.ipfsOptions, 'EXPERIMENTAL.relay.hop.enabled', true);
                 }
+                // If we detect a local rendezvous server, just use that (helps with running offline)
+                const useLocalRendezvous = await this.detectLocalRendezvous();
+                if (useLocalRendezvous) {
+                    this.chluIpfs.logger.debug('Using local rendezvous server, preparing for OFFLINE mode');
+                    const swarmPath = 'config.Addresses.Swarm';
+                    set(this.chluIpfs.ipfsOptions, swarmPath, [constants.localRendezvousAddress]);
+                }
                 ipfs = await utils.createIPFS(this.chluIpfs.ipfsOptions);
             }
             this.chluIpfs.ipfs = ipfs;
@@ -45,6 +54,26 @@ class IPFS {
             if (!ipfs.pin) {
                 logger.warn('This node is running an IPFS client that does not implement pinning. Falling back to just retrieving the data non recursively. This will not be supported');
             }
+        }
+    }
+
+    async detectLocalRendezvous() {
+        try {
+            this.chluIpfs.logger.debug('Detecting local rendezvous server');
+            const response = await axios({
+                url: 'http://localhost:' + constants.rendezvousPorts.local,
+                timeout: 500 // do not hang there waiting forever
+            });
+            // If called like this, the rendezvous actually replies with a web page
+            // if we detect that page, we know the rendezvous is running
+            const ok = response.status === 200;
+            this.chluIpfs.logger.debug(ok ? 'Detecting rendezvous: got 200' : 'Rendezvous not detected (response code not 200)');
+            const found = response.data && response.data.indexOf('This is a libp2p-websocket-star signalling-server') > 0;
+            this.chluIpfs.logger.debug(found ? 'Detecting rendezvous: response data matched' : 'Rendezvous not detected (response data did not match)');
+            return ok && found;
+        } catch (error) {
+            this.chluIpfs.logger.debug('Local rendezvous not detected (exception raised)');
+            return false;
         }
     }
 

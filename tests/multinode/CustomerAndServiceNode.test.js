@@ -27,12 +27,12 @@ function strip(obj) {
 }
 
 describe('Customer and Service Node integration', function() {
-    let testDir, ipfsDir, customerNode, customerIpfs, serviceNode, serviceIpfs;
+    let server, testDir, ipfsDir, customerNode, customerIpfs, serviceNode, serviceIpfs;
     let v, vm, m, makeKeyPair, preparePoPR;
 
     before(async () => {
         if (env.isNode()) {
-            server = await require('../utils/nodejs').startRendezvousServer();
+            server = await require('../../src/utils/rendezvous').startRendezvousServer(ChluIPFS.rendezvousPorts.test);
         }
 
         ipfsDir = env.isNode() ? '/tmp/chlu-test-ipfs-' + Date.now() + Math.random() + '/' : Date.now() + Math.random();
@@ -46,6 +46,7 @@ describe('Customer and Service Node integration', function() {
     after(async () => {
         await Promise.all([serviceIpfs.stop(), customerIpfs.stop()]);
         if (env.isNode()) {
+            await server.stop();
             rimraf.sync(ipfsDir);
         }
     });
