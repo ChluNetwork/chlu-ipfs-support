@@ -79,5 +79,8 @@ module.exports = {
             // a go-ipfs node (WSS) with relay-hop
             // TODO: configure QmSQZrsqarpjGnw3Ey1ZRwCjCBBpiJTKivENsePVWMKah node to accept WSS connections
         ]
+    },
+    orbitDb: {
+        storeType: 'chlu'
     }
 };

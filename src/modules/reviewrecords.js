@@ -114,7 +114,7 @@ class ReviewRecords {
         return dagNode;
     }
 
-    async prepareReviewRecord(reviewRecord, validate = true) {
+    async prepareReviewRecord(reviewRecord, bitcoinTransactionHash = null, validate = true) {
         const keyPair = this.chluIpfs.crypto.keyPair;
         reviewRecord.key_location = '/ipfs/' + await this.chluIpfs.crypto.storePublicKey(keyPair.getPublicKeyBuffer());
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
@@ -125,7 +125,9 @@ class ReviewRecords {
         reviewRecord.multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         if (validate) {
             const validationSettings = typeof validate === 'object' ? validate : null;
-            await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validationSettings);
+            await this.chluIpfs.validator.validateReviewRecord(reviewRecord, Object.assign({
+                bitcoinTransactionHash
+            }, validationSettings));
         }
         return { reviewRecord, dagNode };
     }
@@ -134,13 +136,14 @@ class ReviewRecords {
         const {
             previousVersionMultihash,
             publish = true,
-            validate = true
+            validate = true,
+            bitcoinTransactionHash = null
         } = options;
         let rr = Object.assign({}, reviewRecord, {
             previous_version_multihash: previousVersionMultihash || ''
         });
         this.chluIpfs.logger.debug('Preparing review record');
-        const prepared = await this.prepareReviewRecord(rr, validate);
+        const prepared = await this.prepareReviewRecord(rr, bitcoinTransactionHash, validate);
         rr = prepared.reviewRecord;
         const dagNode = prepared.dagNode;
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
@@ -150,12 +153,12 @@ class ReviewRecords {
             }
         }
         this.chluIpfs.events.emit('stored ReviewRecord', { multihash, reviewRecord: rr });
-        if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash, rr);
+        if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash, rr, bitcoinTransactionHash);
         return multihash;
     }
 
-    async publishReviewRecord(dagNode, previousVersionMultihash, expectedMultihash, reviewRecord) {
-        this.chluIpfs.logger.debug('Storing review record in IPFS');
+    async publishReviewRecord(dagNode, previousVersionMultihash, expectedMultihash, reviewRecord, txId) {
+        this.chluIpfs.logger.debug('Publishing review record to Chlu');
         // Broadcast request for pin, then wait for response
         // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
         const multihash = await this.chluIpfs.ipfsUtils.storeDAGNode(dagNode); // store to IPFS
@@ -163,57 +166,32 @@ class ReviewRecords {
             throw new Error('Multihash mismatch when publishing');
         }
         this.chluIpfs.logger.debug('Stored review record ' + multihash + ' in IPFS');
-        // Wait for it to be remotely pinned
-        let tasksToAwait = [this.waitForRemotePin(multihash)];
-        if (previousVersionMultihash) {
-            // This is a review update
-            tasksToAwait.push(this.setForwardPointerForReviewRecord(previousVersionMultihash, multihash, reviewRecord));
-        } else {
-            tasksToAwait.push(this.setReferenceForReviewRecord(multihash));
-        }
-        this.chluIpfs.logger.debug('Waiting for Publish tasks to complete for ' + multihash);
-        await Promise.all(tasksToAwait);
+        this.chluIpfs.logger.debug('Running Publish tasks for ' + multihash);
+        await Promise.all([
+            // Wait for it to be remotely pinned
+            this.waitForRemotePin(multihash, txId),
+            // Write to OrbitDB and wait for replication
+            this.writeToOrbitDB(multihash, previousVersionMultihash, txId)
+        ]);
         // Operation succeeded: set this as the last review record published
         this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: executing post-publish tasks');
         this.chluIpfs.lastReviewRecordMultihash = multihash;
         await this.chluIpfs.persistence.persistData();
         this.chluIpfs.events.emit('published ReviewRecord', multihash);
-        if (previousVersionMultihash) {
-            this.notifyReviewUpdate(previousVersionMultihash, multihash, reviewRecord);
-        }
+        if (previousVersionMultihash) this.notifyReviewUpdate(previousVersionMultihash, multihash, reviewRecord);
         this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: post-publish tasks executed');
     }
 
-    async waitForRemotePin(multihash) {
+    async waitForRemotePin(multihash, bitcoinTransactionHash) {
         await this.chluIpfs.room.broadcastUntil({
             type: constants.eventTypes.wroteReviewRecord,
+            bitcoinTransactionHash,
             multihash
         }, constants.eventTypes.pinned + '_' + multihash);
     }
 
-    async setReferenceForReviewRecord(multihash) {
-        this.chluIpfs.logger.debug('Setting OrbitDB reference to ' + multihash);
-        try {
-            await this.chluIpfs.orbitDb.setAndWaitForReplication(multihash);
-        } catch (error) {
-            this.chluIpfs.logger.error('OrbitDB Error: ' + error.message || error);
-            throw error;
-        }
-        this.chluIpfs.logger.debug('Done setting reference, the db has been replicated remotely');
-        return multihash;
-    }
-
-    async setForwardPointerForReviewRecord(previousVersionMultihash, multihash, reviewRecord) {
-        this.chluIpfs.logger.debug('Setting forward pointer for ' + previousVersionMultihash + ' to ' + multihash);
-        try {
-            await this.chluIpfs.orbitDb.setAndWaitForReplication(multihash, previousVersionMultihash);
-        } catch (error) {
-            this.chluIpfs.logger.error('OrbitDB Error: ' + error.message || error);
-            throw error;
-        }
-        this.chluIpfs.logger.debug('Done setting forward pointer, the db has been replicated remotely');
-        this.chluIpfs.events.emit('updated ReviewRecord', previousVersionMultihash, multihash, reviewRecord);
-        return multihash;
+    async writeToOrbitDB(multihash, previousVersionMultihash = null, txId = null) {
+        await this.chluIpfs.orbitDb.setAndWaitForReplication(multihash, previousVersionMultihash, txId);
     }
 
     async hashObject(object, encoder) {
