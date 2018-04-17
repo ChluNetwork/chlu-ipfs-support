@@ -8,6 +8,7 @@ const DB = require('./modules/orbitdb');
 const Persistence = require('./modules/persistence');
 const ServiceNode = require('./modules/servicenode');
 const Crypto = require('./modules/crypto');
+const Bitcoin = require('./modules/bitcoin');
 const storageUtils = require('./utils/storage');
 const EventEmitter = require('events');
 const constants = require('./constants');
@@ -106,6 +107,10 @@ class ChluIPFS {
         this.persistence = new Persistence(this);
         this.serviceNode = new ServiceNode(this);
         this.crypto = new Crypto(this);
+        this.bitcoin = new Bitcoin(this, {
+            apiKey: options.blockCypherApiKey,
+            network: options.bitcoinNetwork
+        });
         this.ready = false;
         this.starting = false;
     }
@@ -120,8 +125,10 @@ class ChluIPFS {
         await this.ipfsUtils.start();
         // Load previously persisted data
         await this.persistence.loadPersistedData();
+        // Start other modules
         await this.orbitDb.start();
         await this.room.start();
+        await this.bitcoin.start();
 
         if (this.type === constants.types.customer && this.crypto.keyPair === null) {
             // Generate a key pair
