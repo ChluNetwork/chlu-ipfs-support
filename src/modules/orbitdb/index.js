@@ -1,34 +1,38 @@
 const constants = require('../../constants');
 const OrbitDB = require('orbit-db');
-const ChluStore = require('./store');
+const DefaultChluStore = require('./store');
 
 class DB {
 
     constructor(chluIpfs){
         this.chluIpfs = chluIpfs;
         this.orbitDb = null;
+        this.ChluStore = DefaultChluStore; // So that it can be overridden
         this.db = null;
     }
 
     async start() {
         if (!this.orbitDb) {
             this.chluIpfs.logger.debug('Initializing OrbitDB with directory ' + this.chluIpfs.orbitDbDirectory);
+            if (this.ChluStore.type !== constants.orbitDb.storeType) {
+                // This is to avoid passing a wrong Store implementation by mistake
+                throw new Error('ChluStore given is incompatible');
+            }
             try {
-                OrbitDB.addDatabaseType(ChluStore.type, ChluStore);
+                OrbitDB.addDatabaseType(constants.orbitDb.storeType, this.ChluStore);
             } catch (error) {
                 /*
                 Unfortunately if the database type was already added this call crashes.
                 We don't want to fail in this case, but since there is no way to check if the
                 database type is already there, the simplest solution is just to ignore this
                 error
+                TODO: Fix this, probably by sending a PR to orbit-db
                 */
             }
             this.orbitDb = new OrbitDB(this.chluIpfs.ipfs, this.chluIpfs.orbitDbDirectory);
             this.chluIpfs.logger.debug('Initialized OrbitDB with directory ' + this.chluIpfs.orbitDbDirectory);
         }
-        if (!this.db) {
-            await this.open();
-        }
+        if (!this.db)  await this.open();
     }
 
     getAddress() {
@@ -53,27 +57,31 @@ class DB {
         return this.db.getLatestReviewRecordUpdate(multihash) || multihash;
     }
 
-    async set(multihash, previousVersionMultihash = null) {
+    async set(multihash, previousVersionMultihash = null, txId = null) {
         if (previousVersionMultihash) {
+            this.chluIpfs.logger.debug('Writing to OrbitDB: Review Update from ' + multihash + ' to ' + previousVersionMultihash);
             await this.db.updateReviewRecord(multihash, previousVersionMultihash);
         } else {
-            await this.db.addReviewRecord(multihash);
+            this.chluIpfs.logger.debug('Writing to OrbitDB: Review Record ' + multihash + (txId ? (' with txId ' + txId) : ''));
+            await this.db.addReviewRecord(multihash, txId);
         }
     }
 
-    async setAndWaitForReplication(multihash, previousVersionMultihash = null) {
-        return await new Promise((resolve, reject) => {
+    async setAndWaitForReplication(...args) {
+        this.chluIpfs.logger.debug('Preparing to wait for remote OrbitDB Replication before Write');
+        await new Promise((resolve, reject) => {
             this.chluIpfs.events.once(constants.eventTypes.replicated + '_' + this.getAddress(), () => resolve());
-            this.set(multihash, previousVersionMultihash).catch(reject);
+            this.set(...args).catch(reject);
         });
+        this.chluIpfs.logger.debug('Remote replication event received: OrbitDB setAndWait Done');
     }
 
     async open() {
         this.chluIpfs.logger.debug('Opening Chlu OrbitDB');
         this.dbName = this.chluIpfs.network ? ('chlu-' + this.chluIpfs.network) : 'chlu';
-        this.chluIpfs.logger.debug('Using OrbitDB type ' + ChluStore.type + ' named ' + this.dbName);
+        this.chluIpfs.logger.debug('Using OrbitDB type ' + this.ChluStore.type + ' named ' + this.dbName);
         this.db = await this.orbitDb.open(this.dbName, {
-            type: ChluStore.type,
+            type: this.ChluStore.type,
             create: true,
             write: ['*']
         });
