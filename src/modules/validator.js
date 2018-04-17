@@ -32,7 +32,7 @@ class Validator {
                     ]);
                 }
                 if (v.validateHistory) await this.validateHistory(rr, v);
-                if (v.bitcoinTransactionId)  await this.validateBitcoinTransaction(rr, v.bitcoinTransactionId, v.useCache);
+                if (v.bitcoinTransactionHash)  await this.validateBitcoinTransaction(rr, v.bitcoinTransactionHash, v.useCache);
                 if (rr.multihash && v.useCache) this.chluIpfs.cache.cacheValidity(rr.multihash);
             }
             this.chluIpfs.logger.debug('Validated review record (was valid)');
