@@ -80,6 +80,7 @@ class ReviewRecords {
         }
         const reviewRecord = await this.getReviewRecord(m);
         reviewRecord.errors = [];
+        reviewRecord.multihash = m;
         if (validate) {
             const validateOptions = typeof validate === 'object' ? validate : {};
             try {
@@ -93,7 +94,6 @@ class ReviewRecords {
         if (checkForUpdates) this.watchReviewRecord(m, validate);
         const keyMultihash = this.chluIpfs.validator.keyLocationToKeyMultihash(reviewRecord.key_location);
         reviewRecord.editable = keyMultihash === this.chluIpfs.crypto.pubKeyMultihash;
-        reviewRecord.multihash = m;
         reviewRecord.requestedMultihash = multihash;
         reviewRecord.watching = Boolean(checkForUpdates);
         reviewRecord.gotLatestVersion = Boolean(getLatestVersion);
@@ -105,6 +105,15 @@ class ReviewRecords {
         return reviewRecord;
     }
 
+    async getReviewRecordDAGNode(reviewRecord) {
+        this.chluIpfs.logger.debug('Encoding (protobuf) review record');
+        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
+        this.chluIpfs.logger.debug('Encoding (dagnode) review record');
+        const dagNode = await this.chluIpfs.ipfsUtils.createDAGNode(buffer); // don't store to IPFS
+        this.chluIpfs.logger.debug('Encoded (dagnode) review record: ' + IPFSUtils.getDAGNodeMultihash(dagNode));
+        return dagNode;
+    }
+
     async prepareReviewRecord(reviewRecord, validate = true) {
         const keyPair = this.chluIpfs.crypto.keyPair;
         reviewRecord.key_location = '/ipfs/' + await this.chluIpfs.crypto.storePublicKey(keyPair.getPublicKeyBuffer());
@@ -112,34 +121,34 @@ class ReviewRecords {
         // Remove hash in case it's wrong (or this is an update). It's going to be calculated by the signing function
         reviewRecord.hash = '';
         reviewRecord = await this.chluIpfs.crypto.signReviewRecord(reviewRecord, keyPair);
-        if (validate) await this.chluIpfs.validator.validateReviewRecord(reviewRecord);
-        return reviewRecord;
+        const dagNode = await this.getReviewRecordDAGNode(reviewRecord);
+        reviewRecord.multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
+        if (validate) {
+            const validationSettings = typeof validate === 'object' ? validate : null;
+            await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validationSettings);
+        }
+        return { reviewRecord, dagNode };
     }
 
     async storeReviewRecord(reviewRecord, options = {}){
         const {
             previousVersionMultihash,
             publish = true,
-            validate = true,
-            useCache = true
+            validate = true
         } = options;
         let rr = Object.assign({}, reviewRecord, {
             previous_version_multihash: previousVersionMultihash || ''
         });
         this.chluIpfs.logger.debug('Preparing review record');
-        rr = await this.prepareReviewRecord(rr, validate);
-        this.chluIpfs.logger.debug('Encoding (protobuf) review record');
-        const buffer = protobuf.ReviewRecord.encode(rr);
-        this.chluIpfs.logger.debug('Encoding (dagnode) review record');
-        const dagNode = await this.chluIpfs.ipfsUtils.createDAGNode(buffer); // don't store to IPFS yet
-        this.chluIpfs.logger.debug('Calculating review record multihash');
+        const prepared = await this.prepareReviewRecord(rr, validate);
+        rr = prepared.reviewRecord;
+        const dagNode = prepared.dagNode;
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         if (options.expectedMultihash) {
             if (options.expectedMultihash !== multihash) {
                 throw new Error('Expected a different multihash');
             }
         }
-        if (validate && useCache) this.chluIpfs.cache.cacheValidity(multihash); 
         this.chluIpfs.events.emit('stored ReviewRecord', { multihash, reviewRecord: rr });
         if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash, rr);
         return multihash;
