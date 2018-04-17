@@ -26,6 +26,8 @@
   "dependencies": {
     "axios": "^0.18.0",
     "bitcoinjs-lib": "^3.3.2",
+    "blockcypher": "^0.2.0",
+    "chlu-wallet-support-js": "ChluNetwork/chlu-wallet-support-js",
     "commander": "^2.15.1",
     "debounce-async": "^0.0.1",
     "ipfs": "ipfs/js-ipfs#master",

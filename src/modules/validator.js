@@ -20,7 +20,7 @@ class Validator {
     async validateReviewRecord(reviewRecord, validations = {}) {
         this.chluIpfs.logger.debug('Validating review record');
         const rr = cloneDeep(reviewRecord);
-        const v = Object.assign({}, this.defaultValidationSettings, validations);
+        const v = Object.assign(this.getDefaultValidationSettings(), validations);
         try {
             if (v.validateVersion) this.validateVersion(rr);
             if (!rr.multihash || !v.useCache || !this.chluIpfs.cache.isValidityCached(rr.multihash)) {
@@ -32,6 +32,7 @@ class Validator {
                     ]);
                 }
                 if (v.validateHistory) await this.validateHistory(rr, v);
+                if (v.bitcoinTransactionId)  await this.validateBitcoinTransaction(rr, v.bitcoinTransactionId, v.useCache);
                 if (rr.multihash && v.useCache) this.chluIpfs.cache.cacheValidity(rr.multihash);
             }
             this.chluIpfs.logger.debug('Validated review record (was valid)');
@@ -129,6 +130,27 @@ class Validator {
         }
     }
 
+    async validateBitcoinTransaction(rr, txId, useCache = true) {
+        // WIP!!! Not working yet
+        let txInfo;
+        // try cache
+        if (useCache) txInfo = this.chluIpfs.cache.getBitcoinTransactionInfo(txId);
+        // fetch transaction
+        if (!txInfo)  txInfo = await this.chluIpfs.bitcoin.getTransactionInfo(txId);
+        // Check validity
+        if (!txInfo.isChlu) {
+            throw new Error(txId + ' is not a Chlu transaction');
+        }
+        if (rr.multihash !== txInfo.multihash) {
+            throw new Error('Mismatching transaction multihash');
+        }
+        if (rr.amount !== txInfo.amountSatoshi) {
+            throw new Error('Review Record amount is not matching transaction amount');
+        }
+        // Valid! Write to cache
+        if (useCache) this.chluIpfs.cache.cacheBitcoinTxInfo(txId, txInfo);
+    }
+
     keyLocationToKeyMultihash(l) {
         if (l.indexOf('/ipfs/') === 0) return l.substring('/ipfs/'.length);
         return l;
@@ -172,6 +194,10 @@ class Validator {
         if (reviewRecord.chlu_version !== 0) {
             throw new Error('Chlu Protocol Version unsupported');
         }
+    }
+
+    getDefaultValidationSettings() {
+        return cloneDeep(this.defaultValidationSettings);
     }
 
 }
