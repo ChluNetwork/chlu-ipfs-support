@@ -1,5 +1,5 @@
 const Blockcypher = require('blockcypher');
-const getOpReturn = require('chlu-wallet-support-js/lib/get_opreturn');
+const getOpReturn = require('chlu-wallet-support-js/lib/get_opreturn').default;
 const { isValidMultihash } = require('../utils/ipfs');
 
 const networks = ['test3', 'main'];
@@ -7,31 +7,33 @@ const networks = ['test3', 'main'];
 class Bitcoin {
     constructor(chluIpfs, options = {}) {
         this.chluIpfs = chluIpfs;
-        this.options = Object.assign({}, {
-            network: 'test3',
-            apiKey: null,
-            enabled: true
-        }, options);
+        this.Blockcypher = Blockcypher;
+        this.options = {
+            network: options.network || 'test3',
+            apiKey: options.apiKey || null,
+            enabled: options.enabled !== false
+        };
+        this.ready = false;
     }
 
     async start() {
-        if (this.options.enable) {
+        if (this.options.enabled) {
             if (networks.indexOf(this.options.network) < 0) {
-                throw new Error('Invalid Bitcoin Network');
+                throw new Error('Invalid Bitcoin Network: ' + this.options.network);
             }
             try {
-                const api = new Blockcypher('btc', this.options.network, this.options.apiKey);
+                this.api = new this.Blockcypher('btc', this.options.network, this.options.apiKey);
                 // Verify that it works
-                const chain = await this.getChain();
-                if (chain.name !== 'BTC.' + this.options.network.toUpperCase()) {
-                    throw new Error('Invalid response from BlockCypher');
+                const chain = await this.getChain(false);
+                if (chain.name !== 'BTC.' + this.options.network) {
+                    throw new Error('Invalid chain name response from BlockCypher');
                 }
-                this.api = api;
+                this.ready = true;
             } catch (error) {
-                // TODO: better error handling
+                this.chluIpfs.logger.error('Failed to start Bitcoin module');
                 console.trace(error);
-                // Make sure to delete ref to api to signal that it's not available
                 this.api = undefined;
+                this.ready = false;
             }
         }
     }
@@ -46,7 +48,7 @@ class Bitcoin {
         const multihash = opReturn.string || null;
         const isChlu = isValidMultihash(multihash);
         const outputs = tx.outputs.map(out => ({
-            sentTo: out.addresses.length === 1 ? out.addresses[0] : out.addresses,
+            sentTo: out.addresses && out.addresses.length === 1 ? out.addresses[0] : null,
             amountSatoshi: out.value
         }));
         return {
@@ -63,28 +65,40 @@ class Bitcoin {
     }
 
     async getTransaction(txId) {
-        if (this.isAvailable()) {
-            try {
-                return await new Promise((resolve, reject) => {
-                    this.api.getTX(txId, null, (err, data) => err ? reject(err) : resolve(data));
-                });
-            } catch (error) {
-                console.trace(error);
-                throw new Error('Fetching Bitcoin Transaction failed: ' + (err.message || err));
-            }
-        } else {
-            throw new Error('Blockchain access not available');
-        }
+        return await new Promise((resolve, reject) => {
+            this.api.getTX(txId, null, this.handleBlockcypherResponse(resolve, reject));
+        });
     }
 
-    async getChain() {
+    async getChain(checkAvailable = true) {
         return await new Promise((resolve, reject) => {
-            this.api.getChain((err, data) => err ? reject(err) : resolve(data));
+            this.api.getChain(this.handleBlockcypherResponse(resolve, reject, checkAvailable));
         });
     }
 
     isAvailable() {
-        return this.options.enabled && Boolean(this.api);
+        return this.options.enabled && Boolean(this.api) && this.ready;
+    }
+
+    handleBlockcypherResponse(resolve, reject, checkAvailable = true) {
+        if (!checkAvailable || this.isAvailable()) {
+            return (err, data) => {
+                if (err) {
+                    reject(err);
+                } else if (data) {
+                    if (data.error) {
+                        reject(data.error);
+                    } else {
+                        resolve(data);
+                    }
+                } else {
+                    console.log(err, data)
+                    reject('Invalid response from BlockCypher');
+                }
+            };
+        } else {
+            reject('Blockchain access not available');
+        }
     }
 }
 
