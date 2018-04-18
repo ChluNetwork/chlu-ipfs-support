@@ -123,4 +123,24 @@ describe('ReviewRecords module', () => {
         const hashedAgain2 = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(reviewRecord));
         expect(hashedReviewRecord.hash).to.equal(hashedAgain2.hash);
     });
+
+    it('handles the bitcoin transaction id', async () => {
+        const fakeReviewRecord = await getFakeReviewRecord();
+        const fakeStore = {};
+        const txId = 'test transaction id';
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
+        chluIpfs.orbitDb.setAndWaitForReplication = sinon.stub().resolves();
+        chluIpfs.room.broadcastUntil = sinon.stub().resolves();
+        chluIpfs.validator.validateReviewRecord = sinon.stub().resolves();
+        chluIpfs.crypto.generateKeyPair();
+        const multihash = await chluIpfs.storeReviewRecord(fakeReviewRecord, { bitcoinTransactionHash: txId });
+        // Check pass to validator
+        expect(chluIpfs.validator.validateReviewRecord.args[0][1].bitcoinTransactionHash).to.equal(txId);
+        // Check pass to orbitdb module
+        expect(chluIpfs.orbitDb.setAndWaitForReplication.args[0]).to.deep.equal([
+            multihash, null, txId
+        ]);
+        // Check pass to broadcastUntil
+        expect(chluIpfs.room.broadcastUntil.args[0][0].bitcoinTransactionHash).to.equal(txId);
+    });
 });
