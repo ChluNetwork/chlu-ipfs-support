@@ -26,9 +26,12 @@ class Crypto {
     }
 
     async verifyMultihash(pubKeyMultihash, multihash, signature) {
+        this.chluIpfs.logger.debug(`Verifying multihash ${pubKeyMultihash} ${multihash} ${signature}`);
         const buffer = await this.getPublicKey(pubKeyMultihash);
         const keyPair = await ECPair.fromPublicKeyBuffer(buffer);
-        return keyPair.verify(this.getDigestFromMultihash(multihash), ECSignature.fromDER(Buffer.from(signature, 'hex')));
+        const result = keyPair.verify(this.getDigestFromMultihash(multihash), ECSignature.fromDER(Buffer.from(signature, 'hex')));
+        this.chluIpfs.logger.debug(`Verifying multihash ${pubKeyMultihash} ${multihash} ${signature} ..... ${result}`);
+        return result;
     }
 
     async signPoPR(obj, keyPair) {
