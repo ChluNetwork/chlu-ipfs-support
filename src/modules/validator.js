@@ -131,24 +131,33 @@ class Validator {
     }
 
     async validateBitcoinTransaction(rr, txId, useCache = true) {
-        // WIP!!! Not working yet
         let txInfo;
-        // try cache
         if (useCache) txInfo = this.chluIpfs.cache.getBitcoinTransactionInfo(txId);
-        // fetch transaction
-        if (!txInfo)  txInfo = await this.chluIpfs.bitcoin.getTransactionInfo(txId);
+        if (!txInfo) {
+            txInfo = await this.chluIpfs.bitcoin.getTransactionInfo(txId);
+            if (useCache) this.chluIpfs.cache.cacheBitcoinTxInfo(txId, txInfo);
+        }
         // Check validity
+        // TODO: check confirmations?
         if (!txInfo.isChlu) {
             throw new Error(txId + ' is not a Chlu transaction');
         }
         if (rr.multihash !== txInfo.multihash) {
             throw new Error('Mismatching transaction multihash');
         }
-        if (rr.amount !== txInfo.amountSatoshi) {
+        if (rr.amount !== txInfo.spentSatoshi) {
             throw new Error('Review Record amount is not matching transaction amount');
         }
-        // Valid! Write to cache
-        if (useCache) this.chluIpfs.cache.cacheBitcoinTxInfo(txId, txInfo);
+        if (txInfo.outputs.length !== 1) {
+            throw new Error('Transactions that send bitcoin to multiple addresses are not supported yet');
+        }
+        const toAddress = txInfo.outputs[0].toAddress;
+        if (toAddress !== rr.vendor_address) {
+            throw new Error('The Vendor address in the Review Record is different than the address the funds were sent to');
+        }
+        if (txInfo.fromAddress !== rr.customer_address) {
+            throw new Error('The Customer address in the Review Record is different than the address the funds were sent from');
+        }
     }
 
     keyLocationToKeyMultihash(l) {
