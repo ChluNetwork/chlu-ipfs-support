@@ -135,7 +135,7 @@ class Validator {
         if (useCache) txInfo = this.chluIpfs.cache.getBitcoinTransactionInfo(txId);
         if (!txInfo) {
             txInfo = await this.chluIpfs.bitcoin.getTransactionInfo(txId);
-            if (useCache) this.chluIpfs.cache.cacheBitcoinTxInfo(txId, txInfo);
+            if (useCache) this.chluIpfs.cache.cacheBitcoinTxInfo(txInfo);
         }
         // Check validity
         // TODO: check confirmations?

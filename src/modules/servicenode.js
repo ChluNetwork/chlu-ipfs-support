@@ -69,7 +69,12 @@ class ServiceNode {
             try {
                 // Read review record first. This caches the content, the history, and throws if it's not valid
                 this.chluIpfs.logger.debug('Reading and validating ReviewRecord ' + obj.multihash);
-                await this.chluIpfs.readReviewRecord(obj.multihash);
+                const reviewRecord = await this.chluIpfs.readReviewRecord(obj.multihash, {
+                    bitcoinTransactionHash: obj.bitcoinTransactionHash
+                });
+                if (!reviewRecord.previous_version_multihash && !obj.bitcoinTransactionHash) {
+                    throw new Error('Review Record ' + obj.multihash + ' was valid but had no matching transaction and was not an update');
+                }
                 this.chluIpfs.logger.debug('Pinning validated ReviewRecord ' + obj.multihash);
                 await this.chluIpfs.pinning.pin(obj.multihash);
                 this.chluIpfs.logger.info('Validated and Pinned ReviewRecord ' + obj.multihash);
