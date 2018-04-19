@@ -26,7 +26,7 @@
   "dependencies": {
     "axios": "^0.18.0",
     "bitcoinjs-lib": "^3.3.2",
-    "blockcypher": "^0.2.0",
+    "blockcypher": "ChluNetwork/node-client",
     "chlu-wallet-support-js": "ChluNetwork/chlu-wallet-support-js",
     "commander": "^2.15.1",
     "debounce-async": "^0.0.1",
@@ -51,6 +51,7 @@
     "karma-chai": "^0.1.0",
     "karma-firefox-launcher": "^1.1.0",
     "karma-mocha": "^1.3.0",
+    "karma-mocha-reporter": "^2.2.5",
     "karma-sourcemap-loader": "^0.3.7",
     "karma-webpack": "^2.0.6",
     "mocha": "^4.0.1",

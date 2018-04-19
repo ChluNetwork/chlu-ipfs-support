@@ -21,14 +21,16 @@ module.exports = function (config) {
             'karma-mocha',
             'karma-sourcemap-loader',
             'karma-webpack',
+            'karma-mocha-reporter'
         ],
         // run the bundle through the webpack and sourcemap plugins
         preprocessors: {
-            'tests/**/*.test.js': [ 'webpack' ]
+            'tests/**/*.test.js': [ 'webpack', 'sourcemap' ]
         },
-        reporters: [ 'dots' ],
+        reporters: [ 'mocha' ],
         // webpack config object
         webpack: {
+            //devtool: 'cheap-module-eval-source-map',
             node: {
                 // Required by js-ipfs
                 fs: 'empty',
@@ -36,7 +38,8 @@ module.exports = function (config) {
                 tls: 'empty'
             },
             plugins: [
-                new webpack.IgnorePlugin(/\/nodejs(\.js)?$/)
+                // do not load server code (only needed in tests, sources don't require this)
+                new webpack.IgnorePlugin(/^libp2p-websocket-star-rendezvous$/)
             ]
         },
         webpackMiddleware: {

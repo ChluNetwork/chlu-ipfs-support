@@ -11,6 +11,7 @@ const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 const protons = require('protons');
 const protobuf = protons(require('../src/utils/protobuf'));
 const IPFSUtils = require('../src/utils/ipfs');
+const btcUtils = require('./utils/bitcoin');
 
 describe('Validator Module', () => {
     let chluIpfs;
@@ -24,6 +25,7 @@ describe('Validator Module', () => {
         });
         sinon.spy(chluIpfs.cache, 'cacheValidity');
         sinon.spy(chluIpfs.cache, 'cacheMarketplacePubKeyMultihash');
+        chluIpfs.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
         // TODO: instead of disabling explicitly other validators in tests,
         // make a system to explicity enable only the validator that needs to be tested
     });
@@ -219,5 +221,64 @@ describe('Validator Module', () => {
         invalidRR = cloneDeep(reviewRecord);
         invalidRR.signature = 'wrong again';
         expect(test(invalidRR)).to.throw;
+    });
+
+    it('validates bitcoin transactions', async () => {
+        await chluIpfs.bitcoin.start();
+        const reviewRecord = await getFakeReviewRecord();
+        // put correct tx data in place
+        reviewRecord.multihash = 'Qmdc9UyE2fogSGbuquB47q7wBGR4zQjnhQPNn8ZTNrQ3YS';
+        reviewRecord.amount = 309696;
+        reviewRecord.vendor_address = 'ms4TpM57RWHnEq5PRFtfJ8bcdiXoUE3tfv';
+        reviewRecord.customer_address = 'mjw2BcBvNKkgLvQyYhzRERRgWSUVG7HHTb';
+        const txId = btcUtils.exampleTransaction.hash.slice(0);
+        // success case
+        await chluIpfs.validator.validateBitcoinTransaction(reviewRecord, txId, false);
+        // failure cases
+        let error, wrongReviewRecord;
+        // check multihash
+        wrongReviewRecord = Object.assign({}, reviewRecord, {
+            multihash: '1 2 3'
+        });
+        error = undefined;
+        try {
+            await chluIpfs.validator.validateBitcoinTransaction(wrongReviewRecord, txId, false);
+        } catch (err) {
+            error = err;
+        }
+        expect(error.message).to.equal('Mismatching transaction multihash');
+        // Check amount
+        wrongReviewRecord = Object.assign({}, reviewRecord, {
+            amount: 1234
+        });
+        error = undefined;
+        try {
+            await chluIpfs.validator.validateBitcoinTransaction(wrongReviewRecord, txId, false);
+        } catch (err) {
+            error = err;
+        }
+        expect(error.message).to.equal('Review Record amount is not matching transaction amount');
+        // Check vendor address
+        wrongReviewRecord = Object.assign({}, reviewRecord, {
+            vendor_address: 'abc'
+        });
+        error = undefined;
+        try {
+            await chluIpfs.validator.validateBitcoinTransaction(wrongReviewRecord, txId, false);
+        } catch (err) {
+            error = err;
+        }
+        expect(error.message).to.equal('The Vendor address in the Review Record is different than the address the funds were sent to');
+        // Check customer address
+        wrongReviewRecord = Object.assign({}, reviewRecord, {
+            customer_address: 'abc'
+        });
+        error = undefined;
+        try {
+            await chluIpfs.validator.validateBitcoinTransaction(wrongReviewRecord, txId, false);
+        } catch (err) {
+            error = err;
+        }
+        expect(error.message).to.equal('The Customer address in the Review Record is different than the address the funds were sent from');
     });
 });

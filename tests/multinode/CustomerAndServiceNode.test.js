@@ -41,17 +41,6 @@ describe('Customer and Service Node integration', function() {
 
         // Connect the peers manually to speed up test times
         // await utils.connect(serviceNode.ipfs, customerNode.ipfs);
-    });
-
-    after(async () => {
-        await Promise.all([serviceIpfs.stop(), customerIpfs.stop()]);
-        if (env.isNode()) {
-            await server.stop();
-            rimraf.sync(ipfsDir);
-        }
-    });
-
-    beforeEach(async () => {    
 
         testDir = env.isNode() ? '/tmp/chlu-test-' + Date.now() + Math.random() + '/' : Date.now() + Math.random();
 
@@ -79,8 +68,6 @@ describe('Customer and Service Node integration', function() {
         serviceNode.ipfs = serviceIpfs;
         customerNode.ipfs = customerIpfs;
     
-        await Promise.all([serviceNode.start(), customerNode.start()]);
-
         // Stubs
         const crypto = cryptoTestUtils(serviceNode);
         makeKeyPair = crypto.makeKeyPair;
@@ -93,21 +80,16 @@ describe('Customer and Service Node integration', function() {
         customerNode.http = http;
         serviceNode.ipfsUtils.stop = sinon.stub().resolves();
         customerNode.ipfsUtils.stop = sinon.stub().resolves();
+
+        await Promise.all([serviceNode.start(), customerNode.start()]);
     });
 
-    afterEach(async () => {
-        try {
-            await customerNode.stop();
-            await serviceNode.stop();
-        } catch (error) {
-            console.log('[WARN] An error has occured while stopping ChluIPFS');
-            console.trace(error);
-        }
+    after(async () => {
+        await Promise.all([serviceNode.stop(), customerNode.stop()]);
         if (env.isNode()) {
+            await server.stop();
             rimraf.sync(testDir);
         }
-        customerNode = undefined;
-        serviceNode = undefined;
     });
 
     it('handles review records', async () => {
@@ -141,8 +123,8 @@ describe('Customer and Service Node integration', function() {
         reviewUpdate.rating = 1;
         // Store the original review
         const multihash = await customerNode.storeReviewRecord(reviewRecord);
-        // Check that the review list is correct
-        expect(customerNode.orbitDb.getReviewRecordList()).to.deep.equal([multihash]);
+        // Check that the review list is updated
+        expect(customerNode.orbitDb.getReviewRecordList()[0]).to.equal(multihash);
         // Store the update
         const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, {
             previousVersionMultihash: multihash
@@ -150,8 +132,6 @@ describe('Customer and Service Node integration', function() {
         const rr = await serviceNode.readReviewRecord(multihash, { getLatestVersion: true });
         const rrUpdate = await serviceNode.readReviewRecord(updatedMultihash);
         expect(strip(rr)).to.deep.equal(strip(rrUpdate));
-        // Check that the review list is correct
-        expect(customerNode.orbitDb.getReviewRecordList()).to.deep.equal([multihash]);
     });
 
     it('handles review updates happening after calling readReviewRecord', async () => {
