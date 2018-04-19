@@ -1,6 +1,7 @@
 const Blockcypher = require('blockcypher');
 const getOpReturn = require('chlu-wallet-support-js/lib/get_opreturn').default;
 const { isValidMultihash } = require('../utils/ipfs');
+const { flatten } = require('lodash');
 
 const networks = ['test3', 'main'];
 
@@ -47,18 +48,31 @@ class Bitcoin {
         const opReturn = getOpReturn(tx);
         const multihash = opReturn.string || null;
         const isChlu = isValidMultihash(multihash);
-        const outputs = tx.outputs.map(out => ({
-            sentTo: out.addresses && out.addresses.length === 1 ? out.addresses[0] : null,
-            amountSatoshi: out.value
-        }));
+        const inputAddresses = flatten(tx.inputs.map(i => i.addresses));
+        if (inputAddresses.length !== 1) {
+            throw new Error('Expected 1 input address in Bitcoin transaction');
+        }
+        const fromAddress = inputAddresses[0];
+        const outputs = tx.outputs
+            .map((o, i) => {
+                const toAddress = Array.isArray(o.addresses) && o.addresses.length === 1 ? o.addresses[0] : null;
+                return {
+                    index: i,
+                    toAddress,
+                    value: o.value
+                };
+            })
+            .filter(o => typeof o.toAddress === 'string' && o.toAddress !== fromAddress);
+        const spentSatoshi = outputs.reduce( (acc, o) => acc + o.value, 0);
         return {
             hash: tx.hash,
-            valid: !tx.doubleSpend,
+            doubleSpend: tx.double_spend,
             confirmations: tx.confirmations,
             isChlu,
             multihash: isChlu ? multihash : null,
+            fromAddress,
             outputs,
-            amountSatoshi: tx.value,
+            spentSatoshi,
             receivedAt: tx.received,
             confirmedAt: tx.confirmed
         };
@@ -92,7 +106,6 @@ class Bitcoin {
                         resolve(data);
                     }
                 } else {
-                    console.log(err, data)
                     reject('Invalid response from BlockCypher');
                 }
             };

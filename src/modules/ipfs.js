@@ -66,9 +66,9 @@ class IPFS {
             });
             // If called like this, the rendezvous actually replies with a web page
             // if we detect that page, we know the rendezvous is running
-            const ok = response.status === 200;
+            const ok = response && response.status === 200;
             this.chluIpfs.logger.debug(ok ? 'Detecting rendezvous: got 200' : 'Rendezvous not detected (response code not 200)');
-            const found = response.data && response.data.indexOf('This is a libp2p-websocket-star signalling-server') > 0;
+            const found = response && response.data && response.data.indexOf('This is a libp2p-websocket-star signalling-server') > 0;
             this.chluIpfs.logger.debug(found ? 'Detecting rendezvous: response data matched' : 'Rendezvous not detected (response data did not match)');
             return ok && found;
         } catch (error) {

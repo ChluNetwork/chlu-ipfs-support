@@ -17,6 +17,7 @@ class ReviewRecords {
     }
 
     async watchReviewRecord(multihash, validate = true) {
+        IPFSUtils.validateMultihash(multihash);
         this.watched.push({ multihash, validate });
     }
 
@@ -29,7 +30,9 @@ class ReviewRecords {
                     const reviewRecord = await this.readReviewRecord(multihash, { validate });
                     // TODO: validate update!!
                     const i = findIndex(this.watched, o => o.multihash === multihash);
-                    this.watched.splice(i, 1, [update]);
+                    this.watched.splice(i, 1, Object.assign(this.watched[i], {
+                        multihash: update
+                    }));
                     await this.notifyReviewUpdate(multihash, update, reviewRecord);
                 }
             } catch (error) {
