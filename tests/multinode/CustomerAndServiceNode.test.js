@@ -9,6 +9,7 @@ const sinon = require('sinon');
 const logger = require('../utils/logger');
 const cryptoTestUtils = require('../utils/crypto');
 const fakeHttpModule = require('../utils/http');
+const btcUtils = require('../utils/bitcoin');
 const { cloneDeep } = require('lodash');
 
 function withoutHashAndSig(obj) {
@@ -80,8 +81,13 @@ describe('Customer and Service Node integration', function() {
         customerNode.http = http;
         serviceNode.ipfsUtils.stop = sinon.stub().resolves();
         customerNode.ipfsUtils.stop = sinon.stub().resolves();
+        serviceNode.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
+        customerNode.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
 
         await Promise.all([serviceNode.start(), customerNode.start()]);
+
+        // use same mock for both
+        customerNode.bitcoin.api = serviceNode.bitcoin.api;
     });
 
     after(async () => {
@@ -92,6 +98,11 @@ describe('Customer and Service Node integration', function() {
         }
     });
 
+    function setupBtcMock(multihash, rr) {
+        // tell mock btc module to return a TX that matches the RR
+        serviceNode.bitcoin.api.returnMatchingTXForRR(Object.assign({}, rr, { multihash }));
+    }
+
     it('handles review records', async () => {
         // Create fake review record
         let reviewRecord = await getFakeReviewRecord();
@@ -99,13 +110,21 @@ describe('Customer and Service Node integration', function() {
         // Spy on pinning activity on the service node
         sinon.spy(serviceNode.pinning, 'pin');
         // store review record and await for completion
-        const hash = await customerNode.storeReviewRecord(reviewRecord);
+        const hash = await customerNode.storeReviewRecord(reviewRecord, {
+            publish: false
+        });
+        // set up btc mock to return the right content
+        setupBtcMock(hash, reviewRecord);
+        // publish
+        await customerNode.storeReviewRecord(reviewRecord, {
+            bitcoinTransactionHash: btcUtils.exampleTransaction.hash
+        });
         const customerRecord = await customerNode.readReviewRecord(hash);
         expect(customerRecord.editable).to.be.true;
         // check hash validity
         expect(hash).to.be.a('string').that.is.not.empty;
         // the service node should already have pinned the hash
-        expect(serviceNode.pinning.pin.called).to.be.true;
+        expect(serviceNode.pinning.pin.calledWith(hash)).to.be.true;
         // check that reading works
         const readRecord = await serviceNode.readReviewRecord(hash);
         expect(readRecord.editable).to.be.false;
@@ -122,7 +141,13 @@ describe('Customer and Service Node integration', function() {
         reviewUpdate.review_text = 'Actually it broke after just a week!';
         reviewUpdate.rating = 1;
         // Store the original review
-        const multihash = await customerNode.storeReviewRecord(reviewRecord);
+        const multihash = await customerNode.storeReviewRecord(reviewRecord, {
+            publish: false
+        });
+        setupBtcMock(multihash, reviewRecord);
+        await customerNode.storeReviewRecord(reviewRecord, {
+            bitcoinTransactionHash: btcUtils.exampleTransaction.hash
+        });
         // Check that the review list is updated
         expect(customerNode.orbitDb.getReviewRecordList()[0]).to.equal(multihash);
         // Store the update
@@ -140,7 +165,13 @@ describe('Customer and Service Node integration', function() {
             let reviewRecord = await getFakeReviewRecord();
             reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
             // Store the original review
-            const multihash = await customerNode.storeReviewRecord(reviewRecord);
+            const multihash = await customerNode.storeReviewRecord(reviewRecord, {
+                publish: false
+            });
+            setupBtcMock(multihash, reviewRecord);
+            await customerNode.storeReviewRecord(reviewRecord, {
+                bitcoinTransactionHash: btcUtils.exampleTransaction.hash
+            });
             // Now try to fetch it from the service node while checking for updates
             const notifyUpdate = async (originalHash, newHash, rr) => {
                 try {
@@ -176,7 +207,13 @@ describe('Customer and Service Node integration', function() {
         reviewUpdate.review_text = 'Actually it broke after just a week!';
         reviewUpdate.rating = 1;
         // Store the original review
-        const multihash = await customerNode.storeReviewRecord(reviewRecord);
+        const multihash = await customerNode.storeReviewRecord(reviewRecord, {
+            publish: false
+        });
+        setupBtcMock(multihash, reviewRecord);
+        await customerNode.storeReviewRecord(reviewRecord, {
+            bitcoinTransactionHash: btcUtils.exampleTransaction.hash
+        });
         // Store the update
         const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, {
             previousVersionMultihash: multihash
@@ -192,7 +229,13 @@ describe('Customer and Service Node integration', function() {
             let reviewRecord = await getFakeReviewRecord();
             reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
             // Store the original review
-            const multihash = await customerNode.storeReviewRecord(reviewRecord);
+            const multihash = await customerNode.storeReviewRecord(reviewRecord, {
+                publish: false
+            });
+            setupBtcMock(multihash, reviewRecord);
+            await customerNode.storeReviewRecord(reviewRecord, {
+                bitcoinTransactionHash: btcUtils.exampleTransaction.hash
+            });
             // Now try to fetch it from the customer node while checking for updates
             const notifyUpdate = async (originalHash, newHash, rr) => {
                 try {
