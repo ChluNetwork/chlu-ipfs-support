@@ -85,9 +85,6 @@ describe('Customer and Service Node integration', function() {
         customerNode.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
 
         await Promise.all([serviceNode.start(), customerNode.start()]);
-
-        // use same mock for both
-        customerNode.bitcoin.api = serviceNode.bitcoin.api;
     });
 
     after(async () => {
@@ -99,8 +96,12 @@ describe('Customer and Service Node integration', function() {
     });
 
     function setupBtcMock(multihash, rr) {
+        // delete cached info, since we are about to change it
+        serviceNode.cache.cache.del(btcUtils.exampleTransaction.hash);
+        customerNode.cache.cache.del(btcUtils.exampleTransaction.hash);
         // tell mock btc module to return a TX that matches the RR
         serviceNode.bitcoin.api.returnMatchingTXForRR(Object.assign({}, rr, { multihash }));
+        customerNode.bitcoin.api.returnMatchingTXForRR(Object.assign({}, rr, { multihash }));
     }
 
     it('handles review records', async () => {

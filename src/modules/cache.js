@@ -114,7 +114,13 @@ class Cache {
         if (this.options.enabled) {
             this.cache.set(key, value, maxAge);
             this.persistData();
-            this.log('Cached ' + key + ' = ' + value + (maxAge ? (' with maxAge ' + maxAge) : ''));
+            let strValue = value;
+            try {
+                strValue = typeof value === 'object' ? JSON.stringify(value) : value;
+            } catch (error) {
+                // Ignore
+            }
+            this.log('Cached ' + key + ' = ' + strValue + (maxAge ? (' with maxAge ' + maxAge) : ''));
         } else {
             this.log('Skipping cache write for ' + key + ': cache disabled');
         }

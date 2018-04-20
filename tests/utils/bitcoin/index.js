@@ -11,6 +11,7 @@ class BlockcypherMock {
     }
 
     returnMatchingTXForRR(rr) {
+        this.tx.inputs[0].addresses = [rr.customer_address];
         this.tx.outputs[0].value = rr.amount;
         this.tx.outputs[0].addresses = [rr.vendor_address];
         this.tx.outputs[1].value = this.tx.total - this.tx.outputs[0].value;
