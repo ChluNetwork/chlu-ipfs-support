@@ -131,6 +131,7 @@ class Validator {
     }
 
     async validateBitcoinTransaction(rr, txId, useCache = true) {
+        this.chluIpfs.logger.debug('Validating Bitcoin TX ' + txId + ' for ' + rr.multihash);
         let txInfo;
         if (useCache) txInfo = this.chluIpfs.cache.getBitcoinTransactionInfo(txId);
         if (!txInfo) {

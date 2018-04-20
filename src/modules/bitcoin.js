@@ -23,7 +23,9 @@ class Bitcoin {
                 throw new Error('Invalid Bitcoin Network: ' + this.options.network);
             }
             try {
-                this.api = new this.Blockcypher('btc', this.options.network, this.options.apiKey);
+                if (!this.api) {
+                    this.api = new this.Blockcypher('btc', this.options.network, this.options.apiKey);
+                }
                 // Verify that it works
                 const chain = await this.getChain(false);
                 if (chain.name !== 'BTC.' + this.options.network) {
@@ -32,9 +34,7 @@ class Bitcoin {
                 this.ready = true;
                 this.chluIpfs.logger.debug('Bitcoin Module started, connected to ' + chain.name);
             } catch (error) {
-                this.chluIpfs.logger.warn('Failed to start Bitcoin module');
-                console.trace(error);
-                this.api = undefined;
+                this.chluIpfs.logger.warn('Failed to start Bitcoin module: ' + (error.message || error));
                 this.ready = false;
             }
         }
@@ -46,6 +46,7 @@ class Bitcoin {
 
     async getTransactionInfo(txId) {
         const tx = await this.getTransaction(txId);
+        this.chluIpfs.logger.debug('Preparing TX INFO for ' + txId);
         const opReturn = getOpReturn(tx);
         const multihash = opReturn.string || null;
         const isChlu = isValidMultihash(multihash);
@@ -64,8 +65,8 @@ class Bitcoin {
                 };
             })
             .filter(o => typeof o.toAddress === 'string' && o.toAddress !== fromAddress);
-        const spentSatoshi = outputs.reduce( (acc, o) => acc + o.value, 0);
-        return {
+        const spentSatoshi = outputs.reduce((acc, o) => acc + o.value, 0);
+        const txInfo = {
             hash: tx.hash,
             doubleSpend: tx.double_spend,
             confirmations: tx.confirmations,
@@ -77,12 +78,17 @@ class Bitcoin {
             receivedAt: tx.received,
             confirmedAt: tx.confirmed
         };
+        this.chluIpfs.logger.debug('Computed TX INFO for ' + txId + ' successfully');
+        return txInfo;
     }
 
     async getTransaction(txId) {
-        return await new Promise((resolve, reject) => {
+        this.chluIpfs.logger.debug('Fetching TX From Blockcypher: ' + txId);
+        const response = await new Promise((resolve, reject) => {
             this.api.getTX(txId, null, this.handleBlockcypherResponse(resolve, reject));
         });
+        this.chluIpfs.logger.debug('Blockcypher returned the TX ' + txId + ' successfully');
+        return response;
     }
 
     async getChain(checkAvailable = true) {
