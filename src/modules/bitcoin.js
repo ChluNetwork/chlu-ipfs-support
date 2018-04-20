@@ -30,8 +30,9 @@ class Bitcoin {
                     throw new Error('Invalid chain name response from BlockCypher');
                 }
                 this.ready = true;
+                this.chluIpfs.logger.debug('Bitcoin Module started, connected to ' + chain.name);
             } catch (error) {
-                this.chluIpfs.logger.error('Failed to start Bitcoin module');
+                this.chluIpfs.logger.warn('Failed to start Bitcoin module');
                 console.trace(error);
                 this.api = undefined;
                 this.ready = false;
@@ -92,6 +93,10 @@ class Bitcoin {
 
     isAvailable() {
         return this.options.enabled && Boolean(this.api) && this.ready;
+    }
+
+    getNetwork() {
+        return this.options.network;
     }
 
     handleBlockcypherResponse(resolve, reject, checkAvailable = true) {

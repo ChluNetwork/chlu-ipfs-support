@@ -189,12 +189,18 @@ class ReviewRecords {
         await this.chluIpfs.room.broadcastUntil({
             type: constants.eventTypes.wroteReviewRecord,
             bitcoinTransactionHash,
+            bitcoinNetwork: this.chluIpfs.bitcoin.getNetwork(),
             multihash
         }, constants.eventTypes.pinned + '_' + multihash);
     }
 
     async writeToOrbitDB(multihash, previousVersionMultihash = null, txId = null) {
-        await this.chluIpfs.orbitDb.setAndWaitForReplication(multihash, previousVersionMultihash, txId);
+        await this.chluIpfs.orbitDb.setAndWaitForReplication(
+            multihash,
+            previousVersionMultihash,
+            txId,
+            this.chluIpfs.bitcoin.getNetwork()
+        );
     }
 
     async hashObject(object, encoder) {
