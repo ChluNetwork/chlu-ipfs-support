@@ -12,14 +12,17 @@ class ChluStore extends Store {
         super(ipfs, id, dbname, options);
     }
 
-    addReviewRecord(multihash, bitcoinTransactionHash) {
+    addReviewRecord(multihash, bitcoinTransactionHash, bitcoinNetwork) {
         IPFSUtils.validateMultihash(multihash);
         const operation = {
             op: ChluIndex.operations.ADD_REVIEW_RECORD,
             multihash,
             version
         };
-        if (bitcoinTransactionHash) operation.bitcoinTransactionHash = bitcoinTransactionHash;
+        if (bitcoinTransactionHash) {
+            operation.bitcoinTransactionHash = bitcoinTransactionHash;
+            operation.bitcoinNetwork = bitcoinNetwork;
+        }
         // TODO: more checks
         return this._addOperation(operation);
     }
