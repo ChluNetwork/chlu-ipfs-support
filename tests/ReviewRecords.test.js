@@ -138,9 +138,10 @@ describe('ReviewRecords module', () => {
         expect(chluIpfs.validator.validateReviewRecord.args[0][1].bitcoinTransactionHash).to.equal(txId);
         // Check pass to orbitdb module
         expect(chluIpfs.orbitDb.setAndWaitForReplication.args[0]).to.deep.equal([
-            multihash, null, txId
+            multihash, null, txId, chluIpfs.bitcoin.getNetwork()
         ]);
         // Check pass to broadcastUntil
         expect(chluIpfs.room.broadcastUntil.args[0][0].bitcoinTransactionHash).to.equal(txId);
+        expect(chluIpfs.room.broadcastUntil.args[0][0].bitcoinNetwork).to.equal(chluIpfs.bitcoin.getNetwork());
     });
 });

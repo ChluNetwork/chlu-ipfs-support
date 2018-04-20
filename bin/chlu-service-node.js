@@ -18,6 +18,9 @@ function handleErrors(fn) {
 
 async function start(options){
     console.log('Starting Chlu IPFS Service Node');
+    if (!options.btc) {
+        throw new Error('BTC Blockchain access through BlockCypher is required');
+    }
     const config = {
         type: ChluIPFS.types.service,
         network: options.network || ChluIPFS.networks.experimental,
@@ -29,7 +32,9 @@ async function start(options){
         listen: options.listen,
         useCircuit: options.circuit || options.relay,
         useRendezvous: options.rendezvous,
-        bootstrap: options.bootstrap
+        bootstrap: options.bootstrap,
+        blockCypherApiKey: options.btc,
+        bitcoinNetwork: options.btcNetwork
     };
     if (options.offline) {
         console.log('Starting rendezvous server for OFFLINE mode');
@@ -66,12 +71,17 @@ cli
 cli
     .command('start')
     .description('run the Service Node')
-    .option('-n, --network <s>', 'use a custom network instead of experimental')
-    .option('-d, --directory <s>', 'where to store chlu data, defaults to ~/.chlu')
+    // Chlu specific options
+    .option('-n, --network <network>', 'use a custom network instead of experimental')
+    .option('-d, --directory <path>', 'where to store chlu data, defaults to ~/.chlu')
     .option('--offline', 'signal other Chlu apps on your machine to ONLY connect to this service node and work offline')
+    .option('--bootstrap', 'connect to Chlu bootstrap nodes (not recommended right now)')
+    // Blockchain
+    .option('--btc <token>', 'turn on BTC Blockchain access using a Blockcypher API Token. Other systems will be supported in the future')
+    .option('--btc-network <network>', 'choose the BTC network you want to connect to. Default is test3')
+    // IPFS/libp2p options
     .option('--listen', 'listen for incoming connections (not recommended right now)')
     .option('--no-rendezvous', 'disable usage of rendezvous servers (not recommended right now)')
-    .option('--bootstrap', 'connect to Chlu bootstrap nodes (not recommended right now)')
     // TODO: reenable these when they are supported again
 //  .option('-e, --external-ipfs', 'connect to a running IPFS node at localhost:5001 instead of running IPFS internally')
 //  .option('-c, --circuit', 'enable libp2p circuit relay to use relays to connect to peers')

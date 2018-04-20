@@ -69,6 +69,13 @@ class ServiceNode {
             try {
                 // Read review record first. This caches the content, the history, and throws if it's not valid
                 this.chluIpfs.logger.debug('Reading and validating ReviewRecord ' + obj.multihash);
+                if(obj.bitcoinNetwork !== this.chluIpfs.bitcoin.getNetwork()) {
+                    throw new Error(
+                        'Review Record ' + obj.multihash + ' with txId ' + obj.bitcoinTransactionHash
+                        + ' had bitcoin network ' + obj.bitcoinNetwork
+                        + ' (expected ' + this.chluIpfs.bitcoin.getNetwork() + ')'
+                    );
+                }
                 const reviewRecord = await this.chluIpfs.readReviewRecord(obj.multihash, {
                     bitcoinTransactionHash: obj.bitcoinTransactionHash
                 });
