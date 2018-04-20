@@ -75,7 +75,8 @@ class ReviewRecords {
         const {
             checkForUpdates = false,
             getLatestVersion = false,
-            validate = true
+            validate = true,
+            bitcoinTransactionHash = null
         } = options;
         let m = multihash;
         if (getLatestVersion) {
@@ -86,6 +87,9 @@ class ReviewRecords {
         reviewRecord.multihash = m;
         if (validate) {
             const validateOptions = typeof validate === 'object' ? validate : {};
+            if (!validateOptions.bitcoinTransactionHash) {
+                validateOptions.bitcoinTransactionHash = bitcoinTransactionHash;
+            }
             try {
                 const error = await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
                 if (error) reviewRecord.errors = reviewRecord.errors.concat(error);
@@ -127,7 +131,7 @@ class ReviewRecords {
         const dagNode = await this.getReviewRecordDAGNode(reviewRecord);
         reviewRecord.multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         if (validate) {
-            const validationSettings = typeof validate === 'object' ? validate : null;
+            const validationSettings = typeof validate === 'object' ? validate : {};
             await this.chluIpfs.validator.validateReviewRecord(reviewRecord, Object.assign({
                 bitcoinTransactionHash
             }, validationSettings));
