@@ -2,7 +2,7 @@ const DAGNode = require('ipld-dag-pb').DAGNode;
 const utils = require('../utils/ipfs');
 const env = require('../utils/env');
 const IPFSAPI = require('ipfs-api');
-const { set, get } = require('lodash');
+const { set } = require('lodash');
 const axios = require('axios');
 const constants = require('../constants');
 
@@ -30,6 +30,7 @@ class IPFS {
                 }
                 if (this.chluIpfs.relay) {
                     set(this.chluIpfs.ipfsOptions, 'EXPERIMENTAL.relay.hop.enabled', true);
+                    set(this.chluIpfs.ipfsOptions, 'EXPERIMENTAL.relay.hop.active', true);
                 }
                 // If we detect a local rendezvous server, just use that (helps with running offline)
                 const useLocalRendezvous = await this.detectLocalRendezvous();

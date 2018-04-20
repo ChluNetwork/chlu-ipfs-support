@@ -31,7 +31,8 @@ module.exports = {
             relay: {
                 enabled: false, // enable this to use relays to connect to nodes
                 hop: {
-                    enabled: false // enable this to act as relay
+                    enabled: false, // enable this to act as relay
+                    active: false // enable this to make this node try to dial destination peers for relay connections
                 }
             }
         },

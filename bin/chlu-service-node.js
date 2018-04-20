@@ -26,11 +26,11 @@ async function start(options){
         network: options.network || ChluIPFS.networks.experimental,
         directory: options.directory,
         ipfs: {
-            remote: options.externalIpfs,
-            enableRelayHop: options.relay
+            remote: options.externalIpfs
         },
         listen: options.listen,
         useCircuit: options.circuit || options.relay,
+        relay: options.relay,
         useRendezvous: options.rendezvous,
         bootstrap: options.bootstrap,
         blockCypherApiKey: options.btc,
