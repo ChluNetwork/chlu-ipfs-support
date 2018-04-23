@@ -1,21 +1,25 @@
 const IPFSUtils = require('../../utils/ipfs');
 const Store = require('orbit-db-store');
-const ChluIndex = require('./db-index');
+const ChluAbstractIndex = require('./abstract');
+const ChluInMemoryIndex = require('./inmemory');
 
-const version = ChluIndex.version;
+const version = 0;
 
 class ChluStore extends Store {
 
     constructor(ipfs, id, dbname, options) {
         if (!options) options = {};
-        if (!options.Index) Object.assign(options, { Index: ChluIndex });
+        if (!options.Index) Object.assign(options, { Index: ChluInMemoryIndex });
         super(ipfs, id, dbname, options);
+        if (this._index._version !== version) {
+            throw new Error('Incompatible Index version');
+        }
     }
 
     addReviewRecord(multihash, bitcoinTransactionHash, bitcoinNetwork) {
         IPFSUtils.validateMultihash(multihash);
         const operation = {
-            op: ChluIndex.operations.ADD_REVIEW_RECORD,
+            op: ChluAbstractIndex.operations.ADD_REVIEW_RECORD,
             multihash,
             version
         };
@@ -32,7 +36,7 @@ class ChluStore extends Store {
         IPFSUtils.validateMultihash(previousVersionMultihash);
         // TODO: more checks
         return this._addOperation({
-            op: ChluIndex.operations.UPDATE_REVIEW_RECORD,
+            op: ChluAbstractIndex.operations.UPDATE_REVIEW_RECORD,
             multihash,
             previousVersionMultihash,
             version
