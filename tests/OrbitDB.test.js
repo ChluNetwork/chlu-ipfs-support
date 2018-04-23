@@ -2,14 +2,15 @@ const expect = require('chai').expect;
 const logger = require('./utils/logger');
 
 const ChluIPFS = require('../src/ChluIPFS');
-const ChluIndex = require('../src/modules/orbitdb/db-index');
+const ChluInMemoryIndex = require('../src/modules/orbitdb/inmemory');
+const ChluAbstractIndex = require('../src/modules/orbitdb/abstract');
 const { genMultihash } = require('./utils/ipfs');
 
 function applyOperation(idx, op) {
     return idx.updateIndex({
         values: [{
             payload: Object.assign({
-                version: ChluIndex.version
+                version: ChluAbstractIndex.version
             }, op)
         }]
     });
@@ -35,20 +36,20 @@ describe('OrbitDB Module', () => {
         expect(chluIpfs.orbitDb.get).to.be.a('function');
     });
 
-    describe('Chlu Store Index', () => {
+    describe('Chlu Store InMemory Index', () => {
         let idx;
 
         beforeEach(() => {
-            idx = new ChluIndex();
+            idx = new ChluInMemoryIndex();
         });
 
         it('keeps the new review list in order', () => {
             applyOperation(idx, {
-                op: ChluIndex.operations.ADD_REVIEW_RECORD,
+                op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                 multihash: genMultihash(1)
             });
             applyOperation(idx, {
-                op: ChluIndex.operations.ADD_REVIEW_RECORD,
+                op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                 multihash: genMultihash(2)
             });
             expect(idx.getReviewRecordList()).to.deep.equal([
@@ -59,11 +60,11 @@ describe('OrbitDB Module', () => {
 
         it('does not duplicate data in the list', () => {
             applyOperation(idx, {
-                op: ChluIndex.operations.ADD_REVIEW_RECORD,
+                op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                 multihash: genMultihash(1)
             });
             applyOperation(idx, {
-                op: ChluIndex.operations.ADD_REVIEW_RECORD,
+                op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                 multihash: genMultihash(1)
             });
             expect(idx.getReviewRecordList()).to.deep.equal([genMultihash(1)]);
@@ -71,11 +72,11 @@ describe('OrbitDB Module', () => {
 
         it('handles review updates', () => {
             applyOperation(idx, {
-                op: ChluIndex.operations.ADD_REVIEW_RECORD,
+                op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                 multihash: genMultihash(1)
             });
             applyOperation(idx, {
-                op: ChluIndex.operations.UPDATE_REVIEW_RECORD,
+                op: ChluInMemoryIndex.operations.UPDATE_REVIEW_RECORD,
                 multihash: genMultihash(2),
                 previousVersionMultihash: genMultihash(1)
             });
@@ -85,7 +86,7 @@ describe('OrbitDB Module', () => {
                 .to.deep.equal(genMultihash(2));
             // Next case: submit another update
             applyOperation(idx, {
-                op: ChluIndex.operations.UPDATE_REVIEW_RECORD,
+                op: ChluInMemoryIndex.operations.UPDATE_REVIEW_RECORD,
                 multihash: genMultihash(3),
                 previousVersionMultihash: genMultihash(2)
             });
@@ -95,7 +96,7 @@ describe('OrbitDB Module', () => {
                 .to.deep.equal(genMultihash(3));
             // Next case: submit another update from original hash
             applyOperation(idx, {
-                op: ChluIndex.operations.UPDATE_REVIEW_RECORD,
+                op: ChluInMemoryIndex.operations.UPDATE_REVIEW_RECORD,
                 multihash: genMultihash(4),
                 previousVersionMultihash: genMultihash(1)
             });
