@@ -6,28 +6,41 @@ const version = 0;
 class ChluInMemoryIndex extends ChluAbstractIndex {
     constructor(){
         const _index = {
-            reviewRecords: [],
-            updates: {}
+            list: [],
+            data: {}
         };
         super(_index, version);
     }
 
     _addOriginalReviewRecord(obj) {
-        if (this._index.reviewRecords.indexOf(obj.multihash) < 0) {
-            this._index.reviewRecords.splice(0, 0, obj.multihash);
+        if (this._index.list.indexOf(obj.multihash) < 0) {
+            this._index.list.splice(0, 0, obj.multihash);
+            this._index.data[obj.multihash] = {
+                multihash: obj.multihash,
+                addedAt: getTime(),
+                bitcoinTransactionHash: obj.bitcoinTransactionHash || null
+            };
         }
     }
 
     _addReviewRecordUpdate(obj) {
-        this._index.updates[obj.fromMultihash] = obj.toMultihash;
+        const data = this._index.data[obj.fromMultihash];
+        data.nextVersion = obj.toMultihash;
+        const nextVersionData = {
+            addedAt: getTime()
+        };
+        nextVersionData.multihash = obj.toMultihash;
+        nextVersionData.previousVersion = obj.fromMultihash;
+        this._index.data[obj.fromMultihash] = data;
+        this._index.data[obj.toMultihash] = nextVersionData;
     }
 
     _getLatestReviewRecordUpdate(multihash, stack = [multihash]) {
-        let next;
-        next = this._index.updates[multihash];
-        if (IPFSUtils.isValidMultihash(next) && stack.indexOf(next) === -1) {
+        let data;
+        data = this._index.data[multihash];
+        if (IPFSUtils.isValidMultihash(data.nextVersion) && stack.indexOf(data.nextVersion) === -1) {
             // One next iteration
-            return this.getLatestReviewRecordUpdate(next, stack.concat(next));
+            return this.getLatestReviewRecordUpdate(data.nextVersion, stack.concat(data.nextVersion));
         } else {
             // End of search, return latest valid data
             return stack[stack.length-1];
@@ -36,9 +49,13 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
 
     _getReviewRecordList() {
         // Clone array
-        return [ ...this._index.reviewRecords ];
+        return [ ...this._index.list ];
     }
 
+}
+
+function getTime() {
+    return Date.now();
 }
 
 module.exports = ChluInMemoryIndex;
