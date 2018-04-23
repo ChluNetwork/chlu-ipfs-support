@@ -78,6 +78,8 @@ describe('ChluIPFS', () => {
                     }
                 }
             });
+            // Dont connect it to blockcypher
+            chluIpfs.bitcoin.start = sinon.stub().resolves();
             // Make sure it doesnt get stuck waiting for peers
             chluIpfs.room.waitForAnyPeer = sinon.stub().resolves();
             // Make sure to not use the production network
