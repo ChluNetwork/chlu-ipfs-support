@@ -143,9 +143,17 @@ class ReviewRecords {
         const {
             previousVersionMultihash,
             publish = true,
-            validate = true,
+            validate = {
+                // Disable cache when storing
+                useCache: false,
+                forceTransactionValidation: Boolean(publish)
+            },
             bitcoinTransactionHash = null
         } = options;
+        const isUpdate = this.isReviewRecordUpdate(reviewRecord) || IPFSUtils.isValidMultihash(previousVersionMultihash);
+        if (!bitcoinTransactionHash && publish && !isUpdate) {
+            throw new Error('Payment information is required for publishing a Review Record');
+        }
         let rr = Object.assign({}, reviewRecord, {
             previous_version_multihash: previousVersionMultihash || ''
         });
@@ -254,6 +262,10 @@ class ReviewRecords {
     setPointerToLastReviewRecord(reviewRecord) {
         reviewRecord.last_reviewrecord_multihash = this.chluIpfs.lastReviewRecordMultihash || '';
         return reviewRecord;
+    }
+
+    isReviewRecordUpdate(reviewRecord) {
+        return IPFSUtils.isValidMultihash(reviewRecord.previous_version_multihash);
     }
 
 }

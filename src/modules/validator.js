@@ -13,7 +13,9 @@ class Validator {
             validateHistory: true,
             validateSignatures: true,
             expectedRRPublicKey: null,
-            expectedPoPRPublicKey: null // TODO: pass this from readReviewRecord
+            expectedPoPRPublicKey: null,
+            bitcoinTransactionHash: null,
+            forceTransactionValidation: false // if true the validation fails if the tx is required to validate but missing
         };
     }
 
@@ -32,7 +34,16 @@ class Validator {
                     ]);
                 }
                 if (v.validateHistory) await this.validateHistory(rr, v);
-                if (v.bitcoinTransactionHash)  await this.validateBitcoinTransaction(rr, v.bitcoinTransactionHash, v.useCache);
+                const isUpdate = this.chluIpfs.reviewRecords.isReviewRecordUpdate(rr);
+                if (!isUpdate && (v.bitcoinTransactionHash || v.forceTransactionValidation)) {
+                    let transactionHash = v.bitcoinTransactionHash;
+                    if (!transactionHash) {
+                        // retrieve it from DB
+                        const metadata = this.chluIpfs.orbitDb.db.getReviewRecordMetadata(rr.multihash);
+                        transactionHash = metadata.bitcoinTransactionHash;
+                    }
+                    await this.validateBitcoinTransaction(rr, v.bitcoinTransactionHash, v.useCache);
+                }
                 if (rr.multihash && v.useCache) this.chluIpfs.cache.cacheValidity(rr.multihash);
             }
             this.chluIpfs.logger.debug('Validated review record (was valid)');

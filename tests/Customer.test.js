@@ -54,13 +54,17 @@ describe('Customer', () => {
         vm = await makeKeyPair();
         v = await makeKeyPair();
         m = await makeKeyPair();
+        // Other mocks
         chluIpfs.http = http(() => ({ multihash: m.multihash }));
+        chluIpfs.validator.validateBitcoinTransaction = sinon.stub.resolves();
     });
 
     it('stores ReviewRecords and automatically publishes them', async () => {
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
-        const result = await chluIpfs.storeReviewRecord(reviewRecord);
+        const result = await chluIpfs.storeReviewRecord(reviewRecord, {
+            bitcoinTransactionHash: 'test'
+        });
         const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
@@ -87,7 +91,10 @@ describe('Customer', () => {
         expect(isValidMultihash(result)).to.be.true;
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.false;
         expect(protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
-        const newResult = await chluIpfs.storeReviewRecord(reviewRecord, { expectedMultihash: result });
+        const newResult = await chluIpfs.storeReviewRecord(reviewRecord, {
+            expectedMultihash: result,
+            bitcoinTransactionHash: 'test'
+        });
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
         expect(newResult).to.equal(result);
         actual = chluIpfs.ipfsUtils.createDAGNode.args[1][0];
@@ -116,7 +123,9 @@ describe('Customer', () => {
     it('signs review records correctly', async () => {
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
-        const multihash = await chluIpfs.storeReviewRecord(reviewRecord);
+        const multihash = await chluIpfs.storeReviewRecord(reviewRecord, {
+            bitcoinTransactionHash: 'test'
+        });
         const rr = await chluIpfs.readReviewRecord(multihash);
         expect(rr.key_location).to.equal('/ipfs/' + chluIpfs.crypto.pubKeyMultihash);
         expect(rr.signature).to.be.a('string');
