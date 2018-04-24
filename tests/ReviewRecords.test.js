@@ -59,7 +59,10 @@ describe('ReviewRecords module', () => {
         chluIpfs.orbitDb.setAndWaitForReplication = sinon.stub().resolves();
         chluIpfs.reviewRecords.waitForRemotePin = sinon.stub().resolves();
         chluIpfs.crypto.generateKeyPair();
-        const multihash = await chluIpfs.storeReviewRecord(fakeReviewRecord, { validate: false });
+        const multihash = await chluIpfs.storeReviewRecord(fakeReviewRecord, {
+            validate: false,
+            bitcoinTransactionHash: 'fake'
+        });
         const reviewRecord = protobuf.ReviewRecord.decode(chluIpfs.ipfsUtils.storeDAGNode.args[0][0].data);
         expect(reviewRecord.last_reviewrecord_multihash).to.deep.equal(lastReviewRecordMultihash);
         expect(chluIpfs.lastReviewRecordMultihash).to.deep.equal(multihash);
