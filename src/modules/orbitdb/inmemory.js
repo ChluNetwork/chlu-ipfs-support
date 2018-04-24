@@ -35,16 +35,29 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         this._index.data[obj.toMultihash] = nextVersionData;
     }
 
-    _getLatestReviewRecordUpdate(multihash, stack = [multihash]) {
-        let data;
-        data = this._index.data[multihash];
-        if (IPFSUtils.isValidMultihash(data.nextVersion) && stack.indexOf(data.nextVersion) === -1) {
+    _getLatestReviewRecordUpdate(multihash) {
+        return this.followPointerAcyclic(multihash, this._index.data, 'nextVersion', undefined, IPFSUtils.isValidMultihash);
+    }
+
+    _getOriginalReviewRecord(multihash) {
+        return this.followPointerAcyclic(multihash, this._index.data, 'previousVersion', undefined, IPFSUtils.isValidMultihash);
+    }
+
+    followPointerAcyclic(value, kvstore, pointerName, stack = [value], validate = null) {
+        const data = kvstore[value];
+        const next = data[pointerName];
+        const valid = typeof validate === 'function' ? validate(next) : Boolean(next);
+        if (valid && stack.indexOf(next) === -1) {
             // One next iteration
-            return this.getLatestReviewRecordUpdate(data.nextVersion, stack.concat(data.nextVersion));
+            return this.followPointerAcyclic(next, kvstore, pointerName, stack.concat(next));
         } else {
             // End of search, return latest valid data
             return stack[stack.length-1];
         }
+    }
+
+    _getReviewRecordMetadata(multihash) {
+        return this._index.data[multihash] || null;
     }
 
     _getReviewRecordList() {

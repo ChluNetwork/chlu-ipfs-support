@@ -60,6 +60,16 @@ class ChluAbstractIndex {
         return this._getReviewRecordList();
     }
 
+    getOriginalReviewRecord(updatedMultihash) {
+        IPFSUtils.validateMultihash(updatedMultihash);
+        return this._getOriginalReviewRecord(updatedMultihash) || updatedMultihash;
+    }
+
+    getReviewRecordMetadata(multihash) {
+        IPFSUtils.validateMultihash(multihash);
+        return this._getReviewRecordMetadata(multihash);
+    }
+
     _addOriginalReviewRecord() {
         notImplemented();
     }
@@ -69,6 +79,14 @@ class ChluAbstractIndex {
     }
 
     _getLatestReviewRecordUpdate() {
+        notImplemented();
+    }
+
+    _getOriginalReviewRecord() {
+        notImplemented();
+    }
+
+    _getReviewRecordMetadata() {
         notImplemented();
     }
 
