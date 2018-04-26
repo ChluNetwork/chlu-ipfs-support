@@ -15,7 +15,7 @@ class Validator {
             expectedRRPublicKey: null,
             expectedPoPRPublicKey: null,
             bitcoinTransactionHash: null,
-            forceTransactionValidation: false // if true the validation fails if the tx is required to validate but missing
+            forceTransactionValidation: true
         };
     }
 
@@ -152,6 +152,7 @@ class Validator {
         // Check validity
         // TODO: check confirmations?
         if (!txInfo.isChlu) {
+            console.log(txInfo, rr.multihash)
             throw new Error(txId + ' is not a Chlu transaction');
         }
         if (rr.multihash !== txInfo.multihash) {
