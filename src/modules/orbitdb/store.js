@@ -47,6 +47,10 @@ class ChluStore extends Store {
         return this._index.getReviewRecordList();
     }
 
+    getReviewRecordMetadata(multihash) {
+        return this._index.getReviewRecordMetadata(multihash);
+    }
+
     getLatestReviewRecordUpdate(multihash) {
         return this._index.getLatestReviewRecordUpdate(multihash);
     }

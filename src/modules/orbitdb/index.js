@@ -50,6 +50,10 @@ class DB {
         return this.db.getReviewRecordList();
     }
 
+    getReviewRecordMetadata(multihash) {
+        return this.db.getReviewRecordMetadata(multihash);
+    }
+
     /**
      * Get the last review record update for the given multihash
      */
