@@ -63,9 +63,9 @@ class Room {
     async broadcastUntil(msg, expected, options = {}) {
         let {
             retry = true,
-            retryAfter = 500,
-            maxTries = 5,
-            timeout = 7000
+            retryAfter = 5000,
+            maxTries = 2,
+            timeout = 14000
         } = options;
         let timeoutRef = null;
         let globalTimeoutRef = null;
