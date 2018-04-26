@@ -16,7 +16,7 @@ const btcUtils = require('./utils/bitcoin');
 describe('Validator Module', () => {
     let chluIpfs;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         chluIpfs = new ChluIPFS({
             type: ChluIPFS.types.service,
             enablePersistence: false,
@@ -25,7 +25,15 @@ describe('Validator Module', () => {
         });
         sinon.spy(chluIpfs.cache, 'cacheValidity');
         sinon.spy(chluIpfs.cache, 'cacheMarketplacePubKeyMultihash');
+        // mock DB call
+        // so that when the validator checks the DB for the tx info it gets some data
+        chluIpfs.orbitDb.db = {
+            getReviewRecordMetadata: sinon.stub().returns({
+                bitcoinTransactionHash: 'fake'
+            })
+        };
         chluIpfs.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
+        await chluIpfs.bitcoin.start();
         // TODO: instead of disabling explicitly other validators in tests,
         // make a system to explicity enable only the validator that needs to be tested
     });
@@ -36,6 +44,7 @@ describe('Validator Module', () => {
         const dagNode = await chluIpfs.ipfsUtils.createDAGNode(buffer);
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         reviewRecord.multihash = multihash;
+        chluIpfs.bitcoin.api.returnMatchingTXForRR(reviewRecord);
         chluIpfs.validator.validateVersion = sinon.stub().resolves();
         chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
         chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
@@ -100,16 +109,20 @@ describe('Validator Module', () => {
         // Prepare data
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.rating = 1;
+        reviewRecord.multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1';
         const reviewRecord2 = await getFakeReviewRecord();
         reviewRecord2.rating = 2;
         reviewRecord2.previous_version_multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1';
+        reviewRecord2.multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP2';
         const reviewRecord3 = await getFakeReviewRecord();
         reviewRecord3.rating = 3;
         reviewRecord3.previous_version_multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP2';
+        reviewRecord3.multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP3';
         let map = {
             'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1': reviewRecord,
             'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP2': reviewRecord2
         };
+        chluIpfs.bitcoin.api.returnMatchingTXForRR(reviewRecord);
         chluIpfs.reviewRecords.getReviewRecord = sinon.stub().callsFake(async multihash => {
             return map[multihash];
         });
@@ -126,6 +139,9 @@ describe('Validator Module', () => {
         expect(chluIpfs.validator.validatePrevious.calledWith(reviewRecord2, reviewRecord)).to.be.true;
         expect(chluIpfs.validator.validatePrevious.callCount).to.equal(2);
         expect(chluIpfs.reviewRecords.getReviewRecord.calledWith(reviewRecord3.previous_version_multihash)).to.be.true;
+        // check that the db metadata (for the tx info) has been checked only for the original review
+        expect(chluIpfs.orbitDb.db.getReviewRecordMetadata.calledWith(reviewRecord.multihash)).to.be.true;
+        expect(chluIpfs.orbitDb.db.getReviewRecordMetadata.callCount).to.equal(1);
         // Test failure cases
         chluIpfs.validator.validateMultihash.resetHistory();
         chluIpfs.validator.validatePrevious.resetHistory();
