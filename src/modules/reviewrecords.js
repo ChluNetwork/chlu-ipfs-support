@@ -265,7 +265,11 @@ class ReviewRecords {
     }
 
     isReviewRecordUpdate(reviewRecord) {
-        return IPFSUtils.isValidMultihash(reviewRecord.previous_version_multihash);
+        return Boolean(reviewRecord
+            && reviewRecord.previous_version_multihash
+            && typeof reviewRecord.previous_version_multihash === 'string'
+            && IPFSUtils.isValidMultihash(reviewRecord.previous_version_multihash)
+        );
     }
 
 }

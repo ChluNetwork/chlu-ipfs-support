@@ -35,13 +35,7 @@ class Validator {
                 }
                 if (v.validateHistory) await this.validateHistory(rr, v);
                 const isUpdate = this.chluIpfs.reviewRecords.isReviewRecordUpdate(rr);
-                if (!isUpdate && (v.bitcoinTransactionHash || v.forceTransactionValidation)) {
-                    let transactionHash = v.bitcoinTransactionHash;
-                    if (!transactionHash) {
-                        // retrieve it from DB
-                        const metadata = this.chluIpfs.orbitDb.db.getReviewRecordMetadata(rr.multihash);
-                        transactionHash = metadata.bitcoinTransactionHash;
-                    }
+                if (!isUpdate && (v.forceTransactionValidation || v.bitcoinTransactionHash)) {
                     await this.validateBitcoinTransaction(rr, v.bitcoinTransactionHash, v.useCache);
                 }
                 if (rr.multihash && v.useCache) this.chluIpfs.cache.cacheValidity(rr.multihash);
@@ -97,6 +91,8 @@ class Validator {
                 }
             });
             await Promise.all(validations);
+        } else if (this.chluIpfs.reviewRecords.isReviewRecordUpdate(reviewRecord)) {
+            throw new Error('Review Record is an update but has no previous version');
         }
     }
 
@@ -141,19 +137,33 @@ class Validator {
         }
     }
 
-    async validateBitcoinTransaction(rr, txId, useCache = true) {
-        this.chluIpfs.logger.debug('Validating Bitcoin TX ' + txId + ' for ' + rr.multihash);
+    async validateBitcoinTransaction(rr, transactionHash = null, useCache = true) {
+        this.chluIpfs.logger.debug('Validating Bitcoin TX ' + (transactionHash || '(unknown)') + ' for ' + rr.multihash);
+        if (!rr.multihash) {
+            throw new Error('Validator needs RR multihash to validate Transaction');
+        }
+        if (!transactionHash) {
+            // retrieve it from DB
+            this.chluIpfs.logger.debug('Searching OrbitDB for TX for ' + rr.multihash);
+            const metadata = this.chluIpfs.orbitDb.getReviewRecordMetadata(rr.multihash);
+            transactionHash = metadata ? metadata.bitcoinTransactionHash : null;
+        }
+        if (transactionHash) {
+            this.chluIpfs.logger.debug('Found TX ' + transactionHash + ' for ' + rr.multihash);
+        } else {
+            throw new Error('Transaction Hash for Review Record ' + rr.multihash + ' not found');
+        }
         let txInfo;
-        if (useCache) txInfo = this.chluIpfs.cache.getBitcoinTransactionInfo(txId);
+        if (useCache) txInfo = this.chluIpfs.cache.getBitcoinTransactionInfo(transactionHash);
         if (!txInfo) {
-            txInfo = await this.chluIpfs.bitcoin.getTransactionInfo(txId);
+            txInfo = await this.chluIpfs.bitcoin.getTransactionInfo(transactionHash);
             if (useCache) this.chluIpfs.cache.cacheBitcoinTxInfo(txInfo);
         }
         // Check validity
         // TODO: check confirmations?
         if (!txInfo.isChlu) {
             console.log(txInfo, rr.multihash)
-            throw new Error(txId + ' is not a Chlu transaction');
+            throw new Error(transactionHash + ' is not a Chlu transaction');
         }
         if (rr.multihash !== txInfo.multihash) {
             throw new Error('Mismatching transaction multihash');

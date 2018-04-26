@@ -50,12 +50,14 @@ describe('Validator Module', () => {
         chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
         chluIpfs.validator.validateMultihash = sinon.stub().resolves();
         chluIpfs.validator.validateHistory = sinon.stub().resolves();
+        chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
         await chluIpfs.validator.validateReviewRecord(reviewRecord);
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
         expect(chluIpfs.validator.validateHistory.called).to.be.true;
         expect(chluIpfs.validator.validateVersion.called).to.be.true;
         expect(chluIpfs.validator.validatePoPRSignaturesAndKeys.called).to.be.true;
         expect(chluIpfs.validator.validateRRSignature.called).to.be.true;
+        expect(chluIpfs.validator.validateBitcoinTransaction.called).to.be.true;
         // --- Cache behavior
         expect(chluIpfs.cache.cacheValidity.calledWith(multihash)).to.be.true;
         chluIpfs.cache.cacheValidity.resetHistory();
@@ -88,6 +90,7 @@ describe('Validator Module', () => {
         chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
         chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
         chluIpfs.validator.validateHistory = sinon.stub().resolves();
+        chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
         sinon.spy(chluIpfs.validator, 'validateMultihash');
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(reviewRecord);
