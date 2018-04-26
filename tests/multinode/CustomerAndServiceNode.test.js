@@ -184,7 +184,7 @@ describe('Customer and Service Node integration', function() {
                     reject(err);
                 }
             };
-            serviceNode.events.on('updated ReviewRecord', notifyUpdate);
+            serviceNode.events.once('reviewrecord/updated', notifyUpdate);
             await serviceNode.readReviewRecord(multihash, { checkForUpdates: true });
             // Now create a fake update
             let reviewUpdate = await getFakeReviewRecord();
@@ -250,7 +250,7 @@ describe('Customer and Service Node integration', function() {
                     reject(err);
                 }
             };
-            customerNode.events.on('updated ReviewRecord', notifyUpdate);
+            customerNode.events.once('reviewrecord/updated', notifyUpdate);
             await customerNode.readReviewRecord(multihash, { checkForUpdates: true });
             // Now create a fake update
             let reviewUpdate = await getFakeReviewRecord();

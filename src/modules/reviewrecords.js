@@ -13,7 +13,7 @@ class ReviewRecords {
         const self = this;
         this.notifier = (...args) => self.notifyReviewUpdates(...args);
         this.watched = [];
-        this.chluIpfs.events.on('replicated', this.notifier);
+        this.chluIpfs.events.on('db/replicated', this.notifier);
     }
 
     async watchReviewRecord(multihash, validate = true) {
@@ -60,7 +60,7 @@ class ReviewRecords {
     }
 
     async notifyReviewUpdate(multihash, updatedMultihash, reviewRecord) {
-        this.chluIpfs.events.emit('updated ReviewRecord', multihash, updatedMultihash, reviewRecord);
+        this.chluIpfs.events.emit('reviewrecord/updated', multihash, updatedMultihash, reviewRecord);
     }
 
     async getReviewRecord(multihash){
@@ -94,7 +94,7 @@ class ReviewRecords {
                 const error = await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
                 if (error) reviewRecord.errors = reviewRecord.errors.concat(error);
             } catch (error) {
-                this.chluIpfs.events.emit('validation error', error, m);
+                this.chluIpfs.events.emit('validation/error', error, m);
                 throw error;
             }
         }
@@ -104,7 +104,7 @@ class ReviewRecords {
         reviewRecord.requestedMultihash = multihash;
         reviewRecord.watching = Boolean(checkForUpdates);
         reviewRecord.gotLatestVersion = Boolean(getLatestVersion);
-        this.chluIpfs.events.emit('read ReviewRecord', {
+        this.chluIpfs.events.emit('reviewrecord/read', {
             reviewRecord,
             multihash: m,
             requestedMultihash: multihash
@@ -167,7 +167,7 @@ class ReviewRecords {
                 throw new Error('Expected a different multihash');
             }
         }
-        this.chluIpfs.events.emit('stored ReviewRecord', { multihash, reviewRecord: rr });
+        this.chluIpfs.events.emit('reviewrecord/stored', { multihash, reviewRecord: rr });
         if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash, rr, bitcoinTransactionHash);
         return multihash;
     }
@@ -192,7 +192,7 @@ class ReviewRecords {
         this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: executing post-publish tasks');
         this.chluIpfs.lastReviewRecordMultihash = multihash;
         await this.chluIpfs.persistence.persistData();
-        this.chluIpfs.events.emit('published ReviewRecord', multihash);
+        this.chluIpfs.events.emit('reviewrecord/published', multihash);
         if (previousVersionMultihash) this.notifyReviewUpdate(previousVersionMultihash, multihash, reviewRecord);
         this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: post-publish tasks executed');
     }

@@ -58,42 +58,43 @@ https://ipfs.io/ipfs/QmTHQog37CpVHrdwWt1EpS8feymig8N2RpoTBY66P9D8cE
 You can access the event emitter at `chluIpfs.instance.events` and listen to some events:
 
 - Lifecycle
-  - `starting`, `ready`, `stopping`, `stopped` are self explanatory
-  - `error` generic internal non-fatal error. Mostly used for weird cases and debugging
+  - `chlu-ipfs/starting`, `chlu-ipfs/ready`, `chlu-ipfs/stopping`, `chlu-ipfs/stopped` are self explanatory
+  - `chlu-ipfs/error` generic internal non-fatal error. Mostly used for weird cases and debugging
 - OrbitDB (check out orbit-db docs for more information)
-  - `replicate` called with `address` to signal that a DB has started replicating from another peer
-  - `replicate.progress`
-  - `replicated` when the replication is finished
+  - `db/replicate` called with `address` to signal that a DB has started replicating from another peer
+  - `db/replicate/progress`
+  - `db/replicated` when the replication is finished
 - Persistence
-  - `saved` after saving Chlu specific information
-  - `loaded` after loading Chlu specific information
+  - `persistence/saved` after saving Chlu specific information
+  - `persistence/loaded` after loading Chlu specific information
 - Pinning
-  - `pinning` when starting a pin, called with `multihash`
-  - `pinned` after finishing a pin, called with `multihash`
-  - `pin error` when a pin operation goes wrong
+  - `pin/pinning` when starting a pin, called with `multihash`
+  - `pin/pinned` after finishing a pin, called with `multihash`
+  - `pin/error` when a pin operation goes wrong
 - Review Records
-  - `updated ReviewRecord` when an update to a review record is discovered.
+  - `reviewrecord/updated` when an update to a review record is discovered.
   Called with:
     - `multihash` the multihash of the review record that has been updated
     - `updatedMultihash` the multihash of the new version that has just been discovered
     - `reviewRecord` the new version of the review record. The RR is already validated, otherwise the event
     would not have been emitted
-  - `read ReviewRecord` when a review record is read
-  - `stored ReviewRecord` when a review record is stored (not necessarily published)
-  - `published ReviewRecord` when a review record is published
+  - `reviewrecord/read` when a review record is read
+  - `reviewrecord/stored` when a review record is stored (not necessarily published)
+  - `reviewrecord/published` when a review record is published
 - Validation
-  - `validation error` to keep track of invalid review records
-  - `vendor pubkey` to keep track of vendors encountered. Only emitted if the RR containing it is valid
-  - `vendor-marketplace pubkey` Only emitted if the RR containing it is valid
-  - `marketplace pubkey` to keep track of marketplaces encountered. Only emitted if the RR containing it is valid
-  - `customer pubkey` only emitted if a customer signed RR containing it is valid
+  - `validation/error` to keep track of invalid review records
+- Discovery
+  - `discover/keys/vendor` to keep track of vendors encountered. Only emitted if the RR containing it is valid
+  - `discover/keys/vendor-marketplace` Only emitted if the RR containing it is valid
+  - `discover/keys/marketplace` to keep track of marketplaces encountered. Only emitted if the RR containing it is valid
+  - `discover/keys/customer` only emitted if a customer signed RR containing it is valid
 - PubSub
-  - `pubsub subscribed`
-  - `pubsub unsubscribed`
-  - `message` you can use this to listen to all Chlu chatter on pubsub
-  - `pubsub error`
-  - `peer joined` called with IPFS peer ID
-  - `peer left` called with IPFS peer ID
+  - `pubsub/subscribed`
+  - `pubsub/unsubscribed`
+  - `pubsub/message` you can use this to listen to all Chlu chatter on pubsub
+  - `pubsub/error`
+  - `pubsub/peer/joined` called with IPFS peer ID
+  - `pubsub/peer/left` called with IPFS peer ID
 
 ## Examples
 

@@ -97,7 +97,7 @@ describe('Room module', () => {
             }).catch(() => {
                 try {
                     expect(chluIpfs.ipfs.pubsub.publish.callCount).to.equal(5);
-                    expect(chluIpfs.events.removeListener.calledWith('peer joined')).to.be.true;
+                    expect(chluIpfs.events.removeListener.calledWith('pubsub/peer/joined')).to.be.true;
                     done();
                 } catch (err) {
                     done(err);
@@ -132,7 +132,7 @@ describe('Room module', () => {
                 setTimeout(() => {
                     // Call the listener that broadcastUntil added for the peer joined event
                     const args = chluIpfs.events.on.args;
-                    const i = findIndex(args, o => o[0] === 'peer joined');
+                    const i = findIndex(args, o => o[0] === 'pubsub/peer/joined');
                     if (i) {
                         args[i][1]();
                     } else {
