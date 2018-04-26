@@ -95,17 +95,17 @@ class DB {
     listenToDBEvents(db){
         db.events.on('replicated', address => {
             this.chluIpfs.logger.debug('OrbitDB Event: Replicated ' + address);
-            this.chluIpfs.events.emit('replicated', address);
+            this.chluIpfs.events.emit('db/replicated', address);
             this.chluIpfs.room.broadcast({ type: constants.eventTypes.replicated, address })
                 .catch(err => this.chluIpfs.logger.error('Broadcast failed: ' + err.message));
         });
         db.events.on('replicate', address => {
             this.chluIpfs.logger.debug('OrbitDB Event: Replicate ' + address);
-            this.chluIpfs.events.emit('replicate', address);
+            this.chluIpfs.events.emit('db/replicate', address);
         });
         db.events.on('replicate.progress', (address, hash, entry, progress) => {
             this.chluIpfs.logger.debug('OrbitDB Event: Replicate Progress ' + progress + ' for address ' + address);
-            this.chluIpfs.events.emit('replicate.progress', address, hash, entry, progress);
+            this.chluIpfs.events.emit('db/replicate/progress', address, hash, entry, progress);
         });
         db.events.on('ready', () => this.chluIpfs.logger.debug('OrbitDB Event: Ready'));
         db.events.on('write', () => this.chluIpfs.logger.debug('OrbitDB Event: Write'));

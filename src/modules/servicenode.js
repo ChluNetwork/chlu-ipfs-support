@@ -39,20 +39,19 @@ class ServiceNode {
             }
         };
         // Handle Chlu network messages
-        this.chluIpfs.events.on('message', this.handler);
+        this.chluIpfs.events.on('pubsub/message', this.handler);
         // Pin public keys
-        this.chluIpfs.events.on('vendor pubkey', this.pinner);
-        this.chluIpfs.events.on('vendor-marketplace pubkey', this.pinner);
-        this.chluIpfs.events.on('marketplace pubkey', this.pinner);
-        this.chluIpfs.events.on('customer pubkey', this.pinner);
+        this.chluIpfs.events.on('discover/keys/vendor', this.pinner);
+        this.chluIpfs.events.on('discover/keys/vendor-marketplace', this.pinner);
+        this.chluIpfs.events.on('discover/keys/marketplace', this.pinner);
+        this.chluIpfs.events.on('discover/keys/customer', this.pinner);
         // Send messages on replication
-        this.chluIpfs.events.on('replicate', this.replicatingNotifier);
-        this.chluIpfs.events.on('replicated', this.replicatedNotifier);
+        this.chluIpfs.events.on('db/replicated', this.replicatedNotifier);
     }
 
     async stop() {
         if (this.handler) {
-            this.chluIpfs.events.removeListener('message', this.handler);
+            this.chluIpfs.events.removeListener('pubsub/message', this.handler);
             this.handler = undefined;
         }
         if (this.chluIpfs.dbs) {

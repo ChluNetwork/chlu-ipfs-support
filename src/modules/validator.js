@@ -75,7 +75,7 @@ class Validator {
         }
         const valid = await this.chluIpfs.crypto.verifyMultihash(pubKeyMultihash, rr.hash, rr.signature);
         if (valid) {
-            this.chluIpfs.events.emit('customer pubkey', pubKeyMultihash);
+            this.chluIpfs.events.emit('discover/keys/customer', pubKeyMultihash);
         } else {
             throw new Error('The ReviewRecord signature is invalid');
         }
@@ -129,9 +129,9 @@ class Validator {
             if (valid) {
                 if (useCache) this.chluIpfs.cache.cacheValidity(hash);
                 // Emit events about keys discovered
-                this.chluIpfs.events.emit('vendor pubkey', vMultihash);
-                this.chluIpfs.events.emit('vendor-marketplace pubkey', vmMultihash);
-                this.chluIpfs.events.emit('marketplace pubkey', mMultihash);
+                this.chluIpfs.events.emit('discover/keys/vendor', vMultihash);
+                this.chluIpfs.events.emit('discover/keys/vendor-marketplace', vmMultihash);
+                this.chluIpfs.events.emit('discover/keys/marketplace', mMultihash);
             } else {
                 throw new Error('The PoPR is not correctly signed');
             }
