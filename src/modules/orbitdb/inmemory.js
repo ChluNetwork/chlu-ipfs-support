@@ -45,15 +45,16 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
 
     followPointerAcyclic(value, kvstore, pointerName, stack = [value], validate = null) {
         const data = kvstore[value];
-        const next = data[pointerName];
-        const valid = typeof validate === 'function' ? validate(next) : Boolean(next);
-        if (valid && stack.indexOf(next) === -1) {
-            // One next iteration
-            return this.followPointerAcyclic(next, kvstore, pointerName, stack.concat(next));
-        } else {
-            // End of search, return latest valid data
-            return stack[stack.length-1];
+        if (data) {
+            const next = data[pointerName];
+            const valid = typeof validate === 'function' ? validate(next) : Boolean(next);
+            if (valid && stack.indexOf(next) === -1) {
+                // One next iteration
+                return this.followPointerAcyclic(next, kvstore, pointerName, stack.concat(next));
+            }
         }
+        // End of search, return latest valid data
+        return stack[stack.length-1];
     }
 
     _getReviewRecordMetadata(multihash) {
