@@ -20,7 +20,7 @@ class Room {
             this.listenToPubSubEvents();
             await this.updatePeers();
             this.pollPeers();
-            this.chluIpfs.events.emit('pubsub subscribed', this.topic);
+            this.chluIpfs.events.emit('pubsub/subscribed', this.topic);
             // TODO: update listenToRoomEvents to poll for info instead
             // TODO: call watchPubSubTopic
         }
@@ -30,7 +30,7 @@ class Room {
         if (this.topic && this.subscription) {
             await this.chluIpfs.ipfs.pubsub.unsubscribe(this.topic, this.subscription);
             this.chluIpfs.logger.debug('Unsubscribed from pubsub topic: ' + this.topic);
-            this.chluIpfs.events.emit('pubsub unsubscribed', this.topic);
+            this.chluIpfs.events.emit('pubsub/unsubscribed', this.topic);
         }
         this.subscription = null;
         this.topic = null;
@@ -40,8 +40,8 @@ class Room {
     async waitForAnyPeer() {
         if (this.getPeers().length === 0) {
             await new Promise((resolve, reject) => {
-                this.chluIpfs.events.on('peer joined', () => resolve());
-                this.chluIpfs.events.on('pubsub error', err => reject(err));
+                this.chluIpfs.events.on('pubsub/peer/joined', () => resolve());
+                this.chluIpfs.events.on('pubsub/error', err => reject(err));
             });
         }
     }
@@ -79,7 +79,7 @@ class Room {
         // function that clears dangling timeouts
         const cleanup = () => {
             done = true;
-            self.chluIpfs.events.removeListener('peer joined', broadcaster);
+            self.chluIpfs.events.removeListener('pubsub/peer/joined', broadcaster);
             clearTimeout(timeoutRef);
             clearTimeout(globalTimeoutRef);
         };
@@ -122,7 +122,7 @@ class Room {
                 resolve();
             });
             // set up automatic resend on peer join
-            this.chluIpfs.events.on('peer joined',  broadcaster);
+            this.chluIpfs.events.on('pubsub/peer/joined',  broadcaster);
             // wait for a peer to appear if there are none
             await this.waitForAnyPeer();
             // broadcast and schedule next resend
@@ -138,9 +138,10 @@ class Room {
                 this.chluIpfs.logger.debug('Handling PubSub message from ' + message.from + ': ' + str);
                 const obj = parseMessage(message);
 
-                this.chluIpfs.events.emit('message', obj);
+                this.chluIpfs.events.emit('pubsub/message', obj);
 
                 // Handle internal events
+                // TODO: refactor this
                 this.chluIpfs.events.emit(obj.type || constants.eventTypes.unknown, obj);
                 if (obj.type === constants.eventTypes.pinned) {
                     // Emit internal PINNED event
@@ -167,7 +168,7 @@ class Room {
             this.pollPeersTimeout = setTimeout(self => {
                 self.updatePeers()
                     .then(() => self.pollPeers(intervalMs))
-                    .catch(err => self.chluIpfs.events.emit('pubsub error', err));
+                    .catch(err => self.chluIpfs.events.emit('pubsub/error', err));
             }, intervalMs, this);
         }
     }
@@ -188,7 +189,7 @@ class Room {
                 this.peers = updatedPeers;
                 this.emitPeerEvents(joinedPeers, leftPeers);
             } catch (error) {
-                this.chluIpfs.events.emit('pubsub error', error);
+                this.chluIpfs.events.emit('pubsub/error', error);
                 this.emitPeerEvents([], this.peers || []);
                 this.peers = [];
             }
@@ -199,21 +200,21 @@ class Room {
     }
 
     emitPeerEvents(joinedPeers = [], leftPeers = []) {
-        joinedPeers.forEach(p => this.chluIpfs.events.emit('peer joined', p));
-        leftPeers.forEach(p => this.chluIpfs.events.emit('peer left', p));
+        joinedPeers.forEach(p => this.chluIpfs.events.emit('pubsub/peer/joined', p));
+        leftPeers.forEach(p => this.chluIpfs.events.emit('pubsub/peer/left', p));
     }
 
     listenToPubSubEvents() {
-        this.chluIpfs.events.on('peer joined', peer => {
+        this.chluIpfs.events.on('pubsub/peer/joined', peer => {
             this.chluIpfs.logger.debug(peer + ' joined the pubsub room');
         });
-        this.chluIpfs.events.on('peer left', peer => {
+        this.chluIpfs.events.on('pubsub/peer/left', peer => {
             this.chluIpfs.logger.debug(peer + ' left the pubsub room');
         });
-        this.chluIpfs.events.on('subscribed', () => {
+        this.chluIpfs.events.on('pubsub/subscribed', () => {
             this.chluIpfs.logger.debug('Connected to the pubsub room');
         });
-        this.chluIpfs.events.on('pubsub error', error => {
+        this.chluIpfs.events.on('pubsub/error', error => {
             this.chluIpfs.logger.error('PubSub Error: ' + error.message || error);
         });
     }

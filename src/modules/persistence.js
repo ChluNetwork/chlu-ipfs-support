@@ -24,7 +24,7 @@ class Persistence {
             } catch (error) {
                 this.chluIpfs.logger.error('Could not write data: ' + error.message || error);
             }
-            this.chluIpfs.events.emit('saved');
+            this.chluIpfs.events.emit('persistence/saved');
             this.chluIpfs.logger.debug('Saved persisted data');
         } else {
             this.chluIpfs.logger.debug('Not persisting data, persistence disabled');
@@ -44,7 +44,7 @@ class Persistence {
             if (data.cache) {
                 this.chluIpfs.cache.import(data.cache);
             }
-            this.chluIpfs.events.emit('loaded');
+            this.chluIpfs.events.emit('persistence/loaded');
             this.chluIpfs.logger.debug('Loaded persisted data');
         } else {
             this.chluIpfs.logger.debug('Not loading persisted data, persistence disabled');

@@ -117,7 +117,7 @@ class ChluIPFS {
     
     async start(){
         this.starting = true;
-        this.events.emit('starting');
+        this.events.emit('chlu-ipfs/starting');
         this.logger.debug('Starting ChluIPFS, directory: ' + this.directory);
         this.logger.debug('Using Network: ' + (this.network || '----- PRODUCTION -----'));
 
@@ -143,26 +143,26 @@ class ChluIPFS {
 
         this.ready = true;
         this.starting = false;
-        this.events.emit('ready');
+        this.events.emit('chlu-ipfs/ready');
         return true;
     }
 
     async stop() {
-        this.events.emit('stopping');
+        this.events.emit('chlu-ipfs/stopping');
         this.ready = false;
         await this.serviceNode.stop();
         await this.persistence.persistData();
         await this.orbitDb.stop();
         await this.room.stop();
         await this.ipfsUtils.stop();
-        this.events.emit('stop');
+        this.events.emit('chlu-ipfs/stopped');
     }
 
     async waitUntilReady() {
         if (!this.ready) {
             if (this.starting) {
                 await new Promise(resolve => {
-                    this.events.once('ready', resolve);
+                    this.events.once('chlu-ipfs/ready', resolve);
                 });
             } else {
                 throw new Error('The ChluIPFS node needs to be started');
@@ -173,7 +173,7 @@ class ChluIPFS {
     async switchType(newType) {
         if (this.type !== newType) {
             this.starting = true;
-            this.events.emit('starting');
+            this.events.emit('chlu-ipfs/starting');
             this.ready = false;
             await this.persistence.persistData();
             if (this.type === constants.types.customer) {
@@ -187,7 +187,7 @@ class ChluIPFS {
             await this.persistence.loadPersistedData();
             this.starting = false;
             this.ready = true;
-            this.events.emit('ready');
+            this.events.emit('chlu-ipfs/ready');
         }
     }
 
