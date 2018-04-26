@@ -45,6 +45,9 @@ describe('Customer', () => {
             }
         };
         chluIpfs.orbitDb.setAndWaitForReplication = sinon.stub().resolves();
+        chluIpfs.orbitDb.getReviewRecordMetadata = sinon.stub().returns({
+            bitcoinTransactionHash: 'fake'
+        });
         await chluIpfs.room.start();
         // Crypto
         chluIpfs.crypto.generateKeyPair();
@@ -56,7 +59,7 @@ describe('Customer', () => {
         m = await makeKeyPair();
         // Other mocks
         chluIpfs.http = http(() => ({ multihash: m.multihash }));
-        chluIpfs.validator.validateBitcoinTransaction = sinon.stub.resolves();
+        chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
     });
 
     it('stores ReviewRecords and automatically publishes them', async () => {
