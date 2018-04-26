@@ -118,7 +118,9 @@ class ChluIPFS {
     async start(){
         this.starting = true;
         this.events.emit('chlu-ipfs/starting');
-        this.logger.debug('Starting ChluIPFS, directory: ' + this.directory);
+        this.logger.debug('Starting ChluIPFS');
+        this.logger.debug('Using ' + this.type + ' mode');
+        this.logger.debug('Directory: ' + this.directory);
         this.logger.debug('Using Network: ' + (this.network || '----- PRODUCTION -----'));
 
         // First start IPFS stuff, because some of the persistence loading stuff requires it
