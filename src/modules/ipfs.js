@@ -15,7 +15,7 @@ class IPFS {
         const logger = this.chluIpfs.logger;
         if (!this.chluIpfs.ipfs) {
             logger.debug('Initializing IPFS, type: ' + (this.chluIpfs.ipfsOptions.type || 'JS (Internal)'));
-            logger.debug('Detected environment: ' + env.isNode() ? 'Node.JS' : 'Browser');
+            logger.debug('Detected environment: ' + (env.isNode() ? 'Node.JS' : 'Browser'));
             let ipfs;
             if (this.chluIpfs.ipfsOptions.remote) {
                 logger.debug('Connecting to IPFS API');
