@@ -56,8 +56,8 @@ class ChluAbstractIndex {
         return this._getLatestReviewRecordUpdate(multihash) || multihash;
     }
 
-    getReviewRecordList() {
-        return this._getReviewRecordList();
+    getReviewRecordList(offset = 0, limit = 0) {
+        return this._getReviewRecordList(offset, limit);
     }
 
     getOriginalReviewRecord(updatedMultihash) {
@@ -68,6 +68,10 @@ class ChluAbstractIndex {
     getReviewRecordMetadata(multihash) {
         IPFSUtils.validateMultihash(multihash);
         return this._getReviewRecordMetadata(multihash);
+    }
+
+    getReviewRecordCount() {
+        return this._getReviewRecordCount();
     }
 
     _addOriginalReviewRecord() {
@@ -91,6 +95,10 @@ class ChluAbstractIndex {
     }
 
     _getReviewRecordList() {
+        notImplemented();
+    }
+
+    _getReviewRecordCount() {
         notImplemented();
     }
 
