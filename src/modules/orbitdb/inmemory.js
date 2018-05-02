@@ -61,9 +61,12 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         return this._index.data[multihash] || null;
     }
 
-    _getReviewRecordList() {
-        // Clone array
-        return [ ...this._index.list ];
+    _getReviewRecordList(offset, limit) {
+        return this._index.list.slice(offset, (limit > 0 ? (offset + limit) : undefined));
+    }
+
+    _getReviewRecordCount() {
+        return this._index.list.length;
     }
 
 }
