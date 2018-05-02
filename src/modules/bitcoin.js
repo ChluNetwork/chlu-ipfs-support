@@ -1,7 +1,10 @@
 const Blockcypher = require('blockcypher');
 const getOpReturn = require('chlu-wallet-support-js/lib/get_opreturn').default;
+const IPFSUtils = require('../utils/ipfs');
 const { isValidMultihash } = require('../utils/ipfs');
-const { flatten } = require('lodash');
+const { flatten, find } = require('lodash');
+const protons = require('protons');
+const protobuf = protons(require('../utils/protobuf'));
 
 const networks = ['test3', 'main'];
 
@@ -49,7 +52,18 @@ class Bitcoin {
         this.chluIpfs.logger.debug('Preparing TX INFO for ' + txId);
         const opReturn = getOpReturn(tx);
         const multihash = opReturn.string || null;
-        const isChlu = isValidMultihash(multihash);
+        let isChlu = isValidMultihash(multihash);
+        let chluInfo = null;
+        if (isChlu) {
+            try {
+                chluInfo = await this.getChluInfo(multihash);
+            } catch (error) {
+                this.chluIpfs.logger.debug('Transaction ' + txId + ' contained multihash ' + multihash + ' but it was not valid Chlu data');
+                console.log(error)
+                console.trace(error)
+                isChlu = false;
+            }
+        }
         const inputAddresses = flatten(tx.inputs.map(i => i.addresses));
         if (inputAddresses.length !== 1) {
             throw new Error('Expected 1 input address in Bitcoin transaction');
@@ -71,15 +85,41 @@ class Bitcoin {
             doubleSpend: tx.double_spend,
             confirmations: tx.confirmations,
             isChlu,
-            multihash: isChlu ? multihash : null,
+            multihash: multihash || null,
             fromAddress,
-            outputs,
+            outputs: isChlu ? this.demultiplexReviewRecords(outputs, chluInfo) : outputs,
             spentSatoshi,
             receivedAt: tx.received,
             confirmedAt: tx.confirmed
         };
         this.chluIpfs.logger.debug('Computed TX INFO for ' + txId + ' successfully');
         return txInfo;
+    }
+
+    async getChluInfo(multihash) {
+        this.chluIpfs.logger.debug('Fetching Chlu TX Info from ' + multihash);
+        const buffer = await this.chluIpfs.ipfsUtils.get(multihash);
+        this.chluIpfs.logger.debug('Decoding Chlu TX Info from ' + multihash);
+        const data = protobuf.Transaction.decode(buffer);
+        this.chluIpfs.logger.debug('Decoded Chlu TX Info from ' + multihash);
+        this.chluIpfs.logger.debug(JSON.stringify(data));
+        return data;
+    }
+
+    demultiplexReviewRecords(outputs, chluInfo) {
+        this.chluIpfs.logger.debug('Demultiplexing TX');
+        return outputs.map((o, i) => {
+            const ii = i + 1;
+            this.chluIpfs.logger.debug('Demultiplexing ' + ii + '/' + outputs.length);
+            const tx = find(chluInfo.outputs, t => t.index === o.index);
+            if (tx && IPFSUtils.isValidMultihash(tx.multihash)) {
+                this.chluIpfs.logger.debug('Found RR in ' + ii + '/' + outputs.length);
+                return Object.assign({}, o, { multihash: tx.multihash || null });
+            } else {
+                this.chluIpfs.logger.debug('RR not found in ' + ii + '/' + outputs.length);
+                return o;
+            }
+        });
     }
 
     async getTransaction(txId) {
@@ -95,6 +135,27 @@ class Bitcoin {
         return await new Promise((resolve, reject) => {
             this.api.getChain(this.handleBlockcypherResponse(resolve, reject, checkAvailable));
         });
+    }
+
+    async createTransactionOpReturn(outputs, publish = true) {
+        const obj = {
+            chlu_version: 0,
+            outputs: outputs.map(o => {
+                if (isNaN(o.index) || o.index < 0 || !IPFSUtils.isValidMultihash(o.multihash)) {
+                    throw new Error('Invalid Transaction outputs');
+                }
+                return {
+                    index: o.index,
+                    multihash: o.multihash
+                };
+            })
+        };
+        const buffer = protobuf.Transaction.encode(obj); 
+        const dagNode = await this.chluIpfs.ipfsUtils.createDAGNode(buffer);
+        if (publish) {
+            await this.chluIpfs.ipfsUtils.storeDAGNode(dagNode);
+        }
+        return IPFSUtils.getDAGNodeMultihash(dagNode);
     }
 
     isAvailable() {

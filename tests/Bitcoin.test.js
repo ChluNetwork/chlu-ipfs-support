@@ -4,6 +4,7 @@ const btcUtils = require('./utils/bitcoin');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
+const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 
 
 describe('Bitcoin Module', () => {
@@ -99,8 +100,17 @@ describe('Bitcoin Module', () => {
     });
 
     it('can process raw transaction info into the data Chlu needs', async () => {
+        const fakeStore = {};
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
+        const multihash = await chluIpfs.bitcoin.createTransactionOpReturn([
+            {
+                index: 0,
+                multihash: 'Qmdc9UyE2fogSGbuquB47q7wBGR4zQjnhQPNn8ZTNrQ3YS'
+            }
+        ]);
         const txId = btcUtils.exampleTransaction.hash.slice(0);
         await chluIpfs.bitcoin.start();
+        chluIpfs.bitcoin.api.tx.outputs[2].data_string = multihash;
         expect(chluIpfs.bitcoin.isAvailable()).to.be.true;
         const tx = await chluIpfs.bitcoin.getTransactionInfo(txId);
         expect(chluIpfs.bitcoin.api.getTX.args[0][0]).to.equal(txId);
@@ -109,12 +119,13 @@ describe('Bitcoin Module', () => {
             doubleSpend: false,
             confirmations: 2,
             isChlu: true,
-            multihash: 'Qmdc9UyE2fogSGbuquB47q7wBGR4zQjnhQPNn8ZTNrQ3YS',
+            multihash: 'Qmdu8V3WqpjGzvH5E6qTtyQdYkoVYLLZimvy13oSPjAjXm',
             fromAddress: 'mjw2BcBvNKkgLvQyYhzRERRgWSUVG7HHTb',
             outputs: [
                 {
                     index: 0,
                     toAddress: 'ms4TpM57RWHnEq5PRFtfJ8bcdiXoUE3tfv',
+                    multihash: 'Qmdc9UyE2fogSGbuquB47q7wBGR4zQjnhQPNn8ZTNrQ3YS',
                     value: 309696
                 },
             ],

@@ -1,4 +1,4 @@
-const { cloneDeep, isEqual } = require('lodash');
+const { cloneDeep, isEqual, find } = require('lodash');
 const IPFSUtils = require('../utils/ipfs');
 
 class Validator {
@@ -162,19 +162,16 @@ class Validator {
         // Check validity
         // TODO: check confirmations?
         if (!txInfo.isChlu) {
-            console.log(txInfo, rr.multihash)
             throw new Error(transactionHash + ' is not a Chlu transaction');
         }
-        if (rr.multihash !== txInfo.multihash) {
-            throw new Error('Mismatching transaction multihash');
+        const output = find(txInfo.outputs, o => o.multihash === rr.multihash);
+        if (!output) {
+            throw new Error('Transaction had no output that matched this review record');
         }
-        if (rr.amount !== txInfo.spentSatoshi) {
-            throw new Error('Review Record amount is not matching transaction amount');
+        if (rr.amount !== output.value) {
+            throw new Error('Review Record amount is not matching transaction output amount');
         }
-        if (txInfo.outputs.length !== 1) {
-            throw new Error('Transactions that send bitcoin to multiple addresses are not supported yet');
-        }
-        const toAddress = txInfo.outputs[0].toAddress;
+        const toAddress = output.toAddress;
         if (toAddress !== rr.vendor_address) {
             throw new Error('The Vendor address in the Review Record is different than the address the funds were sent to');
         }

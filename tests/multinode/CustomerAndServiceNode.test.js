@@ -95,13 +95,18 @@ describe('Customer and Service Node integration', function() {
         }
     });
 
-    function setupBtcMock(multihash, rr) {
+    async function setupBtcMock(multihash, rr) {
         // delete cached info, since we are about to change it
         serviceNode.cache.cache.del(btcUtils.exampleTransaction.hash);
         customerNode.cache.cache.del(btcUtils.exampleTransaction.hash);
+        // create the payload for the tx
+        const m = await serviceNode.bitcoin.createTransactionOpReturn([{
+            index: 0,
+            multihash
+        }]);
         // tell mock btc module to return a TX that matches the RR
-        serviceNode.bitcoin.api.returnMatchingTXForRR(Object.assign({}, rr, { multihash }));
-        customerNode.bitcoin.api.returnMatchingTXForRR(Object.assign({}, rr, { multihash }));
+        serviceNode.bitcoin.api.returnMatchingTXForRR(Object.assign({}, rr, { multihash }), m);
+        customerNode.bitcoin.api.returnMatchingTXForRR(Object.assign({}, rr, { multihash }), m);
     }
 
     it('handles review records', async () => {
@@ -115,7 +120,7 @@ describe('Customer and Service Node integration', function() {
             publish: false
         });
         // set up btc mock to return the right content
-        setupBtcMock(hash, reviewRecord);
+        await setupBtcMock(hash, reviewRecord);
         // publish
         await customerNode.storeReviewRecord(reviewRecord, {
             bitcoinTransactionHash: btcUtils.exampleTransaction.hash
@@ -145,7 +150,7 @@ describe('Customer and Service Node integration', function() {
         const multihash = await customerNode.storeReviewRecord(reviewRecord, {
             publish: false
         });
-        setupBtcMock(multihash, reviewRecord);
+        await setupBtcMock(multihash, reviewRecord);
         await customerNode.storeReviewRecord(reviewRecord, {
             bitcoinTransactionHash: btcUtils.exampleTransaction.hash
         });
@@ -169,7 +174,7 @@ describe('Customer and Service Node integration', function() {
             const multihash = await customerNode.storeReviewRecord(reviewRecord, {
                 publish: false
             });
-            setupBtcMock(multihash, reviewRecord);
+            await setupBtcMock(multihash, reviewRecord);
             await customerNode.storeReviewRecord(reviewRecord, {
                 bitcoinTransactionHash: btcUtils.exampleTransaction.hash
             });
@@ -211,7 +216,7 @@ describe('Customer and Service Node integration', function() {
         const multihash = await customerNode.storeReviewRecord(reviewRecord, {
             publish: false
         });
-        setupBtcMock(multihash, reviewRecord);
+        await setupBtcMock(multihash, reviewRecord);
         await customerNode.storeReviewRecord(reviewRecord, {
             bitcoinTransactionHash: btcUtils.exampleTransaction.hash
         });
@@ -233,7 +238,7 @@ describe('Customer and Service Node integration', function() {
             const multihash = await customerNode.storeReviewRecord(reviewRecord, {
                 publish: false
             });
-            setupBtcMock(multihash, reviewRecord);
+            await setupBtcMock(multihash, reviewRecord);
             await customerNode.storeReviewRecord(reviewRecord, {
                 bitcoinTransactionHash: btcUtils.exampleTransaction.hash
             });

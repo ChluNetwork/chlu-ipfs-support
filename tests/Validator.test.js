@@ -125,7 +125,6 @@ describe('Validator Module', () => {
             'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1': reviewRecord,
             'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP2': reviewRecord2
         };
-        chluIpfs.bitcoin.api.returnMatchingTXForRR(reviewRecord);
         chluIpfs.reviewRecords.getReviewRecord = sinon.stub().callsFake(async multihash => {
             return map[multihash];
         });
@@ -134,6 +133,7 @@ describe('Validator Module', () => {
         chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
         chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
         chluIpfs.validator.validateMultihash = sinon.stub().resolves();
+        chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
         // Spy
         sinon.spy(chluIpfs.validator, 'validatePrevious');
         // Test success case
@@ -142,9 +142,9 @@ describe('Validator Module', () => {
         expect(chluIpfs.validator.validatePrevious.calledWith(reviewRecord2, reviewRecord)).to.be.true;
         expect(chluIpfs.validator.validatePrevious.callCount).to.equal(2);
         expect(chluIpfs.reviewRecords.getReviewRecord.calledWith(reviewRecord3.previous_version_multihash)).to.be.true;
-        // check that the db metadata (for the tx info) has been checked only for the original review
-        expect(chluIpfs.orbitDb.db.getReviewRecordMetadata.calledWith(reviewRecord.multihash)).to.be.true;
-        expect(chluIpfs.orbitDb.db.getReviewRecordMetadata.callCount).to.equal(1);
+        // check that the tx was validated, but only for the original review
+        expect(chluIpfs.validator.validateBitcoinTransaction.callCount).to.equal(1);
+        expect(chluIpfs.validator.validateBitcoinTransaction.args[0][0].multihash).to.equal(reviewRecord.multihash);
         // Test failure cases
         chluIpfs.validator.validateMultihash.resetHistory();
         chluIpfs.validator.validatePrevious.resetHistory();
@@ -251,6 +251,16 @@ describe('Validator Module', () => {
         reviewRecord.vendor_address = 'ms4TpM57RWHnEq5PRFtfJ8bcdiXoUE3tfv';
         reviewRecord.customer_address = 'mjw2BcBvNKkgLvQyYhzRERRgWSUVG7HHTb';
         const txId = btcUtils.exampleTransaction.hash.slice(0);
+        // mock
+        chluIpfs.bitcoin.getChluInfo = sinon.stub().resolves({
+            chlu_version: 0,
+            outputs: [
+                {
+                    index: 0,
+                    multihash: reviewRecord.multihash
+                }
+            ]
+        });
         // success case
         await chluIpfs.validator.validateBitcoinTransaction(reviewRecord, txId, false);
         // failure cases
@@ -265,7 +275,7 @@ describe('Validator Module', () => {
         } catch (err) {
             error = err;
         }
-        expect(error.message).to.equal('Mismatching transaction multihash');
+        expect(error.message).to.equal('Transaction had no output that matched this review record');
         // Check amount
         wrongReviewRecord = Object.assign({}, reviewRecord, {
             amount: 1234
@@ -276,7 +286,7 @@ describe('Validator Module', () => {
         } catch (err) {
             error = err;
         }
-        expect(error.message).to.equal('Review Record amount is not matching transaction amount');
+        expect(error.message).to.equal('Review Record amount is not matching transaction output amount');
         // Check vendor address
         wrongReviewRecord = Object.assign({}, reviewRecord, {
             vendor_address: 'abc'

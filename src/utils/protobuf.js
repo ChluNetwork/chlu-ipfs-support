@@ -49,10 +49,13 @@ module.exports = `
         optional string previous_version_multihash = 15;
     }
 
-    message PaymentRecord {
-        required string customer_address = 1;
-        required string vendor_address = 2;
-        required int32 amount = 3;
-        required ReviewRecord review_record = 4;
+    message TransactionOutput {
+        required uint32 index = 1;
+        optional string multihash = 2;
+    }
+
+    message Transaction {
+        repeated TransactionOutput outputs = 1;
+        required uint32 chlu_version = 2;
     }
 `;

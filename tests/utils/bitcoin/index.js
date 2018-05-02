@@ -10,13 +10,13 @@ class BlockcypherMock {
         this.getTX = sinon.stub().yields(null, this.tx);
     }
 
-    returnMatchingTXForRR(rr) {
+    returnMatchingTXForRR(rr, payloadMultihash) {
         this.tx.inputs[0].addresses = [rr.customer_address];
         this.tx.outputs[0].value = rr.amount;
         this.tx.outputs[0].addresses = [rr.vendor_address];
         this.tx.outputs[1].value = this.tx.total - this.tx.outputs[0].value;
         this.tx.outputs[1].addresses = [rr.customer_address];
-        this.tx.outputs[2].data_string = rr.multihash;
+        this.tx.outputs[2].data_string = payloadMultihash;
     }
 
     restore() {
