@@ -35,7 +35,7 @@
     "libp2p-websocket-star-rendezvous": "^0.2.3",
     "lodash": "^4.17.5",
     "lru-cache": "^4.1.2",
-    "orbit-db": "orbitdb/orbit-db#master",
+    "orbit-db": "~0.19.8",
     "protons": "~1.0.1"
   },
   "//resolutions": {
