@@ -1293,9 +1293,9 @@ block-stream@*:
   dependencies:
     inherits "~2.0.0"
 
-blockcypher@ChluNetwork/node-client:
+blockcypher@ChluNetwork/node-client#fixes:
   version "0.2.0"
-  resolved "https://codeload.github.com/ChluNetwork/node-client/tar.gz/95b44914d4c771a7c42c15b858ffac97fc8ee071"
+  resolved "https://codeload.github.com/ChluNetwork/node-client/tar.gz/3f50c83981a96a63dffe5011196eff38e103cb86"
   dependencies:
     superagent "^3.8.2"
 
@@ -1777,7 +1777,7 @@ chlu-wallet-support-js@ChluNetwork/chlu-wallet-support-js:
   dependencies:
     bip39 "^2.4.0"
     bitcoinjs-lib "^3.1.1"
-    blockcypher "git+https://github.com/ChluNetwork/node-client.git"
+    blockcypher ChluNetwork/node-client#fixes
     coinselect "^3.1.11"
     dotenv "4.0.0"
     es6-promisify "^5.0.0"
@@ -4261,9 +4261,9 @@ ipfs-multipart@~0.1.0:
     content "^3.0.0"
     dicer "^0.2.5"
 
-ipfs-pubsub-1on1@~0.0.3:
-  version "0.0.3"
-  resolved "https://codeload.github.com/ChluNetwork/ipfs-pubsub-1on1/tar.gz/f6214bb3ecce9bd25243465d09a0211f88c895ba"
+ipfs-pubsub-1on1@~0.0.4:
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/ipfs-pubsub-1on1/-/ipfs-pubsub-1on1-0.0.4.tgz#aee0052f6b85e2d953a8137497471437c6e6dab6"
   dependencies:
     safe-buffer "~5.1.1"
 
@@ -6645,7 +6645,7 @@ multihashing-async@~0.4.6, multihashing-async@~0.4.7, multihashing-async@~0.4.8:
     murmurhash3js "^3.0.1"
     nodeify "^1.0.1"
 
-"multiplex@github:dignifiedquire/multiplex":
+multiplex@dignifiedquire/multiplex:
   version "6.7.0"
   resolved "https://codeload.github.com/dignifiedquire/multiplex/tar.gz/b5d5edd30454e2c978ee8c52df86f5f4840d2eab"
   dependencies:
@@ -7048,9 +7048,9 @@ orbit-db-counterstore@~1.4.0:
     crdts "~0.1.2"
     orbit-db-store "~2.5.0"
 
-orbit-db-docstore@~1.4.0:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/orbit-db-docstore/-/orbit-db-docstore-1.4.0.tgz#b63004e7d400632d1d2b68c1a04103f5cac65ef5"
+orbit-db-docstore@~1.4.1:
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/orbit-db-docstore/-/orbit-db-docstore-1.4.1.tgz#ef175dd3179b57951ef9f06513a8ec9027531184"
   dependencies:
     orbit-db-store "~2.5.0"
     p-map "~1.1.1"
@@ -7097,16 +7097,16 @@ orbit-db-store@~2.5.0:
     p-each-series "^1.0.0"
     readable-stream "~2.3.5"
 
-orbit-db@orbitdb/orbit-db#master:
-  version "0.19.7"
-  resolved "https://codeload.github.com/orbitdb/orbit-db/tar.gz/96df2ded994ae7a04418f072677f3a3a4294862b"
+orbit-db@~0.19.8:
+  version "0.19.8"
+  resolved "https://registry.yarnpkg.com/orbit-db/-/orbit-db-0.19.8.tgz#5d07c96c579d85ca96bacd7f3fdd02a576e0e8cc"
   dependencies:
-    ipfs-pubsub-1on1 "~0.0.3"
+    ipfs-pubsub-1on1 "~0.0.4"
     logplease "^1.2.14"
     multihashes "^0.4.12"
     orbit-db-cache "~0.2.2"
     orbit-db-counterstore "~1.4.0"
-    orbit-db-docstore "~1.4.0"
+    orbit-db-docstore "~1.4.1"
     orbit-db-eventstore "~1.4.0"
     orbit-db-feedstore "~1.4.0"
     orbit-db-keystore "~0.1.0"
