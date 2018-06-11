@@ -80,6 +80,14 @@ class DB {
         this.chluIpfs.logger.debug('Remote replication event received: OrbitDB setAndWait Done');
     }
 
+    async putDID(didId, didDocumentMultihash, signature) {
+
+    }
+
+    async putReputation(didId, reputationData, signature) {
+
+    }
+
     async open() {
         this.chluIpfs.logger.debug('Opening Chlu OrbitDB');
         this.dbName = this.chluIpfs.network ? ('chlu-' + this.chluIpfs.network) : 'chlu';

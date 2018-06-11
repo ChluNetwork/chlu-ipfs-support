@@ -39,6 +39,8 @@ class ChluAbstractIndex {
                 }
             });
     }
+    
+    // Review records
 
     addOriginalReviewRecord(obj) {
         IPFSUtils.validateMultihash(obj.multihash);
@@ -100,6 +102,18 @@ class ChluAbstractIndex {
 
     _getReviewRecordCount() {
         notImplemented();
+    }
+
+    // DID
+
+    putDID(didId, didDocumentMultihash, signature) {
+
+    }
+
+    // Reputation
+
+    putReputation(didId, reputationDataMultihash, signature) {
+        
     }
 
 }
