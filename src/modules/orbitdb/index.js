@@ -57,11 +57,11 @@ class DB {
     /**
      * Get the last review record update for the given multihash
      */
-    get(multihash) {
+    getLatestReviewRecordUpdate(multihash) {
         return this.db.getLatestReviewRecordUpdate(multihash) || multihash;
     }
 
-    async set(multihash, previousVersionMultihash = null, txId = null, bitcoinNetwork = null) {
+    async putReviewRecord(multihash, previousVersionMultihash = null, txId = null, bitcoinNetwork = null) {
         if (previousVersionMultihash) {
             this.chluIpfs.logger.debug('Writing to OrbitDB: Review Update from ' + multihash + ' to ' + previousVersionMultihash);
             await this.db.updateReviewRecord(multihash, previousVersionMultihash);
@@ -71,11 +71,11 @@ class DB {
         }
     }
 
-    async setAndWaitForReplication(...args) {
+    async putReviewRecordAndWaitForReplication(...args) {
         this.chluIpfs.logger.debug('Preparing to wait for remote OrbitDB Replication before Write');
         await new Promise((resolve, reject) => {
             this.chluIpfs.events.once(constants.eventTypes.replicated + '_' + this.getAddress(), () => resolve());
-            this.set(...args).catch(reject);
+            this.putReviewRecord(...args).catch(reject);
         });
         this.chluIpfs.logger.debug('Remote replication event received: OrbitDB setAndWait Done');
     }

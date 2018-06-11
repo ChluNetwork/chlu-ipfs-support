@@ -44,7 +44,7 @@ describe('Customer', () => {
                 publish
             }
         };
-        chluIpfs.orbitDb.setAndWaitForReplication = sinon.stub().resolves();
+        chluIpfs.orbitDb.putReviewRecordAndWaitForReplication = sinon.stub().resolves();
         chluIpfs.orbitDb.getReviewRecordMetadata = sinon.stub().returns({
             bitcoinTransactionHash: 'fake'
         });

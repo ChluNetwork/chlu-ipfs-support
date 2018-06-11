@@ -33,7 +33,7 @@ describe('OrbitDB Module', () => {
     });
 
     it('exposes method to get the latest version of a RR by multihash', () => {
-        expect(chluIpfs.orbitDb.get).to.be.a('function');
+        expect(chluIpfs.orbitDb.getLatestReviewRecordUpdate).to.be.a('function');
     });
 
     describe('Chlu Store InMemory Index', () => {

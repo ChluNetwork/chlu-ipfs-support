@@ -25,7 +25,7 @@ class ReviewRecords {
         [...this.watched].forEach(async item => {
             try {
                 const { multihash, validate } = item;
-                const update = await this.chluIpfs.orbitDb.get(multihash);
+                const update = await this.chluIpfs.orbitDb.getLatestReviewRecordUpdate(multihash);
                 if (update && update !== multihash) {
                     const reviewRecord = await this.readReviewRecord(multihash, { validate });
                     // TODO: validate update!!
@@ -80,7 +80,7 @@ class ReviewRecords {
         } = options;
         let m = multihash;
         if (getLatestVersion) {
-            m = await this.chluIpfs.orbitDb.get(multihash);
+            m = await this.chluIpfs.orbitDb.getLatestReviewRecordUpdate(multihash);
         }
         const reviewRecord = await this.getReviewRecord(m);
         reviewRecord.errors = [];
@@ -207,7 +207,7 @@ class ReviewRecords {
     }
 
     async writeToOrbitDB(multihash, previousVersionMultihash = null, txId = null) {
-        await this.chluIpfs.orbitDb.setAndWaitForReplication(
+        await this.chluIpfs.orbitDb.putReviewRecordAndWaitForReplication(
             multihash,
             previousVersionMultihash,
             txId,
