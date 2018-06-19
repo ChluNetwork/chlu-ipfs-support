@@ -107,5 +107,12 @@ describe('OrbitDB Module', () => {
             expect(idx.getLatestReviewRecordUpdate(genMultihash(3)))
                 .to.deep.equal(genMultihash(4));
         });
+
+        it.skip('handles DIDs')
+
+        it.skip('handles unverified reviews')
+
+        it.skip('returns both verified and unverified reviews together')
+
     });
 });
