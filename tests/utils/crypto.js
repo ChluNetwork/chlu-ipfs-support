@@ -31,6 +31,9 @@ module.exports = function cryptoTestUtils(chluIpfs) {
             for (const did of dids) {
                 map[did.publicDidDocument.id] = did.publicDidDocument
             }
+            if (chluIpfs.did.didId) {
+                map[chluIpfs.did.didId] = chluIpfs.did.publicDidDocument
+            }
             return map
         }
     };
