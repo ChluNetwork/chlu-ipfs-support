@@ -15,7 +15,7 @@ const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 describe('ReviewRecords module', () => {
     let chluIpfs;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         chluIpfs = new ChluIPFS({
             type: ChluIPFS.types.customer,
             enablePersistence: false,
@@ -23,6 +23,8 @@ describe('ReviewRecords module', () => {
             logger: logger('Customer')
         });
         chluIpfs.waitUntilReady = sinon.stub().resolves();
+        chluIpfs.did.publish = sinon.stub().resolves()
+        await chluIpfs.did.start() // generate a DID
     });
 
     it('reads ReviewRecords from IPFS', async () => {
