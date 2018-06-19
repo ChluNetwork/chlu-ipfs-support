@@ -29,7 +29,7 @@ function strip(obj) {
 
 describe('Customer and Service Node integration', function() {
     let server, testDir, ipfsDir, customerNode, customerIpfs, serviceNode, serviceIpfs;
-    let v, vm, m, makeKeyPair, preparePoPR;
+    let v, vm, m, preparePoPR;
 
     before(async () => {
         if (env.isNode()) {
@@ -71,12 +71,16 @@ describe('Customer and Service Node integration', function() {
     
         // Stubs
         const crypto = cryptoTestUtils(serviceNode);
-        makeKeyPair = crypto.makeKeyPair;
+        const makeKeyPair = crypto.makeKeyPair;
+        const makeDID = crypto.makeDID
         preparePoPR = crypto.preparePoPR;
         vm = await makeKeyPair();
-        v = await makeKeyPair();
-        m = await makeKeyPair();
-        const http = fakeHttpModule(() => ({ multihash: m.multihash }));
+        v = await makeDID();
+        m = await makeDID();
+        const didMap = crypto.buildDIDMap([v, m])
+        serviceNode.did.wellKnownDIDs = didMap
+        customerNode.did.wellKnownDIDs = didMap
+        const http = fakeHttpModule(() => ({ didId: m.publicDidDocument.id }));
         serviceNode.http = http;
         customerNode.http = http;
         serviceNode.ipfsUtils.stop = sinon.stub().resolves();

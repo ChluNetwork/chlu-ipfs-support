@@ -9,7 +9,12 @@ class ChluIPFSDID {
 
     constructor(chluIpfs) {
         this.chluIpfs = chluIpfs 
+        // ChluDID instance
         this.chluDID = new ChluDID()
+        // Well Known DIDs
+        // used for hardcoded DIDs in tests
+        // and will also be used for stuff like official Chlu trusted DIDs
+        this.wellKnownDIDs = {}
         this.didId = null
         this.publicDidDocument = null
         this.privateKeyBase58 = null
@@ -85,21 +90,34 @@ class ChluIPFSDID {
         return obj;
     }
 
-    async publish() {
-        const existingMultihash = await this.chluIpfs.orbitDb.getDID(this.didId)
-        const multihash = await this.chluIpfs.ipfsUtils.putJSON(this.publicDidDocument)
+    async publish(did) {
+        if (!did) {
+            did = {
+                publicDidDocument: this.publicDidDocument,
+                privateKeyBase58: this.privateKeyBase58
+            }
+        }
+        const existingMultihash = await this.chluIpfs.orbitDb.getDID(did.publicDidDocument.id)
+        const multihash = await this.chluIpfs.ipfsUtils.putJSON(did.publicDidDocument)
         if (existingMultihash !== multihash) {
-            await this.chluIpfs.orbitDb.putDID(this.didId, multihash)
+            await this.chluIpfs.orbitDb.putDID(did.publicDidDocument.id, multihash)
         }
     }
 
     async getDID(didId) {
-        const multihash = await this.chluIpfs.db.getDID(didId)
+        if (didId === this.didId) return this.publicDidDocument
+        const wellKnown = this.getWellKnownDID(didId)
+        if (wellKnown) return wellKnown
+        const multihash = await this.chluIpfs.orbitDb.getDID(didId)
         if (!multihash) {
             throw new Error('DID Not Found')
         }
-        const publicDidDocument = await this.chluIpfs.ipfs.getJSON(multihash)
+        const publicDidDocument = await this.chluIpfs.ipfsUtils.getJSON(multihash)
         return publicDidDocument
+    }
+
+    getWellKnownDID(didId) {
+        return this.wellKnownDIDs[didId] || null
     }
 }
 
