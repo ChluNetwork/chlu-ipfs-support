@@ -34,21 +34,21 @@ class Cache {
         return this.read(txId);
     }
 
-    cacheMarketplacePubKeyMultihash(url, multihash) {
-        IPFSUtils.validateMultihash(multihash);
+    cacheMarketplaceDIDID(url, didId) {
+        // TODO: validate DIDID
         if (this.options.enabled) {
-            this.cache.set(url, multihash, this.options.maxMarketplaceKeyAge);
+            this.cache.set(url, didId, this.options.maxMarketplaceDIDAge);
             this.persistData();
-            this.log('Cached ' + url + ' = ' + multihash + ' with maxAge ' + this.options.maxMarketplaceKeyAge);
+            this.log('Cached ' + url + ' = ' + didId + ' with maxAge ' + this.options.maxMarketplaceKeyAge);
         } else {
-            this.log('Skipping cache write for ' + url + ' = ' + multihash + ': cache disabled');
+            this.log('Skipping cache write for ' + url + ' = ' + didId + ': cache disabled');
         }
     }
 
-    getMarketplacePubKeyMultihash(url) {
+    getMarketplaceDIDID(url) {
         if (this.options.enabled) {
             const val = this.cache.get(url);
-            if (IPFSUtils.isValidMultihash(val)) {
+            if (val) { // TODO: validate DID ID
                 this.log('Cache HIT for ' + url + ': ' + val);
                 return val;
             } else {

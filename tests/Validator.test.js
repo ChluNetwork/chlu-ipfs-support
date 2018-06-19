@@ -24,7 +24,7 @@ describe('Validator Module', () => {
             logger: logger('Customer')
         });
         sinon.spy(chluIpfs.cache, 'cacheValidity');
-        sinon.spy(chluIpfs.cache, 'cacheMarketplacePubKeyMultihash');
+        sinon.spy(chluIpfs.cache, 'cacheMarketplaceDIDID');
         // mock DB call
         // so that when the validator checks the DB for the tx info it gets some data
         chluIpfs.orbitDb.db = {
@@ -171,11 +171,13 @@ describe('Validator Module', () => {
         // --- Setup
         const fakeStore = {};
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
-        const { makeKeyPair, preparePoPR } = cryptoTestUtils(chluIpfs);
+        const { makeKeyPair, makeDID, preparePoPR, buildDIDMap } = cryptoTestUtils(chluIpfs);
         const vm = await makeKeyPair();
-        const v = await makeKeyPair();
-        const m = await makeKeyPair();
-        chluIpfs.http = http(() => ({ multihash: m.multihash }));
+        const v = await makeDID();
+        const m = await makeDID();
+        const didMap = buildDIDMap([v, m])
+        chluIpfs.did.getDID = sinon.stub().callsFake(async id => didMap[id])
+        chluIpfs.http = http(() => ({ didId: m.publicDidDocument.id }));
         // --- Success Case
         const popr = (await getFakeReviewRecord()).popr;
         const signedPoPR = await preparePoPR(popr, vm, v, m);

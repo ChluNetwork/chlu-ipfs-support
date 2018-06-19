@@ -33,6 +33,16 @@ class Crypto {
         return result;
     }
 
+    async signPoPR(obj, keyPair) {
+        if (!obj.hash) {
+            obj.signature = '';
+            obj = await this.chluIpfs.reviewRecords.hashPoPR(obj);
+        }
+        obj.signature = await this.signMultihash(obj.hash, keyPair);
+        delete obj.hash; // causes issues with tests because it is not in the protobuf
+        return obj;
+    }
+
     async generateKeyPair() {
         const keyPair = ECPair.makeRandom();
         const pubKeyMultihash = await this.storePublicKey(keyPair.getPublicKeyBuffer());

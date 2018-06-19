@@ -55,8 +55,8 @@ class ChluIPFSDID {
         }
     }
 
-    async sign(data) {
-        return this.chluDID.sign(this.privateKeyBase58, data)
+    async sign(data, privateKeyBase58) {
+        return this.chluDID.sign(privateKeyBase58 || this.privateKeyBase58, data)
     }
 
     async verify(didId, data, signature) {
@@ -64,9 +64,9 @@ class ChluIPFSDID {
         return this.chluDID.verify(didDocument, data, signature)
     }
 
-    async signMultihash(multihash) {
+    async signMultihash(multihash, privateKeyBase58) {
         const data = getDigestFromMultihash(multihash)
-        const result = await this.sign(data)
+        const result = await this.sign(data, privateKeyBase58)
         return result.signature
     }
 

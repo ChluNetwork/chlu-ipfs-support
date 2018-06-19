@@ -113,7 +113,7 @@ class Validator {
             const vendorDIDID = popr.vendor_key_location
             const vmSignature = popr.signature;
             const marketplaceUrl = popr.marketplace_url;
-            const marketplaceDIDID = await this.fetchMarketplaceKey(marketplaceUrl, useCache);
+            const marketplaceDIDID = await this.fetchMarketplaceDIDID(marketplaceUrl, useCache);
             const DID = this.chluIpfs.did;
             const crypto = this.chluIpfs.crypto
             const validations = await Promise.all([
@@ -189,21 +189,21 @@ class Validator {
         return l;
     }
 
-    async fetchMarketplaceKey(marketplaceUrl, useCache = true) {
+    async fetchMarketplaceDIDID(marketplaceUrl, useCache = true) {
         try {
-            this.chluIpfs.logger.debug('Fetching marketplace key for ' + marketplaceUrl);
+            this.chluIpfs.logger.debug('Fetching marketplace DID for ' + marketplaceUrl);
             if (useCache) {
-                const multihash = this.chluIpfs.cache.getMarketplacePubKeyMultihash(marketplaceUrl);
-                if (multihash) return multihash;
+                const didId = this.chluIpfs.cache.getMarketplaceDIDID(marketplaceUrl);
+                if (didId) return didId;
             }
             const response = await this.chluIpfs.http.get(marketplaceUrl + '/.well-known');
-            const multihash = response.data.multihash;
-            IPFSUtils.validateMultihash(multihash);
-            if (useCache) this.chluIpfs.cache.cacheMarketplacePubKeyMultihash(marketplaceUrl, multihash);
-            this.chluIpfs.logger.debug('Fetched marketplace key for ' + marketplaceUrl + ': located at ' + multihash);
-            return multihash;
+            const didId = response.data.didId;
+            // TODO: validate didId
+            if (useCache) this.chluIpfs.cache.cacheMarketplaceDIDID(marketplaceUrl, didId);
+            this.chluIpfs.logger.debug('Fetched marketplace DID for ' + marketplaceUrl + ': ID ' + didId);
+            return didId;
         } catch (error) {
-            throw new Error('Error while fetching the Marketplace key at ' + marketplaceUrl + ': ' + error.message || error);
+            throw new Error('Error while fetching the Marketplace DID at ' + marketplaceUrl + ': ' + error.message || error);
         }
     }
 
