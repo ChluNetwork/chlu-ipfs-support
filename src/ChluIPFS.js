@@ -134,13 +134,8 @@ class ChluIPFS {
         await this.room.start();
         await this.bitcoin.start();
 
-        if (!this.did.isPresent()) {
-            // Generate a DID & Publish
-            // Note: this action requires IPFS to be already started
-            await this.did.generate();
-            await this.did.publish()
-            await this.persistence.persistData();
-        }
+        // Note: this action requires IPFS to be already started and persisted data to be loaded
+        await this.did.start()
 
         if (this.type === constants.types.service) {
             await this.serviceNode.start();

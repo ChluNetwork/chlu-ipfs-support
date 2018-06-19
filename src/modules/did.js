@@ -7,13 +7,21 @@ class ChluIPFSDID {
         return typeof didId === 'string' && didId.indexOf('did:') === 0
     }
 
-    constructor(ipfs, db) {
-        this.ipfs = ipfs
-        this.db = db
+    constructor(chluIpfs) {
+        this.chluIpfs = chluIpfs 
         this.chluDID = new ChluDID()
         this.didId = null
         this.publicDidDocument = null
         this.privateKeyBase58 = null
+    }
+
+    async start() {
+        if (!this.isPresent()) {
+            // Generate a DID & Publish
+            await this.generate();
+            await this.publish()
+            await this.chluIpfs.persistence.persistData();
+        }
     }
 
     async generate() {
@@ -52,13 +60,14 @@ class ChluIPFSDID {
     }
 
     async verify(didId, data, signature) {
-        const didDocument = await this.getDIDByID(didId)
+        const didDocument = await this.getDID(didId)
         return this.chluDID.verify(didDocument, data, signature)
     }
 
     async signMultihash(multihash) {
         const data = getDigestFromMultihash(multihash)
-        return this.sign(data)
+        const result = await this.sign(data)
+        return result.signature
     }
 
     async verifyMultihash(didId, multihash, signature) {

@@ -33,7 +33,9 @@ describe('Validator Module', () => {
             })
         };
         chluIpfs.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
+        chluIpfs.did.publish = sinon.stub().resolves()
         await chluIpfs.bitcoin.start();
+        await chluIpfs.did.start();
         // TODO: instead of disabling explicitly other validators in tests,
         // make a system to explicity enable only the validator that needs to be tested
     });
@@ -218,8 +220,9 @@ describe('Validator Module', () => {
         chluIpfs.crypto.generateKeyPair();
         // --- Success Case
         let reviewRecord = await getFakeReviewRecord();
-        reviewRecord = await chluIpfs.crypto.signReviewRecord(reviewRecord, chluIpfs.crypto.keyPair);
-        reviewRecord.key_location = '/ipfs/' + chluIpfs.crypto.pubKeyMultihash;
+        reviewRecord = await chluIpfs.did.signReviewRecord(reviewRecord);
+        reviewRecord.key_location = chluIpfs.did.didId;
+        chluIpfs.did.getDID = sinon.stub().resolves(chluIpfs.did.publicDidDocument)
         let valid = await chluIpfs.validator.validateRRSignature(reviewRecord);
         expect(valid).to.be.true;
         // --- Failure Cases
