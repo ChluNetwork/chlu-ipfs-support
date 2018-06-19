@@ -86,10 +86,10 @@ class ChluIPFSDID {
     }
 
     async publish() {
-        const existingMultihash = await this.chluIpfs.db.getDID(this.didId)
-        const multihash = await this.chluIpfs.ipfs.putJSON(this.publicDidDocument)
+        const existingMultihash = await this.chluIpfs.orbitDb.getDID(this.didId)
+        const multihash = await this.chluIpfs.ipfsUtils.putJSON(this.publicDidDocument)
         if (existingMultihash !== multihash) {
-            await this.chluIpfs.db.putDID(this.didId, multihash)
+            await this.chluIpfs.orbitDb.putDID(this.didId, multihash)
         }
     }
 

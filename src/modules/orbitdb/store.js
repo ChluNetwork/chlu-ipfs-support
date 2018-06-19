@@ -68,6 +68,10 @@ class ChluStore extends Store {
         })
     }
 
+    getDID(didId) {
+        return this._index.getDID(didId)
+    }
+
     getReviewRecordList() {
         return this._index.getReviewRecordList();
     }
