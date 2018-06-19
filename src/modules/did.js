@@ -46,15 +46,6 @@ class ChluIPFSDID {
         return this.publicDidDocument && this.didId && this.privateKeyBase58
     }
 
-    async verifyUsingDID(didId, nonce, signature) {
-        const did = await this.getDID(didId)
-        if (did) {
-            return this.chluDID.verify(did, nonce, signature)
-        } else {
-            throw new Error('Could not find Public Key in DID ' + didId)
-        }
-    }
-
     async sign(data, privateKeyBase58) {
         return this.chluDID.sign(privateKeyBase58 || this.privateKeyBase58, data)
     }
