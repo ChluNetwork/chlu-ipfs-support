@@ -45,6 +45,10 @@ describe.skip('DID Module', () => {
         map = null;
     });
 
+    it('publish')
+    it('generate')
+    it('getDID')
+
     it('signs Review Records', async () => {
         async function verifyRR(rr, pubKeyMultihash) {
             const hashed = await chluIpfs.reviewRecords.hashReviewRecord(rr);
