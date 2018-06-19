@@ -81,11 +81,15 @@ class DB {
     }
 
     async putDID(didId, didDocumentMultihash, signature) {
-
+        return this.db.putDID(didId, didDocumentMultihash, signature)
     }
 
-    async putReputation(didId, reputationData, signature) {
+    async putUnverifiedReviews(didId, reviews, signature) {
+        return this.db.putUnverifiedReviews(didId, reviews, signature)
+    }
 
+    async getDID(didId) {
+        return this.db.getDID(didId)
     }
 
     async open() {

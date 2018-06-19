@@ -1,4 +1,5 @@
 const IPFSUtils = require('../../utils/ipfs');
+const DID = require('../did')
 
 const version = 0;
 
@@ -27,14 +28,25 @@ class ChluAbstractIndex {
                             multihash: item.payload.multihash,
                             bitcoinTransactionHash: item.payload.bitcoinTransactionHash
                         });
-                    } else if (item.payload.op === operations.UPDATE_REVIEW_RECORD && IPFSUtils.isValidMultihash(item.payload.multihash) && IPFSUtils.isValidMultihash(item.payload.previousVersionMultihash)) {
-                        // TODO: check that whatever is being updated is in the DB
-                        // the multihash to be updated might already be an update. Be careful!
-                        const from = this.getLatestReviewRecordUpdate(item.payload.previousVersionMultihash);
-                        this.addReviewRecordUpdate({
-                            fromMultihash: from,
-                            toMultihash: item.payload.multihash
-                        });
+                    } else if (item.payload.op === operations.UPDATE_REVIEW_RECORD) {
+                        if (IPFSUtils.isValidMultihash(item.payload.multihash) && IPFSUtils.isValidMultihash(item.payload.previousVersionMultihash)) {
+                            // TODO: check that whatever is being updated is in the DB
+                            // the multihash to be updated might already be an update. Be careful!
+                            const from = this.getLatestReviewRecordUpdate(item.payload.previousVersionMultihash);
+                            this.addReviewRecordUpdate({
+                                fromMultihash: from,
+                                toMultihash: item.payload.multihash
+                            });
+                        }
+                    } else if (item.payload.op === operations.PUT_DID) {
+                        if (DID.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.didDocumentMultihash)) {
+                            // TODO: check signature
+                            this.putDID(item.payload.didId, item.payload.didDocumentMultihash, item.payload.signature)
+                        }
+                    } else if (item.payload.op === operations.PUT_UNVERIFIED_REVIEWS) {
+                        if (DID.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.reviewsMultihash)) {
+                            this.putUnverifiedReviews(item.payload.didId, item.payload.reviewsMultihash, item.payload.signature)
+                        }
                     }
                 }
             });
@@ -106,14 +118,40 @@ class ChluAbstractIndex {
 
     // DID
 
-    putDID(didId, didDocumentMultihash, signature) {
-
+    getDID(didId) {
+        return this._getDID(didId)
     }
 
-    // Reputation
+    putDID(didId, didDocumentMultihash, signature) {
+        return this._putDID(didId, didDocumentMultihash, signature)
+    }
 
-    putReputation(didId, reputationDataMultihash, signature) {
-        
+    _putDID() {
+        notImplemented();
+    }
+
+    _getDID() {
+        notImplemented();
+    }
+
+    // DID and Reviews
+
+    getReviewsByDID(didId) {
+        return this._getReviewsByDID(didId)
+    }
+
+    _getReviewsByDID() {
+        notImplemented();
+    }
+
+    // Unverified Reviews
+
+    putUnverifiedReviews(didId, reviewsMultihash, signature) {
+        return this._putUnverifiedReviews(didId, reviewsMultihash, signature)
+    }
+
+    _putUnverifiedReviews() {
+        notImplemented();
     }
 
 }
@@ -124,7 +162,9 @@ function notImplemented() {
 
 const operations = {
     ADD_REVIEW_RECORD: 'ADD_REVIEW_RECORD',
-    UPDATE_REVIEW_RECORD: 'UPDATE_REVIEW_RECORD'
+    UPDATE_REVIEW_RECORD: 'UPDATE_REVIEW_RECORD',
+    PUT_DID: 'PUT_DID',
+    PUT_UNVERIFIED_REVIEWS: 'PUT_UNVERIFIED_REVIEWS'
 };
 
 module.exports = Object.assign(ChluAbstractIndex, { operations, version });

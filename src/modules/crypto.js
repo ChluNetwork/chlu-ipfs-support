@@ -1,12 +1,11 @@
-const multihashes = require('multihashes');
 const { ECPair, ECSignature } = require('bitcoinjs-lib');
-const { multihashToBuffer } = require('../utils/ipfs');
+const { getDigestFromMultihash } = require('../utils/ipfs')
+
+// TODO: switch this module to elliptic
 
 class Crypto {
     constructor(chluIpfs){
         this.chluIpfs = chluIpfs;
-        this.pubKeyMultihash = null;
-        this.keyPair = null;
     }
 
     async storePublicKey(pubKey) {
@@ -21,7 +20,7 @@ class Crypto {
     }
 
     async signMultihash(multihash, keyPair) {
-        const signature = await keyPair.sign(this.getDigestFromMultihash(multihash));
+        const signature = await keyPair.sign(getDigestFromMultihash(multihash));
         return signature.toDER().toString('hex');
     }
 
@@ -29,51 +28,25 @@ class Crypto {
         this.chluIpfs.logger.debug(`Verifying multihash ${pubKeyMultihash} ${multihash} ${signature}`);
         const buffer = await this.getPublicKey(pubKeyMultihash);
         const keyPair = await ECPair.fromPublicKeyBuffer(buffer);
-        const result = keyPair.verify(this.getDigestFromMultihash(multihash), ECSignature.fromDER(Buffer.from(signature, 'hex')));
+        const result = keyPair.verify(getDigestFromMultihash(multihash), ECSignature.fromDER(Buffer.from(signature, 'hex')));
         this.chluIpfs.logger.debug(`Verifying multihash ${pubKeyMultihash} ${multihash} ${signature} ..... ${result}`);
         return result;
     }
 
-    async signPoPR(obj, keyPair) {
-        if (!obj.hash) {
-            obj.signature = '';
-            obj = await this.chluIpfs.reviewRecords.hashPoPR(obj);
-        }
-        obj.signature = await this.signMultihash(obj.hash, keyPair);
-        delete obj.hash; // causes issues with tests because it is not in the protobuf
-        return obj;
-    }
-
-    async signReviewRecord(obj, keyPair) {
-        if (!obj.hash) {
-            obj.signature = '';
-            obj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
-        }
-        obj.signature = await this.signMultihash(obj.hash, keyPair);
-        return obj;
-    }
-
     async generateKeyPair() {
-        this.keyPair = ECPair.makeRandom();
-        this.pubKeyMultihash = await this.storePublicKey(this.keyPair.getPublicKeyBuffer());
-        return this.keyPair;
+        const keyPair = ECPair.makeRandom();
+        const pubKeyMultihash = await this.storePublicKey(keyPair.getPublicKeyBuffer());
+        return { keyPair, pubKeyMultihash };
     }
 
     async importKeyPair(exported) {
-        this.keyPair = ECPair.fromWIF(exported);
-        this.pubKeyMultihash = await this.storePublicKey(this.keyPair.getPublicKeyBuffer());
-        return this.keyPair;
+        const keyPair = ECPair.fromWIF(exported);
+        const pubKeyMultihash = await this.storePublicKey(keyPair.getPublicKeyBuffer());
+        return { keyPair, pubKeyMultihash };
     }
 
-    async exportKeyPair() {
-        if (this.keyPair) {
-            return this.keyPair.toWIF();
-        }
-    }
-
-    getDigestFromMultihash(multihash){
-        const decoded = multihashes.decode(multihashToBuffer(multihash));
-        return decoded.digest;
+    async exportKeyPair(keyPair) {
+        return keyPair.toWIF();
     }
 }
 

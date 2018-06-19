@@ -3,7 +3,6 @@ const sinon = require('sinon');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
-const { getFakeReviewRecord } = require('./utils/protobuf');
 const { ECPair } = require('bitcoinjs-lib');
 const DAGNode = require('ipld-dag-pb').DAGNode;
 const { isValidMultihash } = require('../src/utils/ipfs');
@@ -45,42 +44,16 @@ describe('Crypto Module', () => {
         map = null;
     });
 
-    it('signs Review Records', async () => {
-        async function verifyRR(rr, pubKeyMultihash) {
-            const hashed = await chluIpfs.reviewRecords.hashReviewRecord(rr);
-            return await chluIpfs.crypto.verifyMultihash(
-                pubKeyMultihash,
-                hashed.hash,
-                hashed.signature
-            );
-        }
-        let reviewRecord = await getFakeReviewRecord();
-        reviewRecord = await chluIpfs.crypto.signReviewRecord(reviewRecord, keyPair);
-        const verification = await verifyRR(reviewRecord, pubKeyMultihash);
+    it('signs and verifies multihashes', async () => {
+        const content = { text: 'hello world, this is an example object' }
+        const multihash = await chluIpfs.ipfsUtils.putJSON(content)
+        const signature = await chluIpfs.crypto.signMultihash(multihash, keyPair)
+        const verification = await chluIpfs.crypto.verifyMultihash(pubKeyMultihash, multihash, signature)
         expect(verification).to.be.true;
-        // Test failure case: change a field and validate again
-        reviewRecord.review_text = 'Hellooooo';
-        const verificationToFail = await verifyRR(reviewRecord, pubKeyMultihash);
-        expect(verificationToFail).to.be.false;
-    });
-
-    it('signs PoPRs', async () => {
-        async function verifyPoPR(popr, pubKeyMultihash) {
-            const hashed = await chluIpfs.reviewRecords.hashPoPR(popr);
-            return await chluIpfs.crypto.verifyMultihash(
-                pubKeyMultihash,
-                hashed.hash,
-                hashed.signature
-            );
-        }
-        const reviewRecord = await getFakeReviewRecord();
-        reviewRecord.popr = await chluIpfs.crypto.signPoPR(reviewRecord.popr, keyPair);
-        const verification = await verifyPoPR(reviewRecord.popr, pubKeyMultihash);
-        expect(verification).to.be.true;
-        // Test failure case: change a field and validate again
-        reviewRecord.popr.amount = 200;
-        const verificationToFail = await verifyPoPR(reviewRecord.popr, pubKeyMultihash);
-        expect(verificationToFail).to.be.false;
+        const otherContent = { text: 'hello world, this is a DIFFERENT example object' }
+        const otherMultihash = await chluIpfs.ipfsUtils.putJSON(otherContent)
+        const toFail = await chluIpfs.crypto.verifyMultihash(pubKeyMultihash, otherMultihash, signature)
+        expect(toFail).to.be.false
     });
 
     it('retrieves public keys', async () => {
@@ -96,26 +69,24 @@ describe('Crypto Module', () => {
     });
 
     it('generates keypair', async () => {
-        const keyPair = await chluIpfs.crypto.generateKeyPair();
+        const { keyPair, pubKeyMultihash } = await chluIpfs.crypto.generateKeyPair();
         expect(chluIpfs.ipfsUtils.put.calledWith(keyPair.getPublicKeyBuffer())).to.be.true;
         expect(keyPair instanceof ECPair).to.be.true;
-        expect(chluIpfs.crypto.keyPair).to.equal(keyPair);
-        expect(isValidMultihash(chluIpfs.crypto.pubKeyMultihash)).to.be.true;
+        expect(isValidMultihash(pubKeyMultihash)).to.be.true;
     });
 
     it('imports keypair', async () => {
         const keyPair = ECPair.makeRandom();
-        const imported = await chluIpfs.crypto.importKeyPair(keyPair.toWIF());
-        expect(imported instanceof ECPair).to.be.true;
+        const { keyPair: importedKeyPair, pubKeyMultihash } = await chluIpfs.crypto.importKeyPair(keyPair.toWIF());
+        expect(importedKeyPair instanceof ECPair).to.be.true;
         expect(chluIpfs.ipfsUtils.put.calledWith(keyPair.getPublicKeyBuffer())).to.be.true;
-        expect(chluIpfs.crypto.keyPair.toWIF()).to.equal(keyPair.toWIF());
-        expect(isValidMultihash(chluIpfs.crypto.pubKeyMultihash)).to.be.true;
+        expect(importedKeyPair.toWIF()).to.equal(keyPair.toWIF());
+        expect(isValidMultihash(pubKeyMultihash)).to.be.true;
     });
 
     it('exports keypair', async () => {
         const keyPair = ECPair.makeRandom();
-        chluIpfs.crypto.keyPair = keyPair;
-        const exported = await chluIpfs.crypto.exportKeyPair();
+        const exported = await chluIpfs.crypto.exportKeyPair(keyPair);
         expect(exported).to.equal(keyPair.toWIF());
     });
 });

@@ -27,6 +27,7 @@
     "axios": "^0.18.0",
     "bitcoinjs-lib": "^3.3.2",
     "blockcypher": "ChluNetwork/node-client#fixes",
+    "chlu-did": "ChluNetwork/chlu-did",
     "chlu-wallet-support-js": "ChluNetwork/chlu-wallet-support-js",
     "commander": "^2.15.1",
     "debounce-async": "^0.0.1",

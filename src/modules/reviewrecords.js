@@ -99,8 +99,8 @@ class ReviewRecords {
             }
         }
         if (checkForUpdates) this.watchReviewRecord(m, validate);
-        const keyMultihash = this.chluIpfs.validator.keyLocationToKeyMultihash(reviewRecord.key_location);
-        reviewRecord.editable = keyMultihash === this.chluIpfs.crypto.pubKeyMultihash;
+        const didId = reviewRecord.key_location;
+        reviewRecord.editable = didId === this.chluIpfs.did.didId;
         reviewRecord.requestedMultihash = multihash;
         reviewRecord.watching = Boolean(checkForUpdates);
         reviewRecord.gotLatestVersion = Boolean(getLatestVersion);
@@ -122,12 +122,11 @@ class ReviewRecords {
     }
 
     async prepareReviewRecord(reviewRecord, bitcoinTransactionHash = null, validate = true) {
-        const keyPair = this.chluIpfs.crypto.keyPair;
-        reviewRecord.key_location = '/ipfs/' + await this.chluIpfs.crypto.storePublicKey(keyPair.getPublicKeyBuffer());
+        reviewRecord.key_location = this.chluIpfs.did.didId
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
         // Remove hash in case it's wrong (or this is an update). It's going to be calculated by the signing function
         reviewRecord.hash = '';
-        reviewRecord = await this.chluIpfs.crypto.signReviewRecord(reviewRecord, keyPair);
+        reviewRecord = await this.chluIpfs.did.signReviewRecord(reviewRecord);
         const dagNode = await this.getReviewRecordDAGNode(reviewRecord);
         reviewRecord.multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         if (validate) {

@@ -115,6 +115,21 @@ class IPFS {
         return dagNode.data;
     }
 
+    async getJSON(multihash) {
+        let data = await this.get(multihash)
+        if (Buffer.isBuffer(data)) {
+            data = data.toString()
+        }
+        if (typeof data === 'string') {
+            try {
+                data = JSON.parse(data)
+            } catch(error) {
+                throw new Error(`Could not parse JSON String from ${multihash}\n\n${error.message}\n\n${data}`)
+            }
+        }
+        return data
+    }
+
     async createDAGNode(buf) {
         if (!Buffer.isBuffer(buf)) {
             throw new Error('Argument is not a buffer');
@@ -141,6 +156,10 @@ class IPFS {
         if (!Buffer.isBuffer(buf)) throw new Error('Could not convert data into buffer');
         const dagNode = await this.chluIpfs.ipfs.object.put(buf);
         return utils.getDAGNodeMultihash(dagNode);
+    }
+
+    async putJSON(data) {
+        return this.put(JSON.stringify(data))
     }
 }
 

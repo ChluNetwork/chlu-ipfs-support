@@ -62,14 +62,14 @@ class Validator {
 
     async validateRRSignature(rr, expectedRRPublicKey = null) {
         this.chluIpfs.logger.debug('Validating RR signature');
-        const pubKeyMultihash = this.keyLocationToKeyMultihash(rr.key_location);
-        const isExpectedKey = expectedRRPublicKey === null || expectedRRPublicKey === pubKeyMultihash;
+        const didId = rr.key_location
+        const isExpectedKey = expectedRRPublicKey === null || expectedRRPublicKey === didId;
         if (!isExpectedKey) {
-            throw new Error('Expected Review Record to be signed by ' + expectedRRPublicKey + ' but found ' + pubKeyMultihash);
+            throw new Error('Expected Review Record to be signed by ' + expectedRRPublicKey + ' but found ' + didId);
         }
-        const valid = await this.chluIpfs.crypto.verifyMultihash(pubKeyMultihash, rr.hash, rr.signature);
+        const valid = await this.chluIpfs.did.verifyMultihash(didId, rr.hash, rr.signature);
         if (valid) {
-            this.chluIpfs.events.emit('discover/keys/customer', pubKeyMultihash);
+            this.chluIpfs.events.emit('discover/did/customer', didId);
         } else {
             throw new Error('The ReviewRecord signature is invalid');
         }
@@ -110,24 +110,25 @@ class Validator {
             }
             const mSignature = popr.marketplace_signature;
             const vSignature = popr.vendor_signature;
-            const vMultihash = this.keyLocationToKeyMultihash(popr.vendor_key_location);
+            const vendorDIDID = popr.vendor_key_location
             const vmSignature = popr.signature;
             const marketplaceUrl = popr.marketplace_url;
-            const mMultihash = await this.fetchMarketplaceKey(marketplaceUrl, useCache);
-            const c = this.chluIpfs.crypto;
+            const marketplaceDIDID = await this.fetchMarketplaceKey(marketplaceUrl, useCache);
+            const DID = this.chluIpfs.did;
+            const crypto = this.chluIpfs.crypto
             const validations = await Promise.all([
-                c.verifyMultihash(vMultihash, vmMultihash, vSignature),
-                c.verifyMultihash(mMultihash, vmMultihash, mSignature),
-                c.verifyMultihash(vmMultihash, hash, vmSignature)
+                DID.verifyMultihash(vendorDIDID, vmMultihash, vSignature),
+                DID.verifyMultihash(marketplaceDIDID, vmMultihash, mSignature),
+                crypto.verifyMultihash(vmMultihash, hash, vmSignature)
             ]);
             // false if any validation is false
             const valid = validations.reduce((acc, v) => acc && v);
             if (valid) {
                 if (useCache) this.chluIpfs.cache.cacheValidity(hash);
                 // Emit events about keys discovered
-                this.chluIpfs.events.emit('discover/keys/vendor', vMultihash);
+                this.chluIpfs.events.emit('discover/did/vendor', vendorDIDID);
                 this.chluIpfs.events.emit('discover/keys/vendor-marketplace', vmMultihash);
-                this.chluIpfs.events.emit('discover/keys/marketplace', mMultihash);
+                this.chluIpfs.events.emit('discover/did/marketplace', marketplaceDIDID);
             } else {
                 throw new Error('The PoPR is not correctly signed');
             }
