@@ -108,7 +108,24 @@ describe('OrbitDB Module', () => {
                 .to.deep.equal(genMultihash(4));
         });
 
-        it.skip('handles DIDs')
+        it('handles DIDs', () => {
+            expect(idx.getDID('did:chlu:abc')).to.be.null
+            applyOperation(idx, {
+                op: ChluInMemoryIndex.operations.PUT_DID,
+                didId: 'did:chlu:abc',
+                multihash: genMultihash(1)
+            })
+            expect(idx.getDID('did:chlu:abc')).to.equal(genMultihash(1))
+            // replaces old value
+            applyOperation(idx, {
+                op: ChluInMemoryIndex.operations.PUT_DID,
+                didId: 'did:chlu:abc',
+                multihash: genMultihash(2)
+            })
+            expect(idx.getDID('did:chlu:abc')).to.equal(genMultihash(2))
+        })
+
+        // TODO: implementation
 
         it.skip('handles unverified reviews')
 

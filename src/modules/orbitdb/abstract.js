@@ -39,9 +39,9 @@ class ChluAbstractIndex {
                             });
                         }
                     } else if (item.payload.op === operations.PUT_DID) {
-                        if (DID.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.didDocumentMultihash)) {
+                        if (DID.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.multihash)) {
                             // TODO: check signature
-                            this.putDID(item.payload.didId, item.payload.didDocumentMultihash, item.payload.signature)
+                            this.putDID(item.payload.didId, item.payload.multihash, item.payload.signature)
                         }
                     } else if (item.payload.op === operations.PUT_UNVERIFIED_REVIEWS) {
                         if (DID.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.reviewsMultihash)) {
