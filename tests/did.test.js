@@ -34,6 +34,7 @@ describe('DID Module', () => {
         chluIpfs.orbitDb.putDID = sinon.stub().callsFake(did => {
             didStore[did.id] = did
         })
+        chluIpfs.orbitDb.putDIDAndWaitForReplication = chluIpfs.orbitDb.putDID
     });
 
     afterEach(() => {

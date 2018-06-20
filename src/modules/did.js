@@ -24,7 +24,7 @@ class ChluIPFSDID {
         if (!this.isPresent()) {
             // Generate a DID & Publish
             await this.generate();
-            await this.publish()
+            await this.publish(null, false)
             await this.chluIpfs.persistence.persistData();
         }
     }
@@ -57,6 +57,9 @@ class ChluIPFSDID {
 
     async verify(didId, data, signature) {
         const didDocument = await this.getDID(didId)
+        if (!didDocument) {
+            throw new Error(`Cannot verify signature by ${didId}: DID Document not found`)
+        }
         return this.chluDID.verify(didDocument, data, signature)
     }
 
@@ -90,17 +93,21 @@ class ChluIPFSDID {
         return obj;
     }
 
-    async publish(did) {
+    async publish(did, waitForReplication = true) {
         if (!did) {
             did = {
                 publicDidDocument: this.publicDidDocument,
                 privateKeyBase58: this.privateKeyBase58
             }
         }
-        const existingMultihash = await this.chluIpfs.orbitDb.getDID(did.publicDidDocument.id)
+        const existingMultihash = await this.chluIpfs.orbitDb.getDID(did.publicDidDocument.id, false)
         const multihash = await this.chluIpfs.ipfsUtils.putJSON(did.publicDidDocument)
-        if (existingMultihash !== multihash) {
-            await this.chluIpfs.orbitDb.putDID(did.publicDidDocument.id, multihash)
+        if (!existingMultihash || existingMultihash !== multihash) {
+            if (waitForReplication) {
+                await this.chluIpfs.orbitDb.putDIDAndWaitForReplication(did.publicDidDocument.id, multihash)
+            } else {
+                await this.chluIpfs.orbitDb.putDID(did.publicDidDocument.id, multihash)
+            }
         }
     }
 
@@ -109,9 +116,7 @@ class ChluIPFSDID {
         const wellKnown = this.getWellKnownDID(didId)
         if (wellKnown) return wellKnown
         const multihash = await this.chluIpfs.orbitDb.getDID(didId)
-        if (!multihash) {
-            throw new Error('DID Not Found')
-        }
+        if (!multihash) return null
         const publicDidDocument = await this.chluIpfs.ipfsUtils.getJSON(multihash)
         return publicDidDocument
     }

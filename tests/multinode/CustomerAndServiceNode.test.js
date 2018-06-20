@@ -77,9 +77,6 @@ describe('Customer and Service Node integration', function() {
         vm = await makeKeyPair();
         v = await makeDID();
         m = await makeDID();
-        const didMap = crypto.buildDIDMap([v, m])
-        serviceNode.did.wellKnownDIDs = didMap
-        customerNode.did.wellKnownDIDs = didMap
         const http = fakeHttpModule(() => ({ didId: m.publicDidDocument.id }));
         serviceNode.http = http;
         customerNode.http = http;
@@ -88,7 +85,21 @@ describe('Customer and Service Node integration', function() {
         serviceNode.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
         customerNode.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
 
+        // Start nodes
         await Promise.all([serviceNode.start(), customerNode.start()]);
+
+        // Do some DID prework to make sure nodes have everything they need
+
+        // Publish Vendor and Marketplace DIDs from service node
+        await serviceNode.did.publish(v, false)
+        await serviceNode.did.publish(m, false)
+        // wait until Customer DID is replicated into Service Node's OrbitDB
+        await serviceNode.orbitDb.getDID(customerNode.did.didId, true)
+        // wait for customer node to have DIDs for vendor and marketplace
+        await customerNode.orbitDb.getDID(v.publicDidDocument.id, true)
+        await customerNode.orbitDb.getDID(m.publicDidDocument.id, true)
+        // IMPORTANT note for the future: do not parallelize these operations,
+        // it introduces some kind of OrbitDB bug where the tests fail intermittently
     });
 
     after(async () => {

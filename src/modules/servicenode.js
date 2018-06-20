@@ -10,6 +10,18 @@ class ServiceNode {
         this.handler = message => {
             return self.handleMessage(message);
         };
+        this.didPinner = async didId => {
+            try {
+                const multihash = await this.chluIpfs.orbitDb.getDID(didId)
+                if (multihash) {
+                    await this.pinner(multihash)
+                } else {
+                    throw new Error(`Cannot Pin DID ${didId}: not found`)
+                }
+            } catch (error) {
+                this.chluIpfs.logger.error(`Could not Pin DID ${didId} due to Error: ${error.message}`)
+            }
+        }
         this.pinner = async multihash => {
             try {
                 this.chluIpfs.pinning.pin(multihash);
@@ -40,11 +52,11 @@ class ServiceNode {
         };
         // Handle Chlu network messages
         this.chluIpfs.events.on('pubsub/message', this.handler);
-        // Pin public keys
-        this.chluIpfs.events.on('discover/keys/vendor', this.pinner);
+        // Pin DIDs and public keys
+        this.chluIpfs.events.on('discover/did/customer', this.didPinner);
+        this.chluIpfs.events.on('discover/did/vendor', this.didPinner);
+        this.chluIpfs.events.on('discover/did/marketplace', this.didPinner);
         this.chluIpfs.events.on('discover/keys/vendor-marketplace', this.pinner);
-        this.chluIpfs.events.on('discover/keys/marketplace', this.pinner);
-        this.chluIpfs.events.on('discover/keys/customer', this.pinner);
         // Send messages on replication
         this.chluIpfs.events.on('db/replicated', this.replicatedNotifier);
     }
