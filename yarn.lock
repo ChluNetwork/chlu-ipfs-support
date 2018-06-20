@@ -1218,7 +1218,7 @@ binary-querystring@~0.1.2:
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/binary-querystring/-/binary-querystring-0.1.2.tgz#84a6f9ac21fcf2752e305f60397d445bb84551e9"
 
-bindings@^1.2.1, bindings@^1.3.0, bindings@~1.3.0:
+bindings@^1.2.1, bindings@~1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/bindings/-/bindings-1.3.0.tgz#b346f6ecf6a95f5a815c5839fc7cdb22502f1ed7"
 
@@ -1265,23 +1265,6 @@ bitcoinjs-lib@^3.1.1, bitcoinjs-lib@^3.3.2:
     typeforce "^1.11.3"
     varuint-bitcoin "^1.0.4"
     wif "^2.0.1"
-
-bitcore-lib@^0.13.7:
-  version "0.13.19"
-  resolved "https://registry.yarnpkg.com/bitcore-lib/-/bitcore-lib-0.13.19.tgz#48af1e9bda10067c1ab16263472b5add2000f3dc"
-  dependencies:
-    bn.js "=2.0.4"
-    bs58 "=2.0.0"
-    buffer-compare "=1.0.0"
-    elliptic "=3.0.3"
-    inherits "=2.0.1"
-    lodash "=3.10.1"
-
-"bitcore-message@github:CoMakery/bitcore-message#dist":
-  version "1.0.2"
-  resolved "https://codeload.github.com/CoMakery/bitcore-message/tar.gz/8799cc327029c3d34fc725f05b2cf981363f6ebf"
-  dependencies:
-    bitcore-lib "^0.13.7"
 
 bl@^1.0.0:
   version "1.2.1"
@@ -1788,32 +1771,14 @@ check-error@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/check-error/-/check-error-1.0.2.tgz#574d312edd88bb5dd8912e9286dd6c0aed4aac82"
 
-chloride-test@^1.1.0:
-  version "1.2.2"
-  resolved "https://registry.yarnpkg.com/chloride-test/-/chloride-test-1.2.2.tgz#178686a85e9278045112e96e8c791793f9a10aea"
-  dependencies:
-    json-buffer "^2.0.11"
-
-chloride@^2.2.8:
-  version "2.2.10"
-  resolved "https://registry.yarnpkg.com/chloride/-/chloride-2.2.10.tgz#cb68ddeed9328a63b8bd6e1585ed584c8e122f23"
-  dependencies:
-    is-electron "^2.0.0"
-    sodium-browserify "^1.2.4"
-    sodium-browserify-tweetnacl "^0.2.2"
-    sodium-chloride "^1.1.0"
-  optionalDependencies:
-    sodium-native "^2.1.6"
-
-chlu-did@ChluNetwork/chlu-did:
+chlu-did@ChluNetwork/chlu-did#remove-dead-code:
   version "1.0.0"
-  resolved "https://codeload.github.com/ChluNetwork/chlu-did/tar.gz/fb253f8fc0f62ceb5f0296f295637e76514b5111"
+  resolved "https://codeload.github.com/ChluNetwork/chlu-did/tar.gz/e9b9cdeb0dea911ca892cae5268f024165312c43"
   dependencies:
     brorand "^1.1.0"
     bs58 "4.0.1"
     elliptic "^6.4.0"
     js-sha3 "^0.7.0"
-    jsonld-signatures "2.3.0"
 
 chlu-wallet-support-js@ChluNetwork/chlu-wallet-support-js:
   version "0.0.1"
@@ -2710,12 +2675,6 @@ ecurve@^1.0.0:
   dependencies:
     bigi "^1.1.0"
     safe-buffer "^5.0.1"
-
-ed2curve@^0.1.4:
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/ed2curve/-/ed2curve-0.1.4.tgz#94a44248bb87da35db0eff7af0aa576168117f59"
-  dependencies:
-    tweetnacl "0.x.x"
 
 ee-first@1.1.1:
   version "1.1.1"
@@ -4116,7 +4075,7 @@ inherits@2.0.1, inherits@=2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/inherits/-/inherits-2.0.1.tgz#b17d08d326b4423e568eff719f91b0b1cbdf69f1"
 
-ini@^1.3.3, ini@^1.3.4, ini@^1.3.5, ini@~1.3.0:
+ini@^1.3.3, ini@^1.3.4, ini@~1.3.0:
   version "1.3.5"
   resolved "https://registry.yarnpkg.com/ini/-/ini-1.3.5.tgz#eee25f56db1c9ec6085e0c22778083f596abf927"
 
@@ -4686,10 +4645,6 @@ is-descriptor@^1.0.0, is-descriptor@^1.0.2:
 is-dotfile@^1.0.0:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/is-dotfile/-/is-dotfile-1.0.3.tgz#a6a2f32ffd2dfb04f5ca25ecd0f6b83cf798a1e1"
-
-is-electron@^2.0.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/is-electron/-/is-electron-2.1.0.tgz#37dd2e9e7167efa8bafce86c0c25762bc4b851fa"
 
 is-equal-shallow@^0.1.3:
   version "0.1.3"
@@ -5394,10 +5349,6 @@ jsesc@~0.5.0:
   version "0.5.0"
   resolved "https://registry.yarnpkg.com/jsesc/-/jsesc-0.5.0.tgz#e7dee66e35d6fc16f710fe91d5cf69f70f08911d"
 
-json-buffer@^2.0.11:
-  version "2.0.11"
-  resolved "https://registry.yarnpkg.com/json-buffer/-/json-buffer-2.0.11.tgz#3e441fda3098be8d1e3171ad591bc62a33e2d55f"
-
 json-loader@^0.5.4:
   version "0.5.7"
   resolved "https://registry.yarnpkg.com/json-loader/-/json-loader-0.5.7.tgz#dca14a70235ff82f0ac9a3abeb60d337a365185d"
@@ -5445,26 +5396,6 @@ json5@^0.5.0, json5@^0.5.1:
 jsonify@~0.0.0:
   version "0.0.0"
   resolved "https://registry.yarnpkg.com/jsonify/-/jsonify-0.0.0.tgz#2c74b6ee41d93ca51b7b5aaee8f503631d252a73"
-
-jsonld-signatures@2.3.0:
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/jsonld-signatures/-/jsonld-signatures-2.3.0.tgz#35999ea57609b403c7cbd80c39bdbf1e2d2b96aa"
-  dependencies:
-    bitcore-message "github:CoMakery/bitcore-message#dist"
-    bs58 "^4.0.1"
-    chloride "^2.2.8"
-    jsonld "^1.0.1"
-    node-forge "^0.7.4"
-    semver "^5.5.0"
-
-jsonld@^1.0.1:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/jsonld/-/jsonld-1.0.2.tgz#c08118a4fa4a8457bf98891653ed1f1613eb6152"
-  dependencies:
-    rdf-canonize "^0.2.1"
-    request "^2.83.0"
-    semver "^5.5.0"
-    xmldom "0.1.19"
 
 jsonparse@^1.2.0:
   version "1.3.1"
@@ -6032,16 +5963,6 @@ libp2p@~0.18.0:
     peer-book "~0.5.4"
     peer-id "~0.10.6"
     peer-info "~0.11.6"
-
-libsodium-wrappers@^0.7.3:
-  version "0.7.3"
-  resolved "https://registry.yarnpkg.com/libsodium-wrappers/-/libsodium-wrappers-0.7.3.tgz#b7e6326a5c42eb269540e360ce9c2600eb90c75c"
-  dependencies:
-    libsodium "0.7.3"
-
-libsodium@0.7.3:
-  version "0.7.3"
-  resolved "https://registry.yarnpkg.com/libsodium/-/libsodium-0.7.3.tgz#35faf57293ba5485049d5072d0e96feda12f1f35"
 
 livereload-js@^2.3.0:
   version "2.3.0"
@@ -6770,10 +6691,6 @@ nan@^2.0, nan@^2.0.5, nan@^2.2.1, nan@^2.3.0, nan@^2.6.2:
   version "2.9.2"
   resolved "https://registry.yarnpkg.com/nan/-/nan-2.9.2.tgz#f564d75f5f8f36a6d9456cca7a6c4fe488ab7866"
 
-nan@^2.10.0, nan@^2.4.0:
-  version "2.10.0"
-  resolved "https://registry.yarnpkg.com/nan/-/nan-2.10.0.tgz#96d0cd610ebd58d4b4de9cc0c6828cda99c7548f"
-
 nan@~2.7.0:
   version "2.7.0"
   resolved "https://registry.yarnpkg.com/nan/-/nan-2.7.0.tgz#d95bf721ec877e08db276ed3fc6eb78f9083ad46"
@@ -6852,14 +6769,6 @@ node-abi@^2.2.0:
 node-forge@^0.7.1:
   version "0.7.2"
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.7.2.tgz#3703b27f61a4c7613f046377643038b99e6a7891"
-
-node-forge@^0.7.4:
-  version "0.7.5"
-  resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.7.5.tgz#6c152c345ce11c52f465c2abd957e8639cd674df"
-
-node-gyp-build@^3.0.0:
-  version "3.3.0"
-  resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-3.3.0.tgz#df755c8dba1120c7c5e3179bbfd4203aa495e9a3"
 
 node-int64@^0.4.0:
   version "0.4.0"
@@ -8002,15 +7911,6 @@ rc@^1.0.1, rc@^1.1.6, rc@^1.1.7:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
-rdf-canonize@^0.2.1:
-  version "0.2.4"
-  resolved "https://registry.yarnpkg.com/rdf-canonize/-/rdf-canonize-0.2.4.tgz#1b46eb01500b6800348ac5fe0953c1be226b1446"
-  dependencies:
-    bindings "^1.3.0"
-    nan "^2.10.0"
-    node-forge "^0.7.1"
-    semver "^5.4.1"
-
 read-pkg-up@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/read-pkg-up/-/read-pkg-up-1.0.1.tgz#9d63c13276c065918d57f002a57f40a1b643fb02"
@@ -8390,31 +8290,6 @@ request@^2.79.0:
     tunnel-agent "^0.6.0"
     uuid "^3.1.0"
 
-request@^2.83.0:
-  version "2.87.0"
-  resolved "https://registry.yarnpkg.com/request/-/request-2.87.0.tgz#32f00235cd08d482b4d0d68db93a829c0ed5756e"
-  dependencies:
-    aws-sign2 "~0.7.0"
-    aws4 "^1.6.0"
-    caseless "~0.12.0"
-    combined-stream "~1.0.5"
-    extend "~3.0.1"
-    forever-agent "~0.6.1"
-    form-data "~2.3.1"
-    har-validator "~5.0.3"
-    http-signature "~1.2.0"
-    is-typedarray "~1.0.0"
-    isstream "~0.1.2"
-    json-stringify-safe "~5.0.1"
-    mime-types "~2.1.17"
-    oauth-sign "~0.8.2"
-    performance-now "^2.1.0"
-    qs "~6.5.1"
-    safe-buffer "^5.1.1"
-    tough-cookie "~2.3.3"
-    tunnel-agent "^0.6.0"
-    uuid "^3.1.0"
-
 require-directory@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/require-directory/-/require-directory-2.1.1.tgz#8c64ad5fd30dab1c976e2344ffe7f792a6a6df42"
@@ -8657,12 +8532,6 @@ setprototypeof@1.0.3:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/setprototypeof/-/setprototypeof-1.0.3.tgz#66567e37043eeb4f04d91bd658c0cbefb55b8e04"
 
-sha.js@2.4.5:
-  version "2.4.5"
-  resolved "https://registry.yarnpkg.com/sha.js/-/sha.js-2.4.5.tgz#27d171efcc82a118b99639ff581660242b506e7c"
-  dependencies:
-    inherits "^2.0.1"
-
 sha.js@^2.4.0, sha.js@^2.4.8:
   version "2.4.10"
   resolved "https://registry.yarnpkg.com/sha.js/-/sha.js-2.4.10.tgz#b1fde5cd7d11a5626638a07c604ab909cfa31f9b"
@@ -8899,37 +8768,6 @@ socket.io@^2.0.4:
     socket.io-adapter "~1.1.0"
     socket.io-client "2.0.4"
     socket.io-parser "~3.1.1"
-
-sodium-browserify-tweetnacl@^0.2.2, sodium-browserify-tweetnacl@^0.2.3:
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/sodium-browserify-tweetnacl/-/sodium-browserify-tweetnacl-0.2.3.tgz#b5537ffcbb9f74ebc443b8b6a211b291e8fcbc8e"
-  dependencies:
-    chloride-test "^1.1.0"
-    ed2curve "^0.1.4"
-    sha.js "^2.4.8"
-    tweetnacl "^0.14.1"
-    tweetnacl-auth "^0.3.0"
-
-sodium-browserify@^1.2.4:
-  version "1.2.4"
-  resolved "https://registry.yarnpkg.com/sodium-browserify/-/sodium-browserify-1.2.4.tgz#ae2b8274a2a9fc9f322a6077b73a73f55ed0b00b"
-  dependencies:
-    libsodium-wrappers "^0.7.3"
-    sha.js "2.4.5"
-    sodium-browserify-tweetnacl "^0.2.3"
-    tweetnacl "^0.14.1"
-
-sodium-chloride@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/sodium-chloride/-/sodium-chloride-1.1.0.tgz#247a234b88867f6dff51332b605f193a65bf6839"
-
-sodium-native@^2.1.6:
-  version "2.1.6"
-  resolved "https://registry.yarnpkg.com/sodium-native/-/sodium-native-2.1.6.tgz#4c130a61fe4cddf029d14f6f61489a2efde49cad"
-  dependencies:
-    ini "^1.3.5"
-    nan "^2.4.0"
-    node-gyp-build "^3.0.0"
 
 source-list-map@^2.0.0:
   version "2.0.0"
@@ -9605,13 +9443,7 @@ tunnel-agent@^0.6.0:
   dependencies:
     safe-buffer "^5.0.1"
 
-tweetnacl-auth@^0.3.0:
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/tweetnacl-auth/-/tweetnacl-auth-0.3.1.tgz#b75bc2df15649bb84e8b9aa3c0669c6c4bce0d25"
-  dependencies:
-    tweetnacl "0.x.x"
-
-tweetnacl@0.x.x, tweetnacl@^0.14.1, tweetnacl@^0.14.3, tweetnacl@~0.14.0:
+tweetnacl@^0.14.3, tweetnacl@~0.14.0:
   version "0.14.5"
   resolved "https://registry.yarnpkg.com/tweetnacl/-/tweetnacl-0.14.5.tgz#5ae68177f192d4456269d108afa93ff8743f4f64"
 
@@ -10276,10 +10108,6 @@ xdg-basedir@^3.0.0:
 xml-name-validator@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/xml-name-validator/-/xml-name-validator-2.0.1.tgz#4d8b8f1eccd3419aa362061becef515e1e559635"
-
-xmldom@0.1.19:
-  version "0.1.19"
-  resolved "https://registry.yarnpkg.com/xmldom/-/xmldom-0.1.19.tgz#631fc07776efd84118bf25171b37ed4d075a0abc"
 
 xmlhttprequest-ssl@1.5.3:
   version "1.5.3"
