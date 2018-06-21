@@ -1771,9 +1771,9 @@ check-error@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/check-error/-/check-error-1.0.2.tgz#574d312edd88bb5dd8912e9286dd6c0aed4aac82"
 
-chlu-did@ChluNetwork/chlu-did#remove-dead-code:
+chlu-did@ChluNetwork/chlu-did:
   version "1.0.0"
-  resolved "https://codeload.github.com/ChluNetwork/chlu-did/tar.gz/e9b9cdeb0dea911ca892cae5268f024165312c43"
+  resolved "https://codeload.github.com/ChluNetwork/chlu-did/tar.gz/67bb48067b0d82d2583999afd3a321174ef10a04"
   dependencies:
     brorand "^1.1.0"
     bs58 "4.0.1"

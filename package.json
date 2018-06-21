@@ -27,7 +27,7 @@
     "axios": "^0.18.0",
     "blockcypher": "ChluNetwork/node-client",
     "brorand": "^1.1.0",
-    "chlu-did": "ChluNetwork/chlu-did#remove-dead-code",
+    "chlu-did": "ChluNetwork/chlu-did",
     "chlu-wallet-support-js": "ChluNetwork/chlu-wallet-support-js",
     "commander": "^2.15.1",
     "debounce-async": "^0.0.1",
