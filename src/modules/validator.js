@@ -62,7 +62,7 @@ class Validator {
 
     async validateRRSignature(rr, expectedRRPublicKey = null) {
         this.chluIpfs.logger.debug('Validating RR signature');
-        const didId = rr.key_location
+        const didId = rr.customer_did_id
         const isExpectedKey = expectedRRPublicKey === null || expectedRRPublicKey === didId;
         if (!isExpectedKey) {
             throw new Error('Expected Review Record to be signed by ' + expectedRRPublicKey + ' but found ' + didId);
@@ -110,7 +110,7 @@ class Validator {
             }
             const mSignature = popr.marketplace_signature;
             const vSignature = popr.vendor_signature;
-            const vendorDIDID = popr.vendor_key_location
+            const vendorDIDID = popr.vendor_did_id
             const vmSignature = popr.signature;
             const marketplaceUrl = popr.marketplace_url;
             const marketplaceDIDID = await this.fetchMarketplaceDIDID(marketplaceUrl, useCache);
@@ -163,7 +163,6 @@ class Validator {
         // Check validity
         // TODO: check confirmations?
         if (!txInfo.isChlu) {
-            console.log(txInfo, rr.multihash)
             throw new Error(transactionHash + ' is not a Chlu transaction');
         }
         if (rr.multihash !== txInfo.multihash) {
@@ -219,7 +218,7 @@ class Validator {
             'currency_symbol',
             'customer_address',
             'vendor_address',
-            'key_location'
+            'customer_did_id'
         ]);
     }
 

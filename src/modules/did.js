@@ -24,14 +24,13 @@ class ChluIPFSDID {
         if (!this.isPresent()) {
             // Generate a DID & Publish
             await this.generate();
-            await this.publish(null, false)
             await this.chluIpfs.persistence.persistData();
         }
     }
 
     async generate() {
         const did = await this.chluDID.generateDID()
-        return this.import(did)
+        return await this.import(did)
     }
 
     async import(did, publish = true, waitForReplication = false) {
@@ -49,7 +48,7 @@ class ChluIPFSDID {
     }
 
     isPresent() {
-        return this.publicDidDocument && this.didId && this.privateKeyBase58
+        return Boolean(this.publicDidDocument && this.didId && this.privateKeyBase58)
     }
 
     async sign(data, privateKeyBase58) {
@@ -57,11 +56,12 @@ class ChluIPFSDID {
     }
 
     async verify(didId, data, signature) {
+        if (!didId) throw new Error('Missing DID ID')
         const didDocument = await this.getDID(didId)
         if (!didDocument) {
             throw new Error(`Cannot verify signature by ${didId}: DID Document not found`)
         }
-        return this.chluDID.verify(didDocument, data, signature)
+        return await this.chluDID.verify(didDocument, data, signature)
     }
 
     async signMultihash(multihash, privateKeyBase58) {
@@ -72,17 +72,7 @@ class ChluIPFSDID {
 
     async verifyMultihash(didId, multihash, signature) {
         const data = getDigestFromMultihash(multihash)
-        return this.verify(didId, data, signature) 
-    }
-
-    async signPoPR(obj) {
-        if (!obj.hash) {
-            obj.signature = '';
-            obj = await this.chluIpfs.reviewRecords.hashPoPR(obj);
-        }
-        obj.signature = await this.signMultihash(obj.hash);
-        delete obj.hash; // causes issues with tests because it is not in the protobuf
-        return obj;
+        return await this.verify(didId, data, signature) 
     }
 
     async signReviewRecord(obj) {
@@ -118,8 +108,7 @@ class ChluIPFSDID {
         if (wellKnown) return wellKnown
         const multihash = await this.chluIpfs.orbitDb.getDID(didId)
         if (!multihash) return null
-        const publicDidDocument = await this.chluIpfs.ipfsUtils.getJSON(multihash)
-        return publicDidDocument
+        return await this.chluIpfs.ipfsUtils.getJSON(multihash)
     }
 
     getWellKnownDID(didId) {

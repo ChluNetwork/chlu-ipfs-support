@@ -99,7 +99,7 @@ class ReviewRecords {
             }
         }
         if (checkForUpdates) this.watchReviewRecord(m, validate);
-        const didId = reviewRecord.key_location;
+        const didId = reviewRecord.customer_did_id;
         reviewRecord.editable = didId === this.chluIpfs.did.didId;
         reviewRecord.requestedMultihash = multihash;
         reviewRecord.watching = Boolean(checkForUpdates);
@@ -122,7 +122,7 @@ class ReviewRecords {
     }
 
     async prepareReviewRecord(reviewRecord, bitcoinTransactionHash = null, validate = true) {
-        reviewRecord.key_location = this.chluIpfs.did.didId
+        reviewRecord.customer_did_id = this.chluIpfs.did.didId
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
         // Remove hash in case it's wrong (or this is an update). It's going to be calculated by the signing function
         reviewRecord.hash = '';
@@ -251,10 +251,16 @@ class ReviewRecords {
         // TODO: better checks
         if (!reviewRecord.last_reviewrecord_multihash) reviewRecord.last_reviewrecord_multihash = '';
         if (!reviewRecord.previous_version_multihash) reviewRecord.previous_version_multihash = '';
+        // TODO: fields are optional but the protons lib fails if it's not there as an empty string
+        if (!reviewRecord.key_location) reviewRecord.key_location = ''
+        if (!reviewRecord.customer_did_id) reviewRecord.customer_did_id = ''
         return await this.hashObject(reviewRecord, protobuf.ReviewRecord.encode);
     }
 
     async hashPoPR(popr) {
+        // TODO: fields are optional but the protons lib fails if it's not there as an empty string
+        if (!popr.key_location) popr.vendor_key_location = ''
+        if (!popr.vendor_did_id) popr.vendor_did_id = ''
         return await this.hashObject(popr, protobuf.PoPR.encode);
     }
 
