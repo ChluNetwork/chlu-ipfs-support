@@ -61,7 +61,7 @@ describe('Customer', () => {
         // DID 
         chluIpfs.did.publish = sinon.stub().resolves()
         await chluIpfs.did.start()
-        const didMap = crypto.buildDIDMap([v, m])
+        const didMap = crypto.buildDIDMap([v, m, chluIpfs.did.export() ])
         chluIpfs.did.getDID = sinon.stub().callsFake(async id => didMap[id])
         // Other mocks
         chluIpfs.http = http(() => ({ didId: m.publicDidDocument.id }));
@@ -136,7 +136,7 @@ describe('Customer', () => {
             bitcoinTransactionHash: 'test'
         });
         const rr = await chluIpfs.readReviewRecord(multihash);
-        expect(rr.key_location).to.equal(chluIpfs.did.didId);
+        expect(rr.customer_did_id).to.equal(chluIpfs.did.didId);
         expect(rr.signature).to.be.a('string');
         const valid = await chluIpfs.did.verifyMultihash(chluIpfs.did.didId, rr.hash, rr.signature);
         expect(valid).to.be.true;

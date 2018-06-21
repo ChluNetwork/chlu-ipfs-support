@@ -31,6 +31,7 @@ function getFakeReviewRecord() {
             ],
             signature: '',
             vendor_key_location: '',
+            vendor_did_id: '',
             vendor_encryption_key_location: '',
             marketplace_signature: '',
             vendor_signature: ''
@@ -39,7 +40,8 @@ function getFakeReviewRecord() {
         chlu_version: 0,
         hash: '',
         signature: '',
-        key_location: ''
+        key_location: '',
+        customer_did_id: ''
     };
 }
 

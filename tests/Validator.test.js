@@ -223,7 +223,7 @@ describe('Validator Module', () => {
         // --- Success Case
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord = await chluIpfs.did.signReviewRecord(reviewRecord);
-        reviewRecord.key_location = chluIpfs.did.didId;
+        reviewRecord.customer_did_id = chluIpfs.did.didId;
         chluIpfs.did.getDID = sinon.stub().resolves(chluIpfs.did.publicDidDocument)
         let valid = await chluIpfs.validator.validateRRSignature(reviewRecord);
         expect(valid).to.be.true;
