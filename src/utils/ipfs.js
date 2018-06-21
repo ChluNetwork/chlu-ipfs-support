@@ -53,6 +53,7 @@ function getDAGNodeMultihash(dagNode) {
 }
 
 function getDigestFromMultihash(multihash){
+    validateMultihash(multihash)
     const decoded = multihashes.decode(multihashToBuffer(multihash));
     return decoded.digest;
 }
