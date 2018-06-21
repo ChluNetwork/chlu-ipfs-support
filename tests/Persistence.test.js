@@ -28,6 +28,7 @@ describe('Persistence module', () => {
     });
 
     it('saves DID', async () => {
+        api.did.publish = sinon.stub().resolves()
         await api.did.generate();
         const publicDidDocument = api.did.publicDidDocument
         const privateKeyBase58 = api.did.privateKeyBase58

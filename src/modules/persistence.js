@@ -39,7 +39,8 @@ class Persistence {
                 this.chluIpfs.lastReviewRecordMultihash = data.lastReviewRecordMultihash;
             }
             if (data.did) {
-                this.chluIpfs.did.import(data.did);
+                // Don't publish. If it's in persisted data, it was published before
+                await this.chluIpfs.did.import(data.did, false);
             }
             if (data.cache) {
                 this.chluIpfs.cache.import(data.cache);

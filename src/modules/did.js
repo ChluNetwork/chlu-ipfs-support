@@ -34,10 +34,11 @@ class ChluIPFSDID {
         return this.import(did)
     }
 
-    import(did) {
+    async import(did, publish = true, waitForReplication = false) {
         this.publicDidDocument = did.publicDidDocument
         this.didId = this.publicDidDocument.id
         this.privateKeyBase58 = did.privateKeyBase58
+        if (publish) await this.publish(null, waitForReplication)
     }
 
     export() {
