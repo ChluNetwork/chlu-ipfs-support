@@ -55,9 +55,9 @@ class ChluIPFSDID {
         return this.chluDID.sign(privateKeyBase58 || this.privateKeyBase58, data)
     }
 
-    async verify(didId, data, signature) {
+    async verify(didId, data, signature, waitUntilPresent = false) {
         if (!didId) throw new Error('Missing DID ID')
-        const didDocument = await this.getDID(didId)
+        const didDocument = await this.getDID(didId, waitUntilPresent)
         if (!didDocument) {
             throw new Error(`Cannot verify signature by ${didId}: DID Document not found`)
         }
@@ -102,11 +102,11 @@ class ChluIPFSDID {
         }
     }
 
-    async getDID(didId) {
+    async getDID(didId, waitUntilPresent = false) {
         if (didId === this.didId) return this.publicDidDocument
         const wellKnown = this.getWellKnownDID(didId)
         if (wellKnown) return wellKnown
-        const multihash = await this.chluIpfs.orbitDb.getDID(didId)
+        const multihash = await this.chluIpfs.orbitDb.getDID(didId, waitUntilPresent)
         if (!multihash) return null
         return await this.chluIpfs.ipfsUtils.getJSON(multihash)
     }
