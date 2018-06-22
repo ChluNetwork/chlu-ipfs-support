@@ -37,6 +37,7 @@ class ChluIPFSDID {
         this.publicDidDocument = did.publicDidDocument
         this.didId = this.publicDidDocument.id
         this.privateKeyBase58 = did.privateKeyBase58
+        await this.chluIpfs.persistence.persistData()
         if (publish) await this.publish(null, waitForReplication)
     }
 
