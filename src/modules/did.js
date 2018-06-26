@@ -1,5 +1,6 @@
 const ChluDID = require('chlu-did/src')
 const { getDigestFromMultihash } = require('../utils/ipfs')
+const { isObject, isString } = require('lodash')
 
 class ChluIPFSDID {
 
@@ -49,7 +50,11 @@ class ChluIPFSDID {
     }
 
     isPresent() {
-        return Boolean(this.publicDidDocument && this.didId && this.privateKeyBase58)
+        return (
+            isObject(this.publicDidDocument)
+            && isString(this.didId)
+            && isString(this.privateKeyBase58)
+        )
     }
 
     async sign(data, privateKeyBase58) {
@@ -85,20 +90,15 @@ class ChluIPFSDID {
         return obj;
     }
 
-    async publish(did, waitForReplication = true) {
-        if (!did) {
-            did = {
-                publicDidDocument: this.publicDidDocument,
-                privateKeyBase58: this.privateKeyBase58
-            }
-        }
-        const existingMultihash = await this.chluIpfs.orbitDb.getDID(did.publicDidDocument.id, false)
-        const multihash = await this.chluIpfs.ipfsUtils.putJSON(did.publicDidDocument)
+    async publish(publicDidDocument, waitForReplication = true) {
+        if (!publicDidDocument) publicDidDocument = this.publicDidDocument
+        const existingMultihash = await this.chluIpfs.orbitDb.getDID(publicDidDocument.id, false)
+        const multihash = await this.chluIpfs.ipfsUtils.putJSON(publicDidDocument)
         if (!existingMultihash || existingMultihash !== multihash) {
             if (waitForReplication) {
-                await this.chluIpfs.orbitDb.putDIDAndWaitForReplication(did.publicDidDocument.id, multihash)
+                await this.chluIpfs.orbitDb.putDIDAndWaitForReplication(publicDidDocument.id, multihash)
             } else {
-                await this.chluIpfs.orbitDb.putDID(did.publicDidDocument.id, multihash)
+                await this.chluIpfs.orbitDb.putDID(publicDidDocument.id, multihash)
             }
         }
     }
