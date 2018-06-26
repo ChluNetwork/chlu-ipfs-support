@@ -210,10 +210,4 @@ module.exports = `
         optional Signature issuer_signature = 27;
         
     }
-  
-    optional Verification verification = 26;
-  
-    optional Signature issuer_signature = 27;
-    
-}
 `;
