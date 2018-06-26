@@ -260,7 +260,7 @@ class ReviewRecords {
     async hashPoPR(popr) {
         // TODO: fields are optional but the protons lib fails if it's not there as an empty string
         if (!popr.key_location) popr.vendor_key_location = ''
-        if (!popr.vendor_did_id) popr.vendor_did_id = ''
+        if (!popr.vendor_did) popr.vendor_did = ''
         return await this.hashObject(popr, protobuf.PoPR.encode);
     }
 

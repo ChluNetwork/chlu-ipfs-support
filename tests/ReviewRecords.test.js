@@ -117,16 +117,15 @@ describe('ReviewRecords module', () => {
 
     it('hashes consistently in weird edge cases', async () => {
         const reviewRecord = await getFakeReviewRecord();
-        reviewRecord.last_reviewrecord_multihash = '';
 
         const hashedReviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(reviewRecord));
         const rrGoneThroughEncoding = protobuf.ReviewRecord.decode(protobuf.ReviewRecord.encode(reviewRecord));
         const hashedAgain = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(rrGoneThroughEncoding));
-        expect(hashedReviewRecord.hash).to.equal(hashedAgain.hash);
+        expect(hashedReviewRecord).to.deep.equal(hashedAgain)
 
         delete reviewRecord.last_reviewrecord_multihash;
         const hashedAgain2 = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(reviewRecord));
-        expect(hashedReviewRecord.hash).to.equal(hashedAgain2.hash);
+        expect(hashedReviewRecord).to.deep.equal(hashedAgain2);
     });
 
     it('handles the bitcoin transaction id', async () => {

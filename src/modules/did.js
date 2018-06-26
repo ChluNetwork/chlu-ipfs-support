@@ -70,10 +70,21 @@ class ChluIPFSDID {
         return await this.chluDID.verify(didDocument, data, signature)
     }
 
-    async signMultihash(multihash, privateKeyBase58) {
+    async signMultihash(multihash, did) {
+        if (!did) did = {
+            privateKeyBase58: this.privateKeyBase58,
+            publicDidDocument: this.publicDidDocument
+        }
         const data = getDigestFromMultihash(multihash)
-        const result = await this.sign(data, privateKeyBase58)
-        return result.signature
+        const result = await this.sign(data, did.privateKeyBase58)
+        // TODO: Review this!
+        return {
+            type: 'did:chlu',
+            created: 0,
+            nonce: '',
+            creator: did.publicDidDocument.id,
+            signatureValue: result.signature
+        }
     }
 
     async verifyMultihash(didId, multihash, signature) {
@@ -83,10 +94,17 @@ class ChluIPFSDID {
 
     async signReviewRecord(obj) {
         if (!obj.hash) {
-            obj.signature = '';
+            // TODO: review this
+            obj.issuer_signature = {
+                type: 'empty',
+                created: 0,
+                nonce: '',
+                creator: '',
+                signatureValue: ''
+            };
             obj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
         }
-        obj.signature = await this.signMultihash(obj.hash);
+        obj.issuer_signature = await this.signMultihash(obj.hash);
         return obj;
     }
 

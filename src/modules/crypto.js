@@ -41,10 +41,17 @@ class Crypto {
 
     async signPoPR(obj, keyPair) {
         if (!obj.hash) {
-            obj.signature = '';
+            // TODO: review this
+            obj.sig = {
+                type: 'empty',
+                created: 0,
+                nonce: '',
+                creator: '',
+                signatureValue: ''
+            };
             obj = await this.chluIpfs.reviewRecords.hashPoPR(obj);
         }
-        obj.signature = await this.signMultihash(obj.hash, keyPair);
+        obj.sig = await this.signMultihash(obj.hash, keyPair);
         delete obj.hash; // causes issues with tests because it is not in the protobuf
         return obj;
     }

@@ -110,7 +110,7 @@ class Validator {
             }
             const mSignature = popr.marketplace_signature;
             const vSignature = popr.vendor_signature;
-            const vendorDIDID = popr.vendor_did_id
+            const vendorDIDID = popr.vendor_did
             const vmSignature = popr.signature;
             const marketplaceUrl = popr.marketplace_url;
             const marketplaceDIDID = await this.fetchMarketplaceDIDID(marketplaceUrl, useCache);
