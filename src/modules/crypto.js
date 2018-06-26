@@ -26,7 +26,15 @@ class Crypto {
     async signMultihash(multihash, keyPair) {
         const data = getDigestFromMultihash(multihash).toString('hex')
         const result = await keyPair.sign(data);
-        return result.toHex()
+        const pubKeyMultihash = await this.storePublicKey(keyPair.getPublic('hex'))
+        // TODO: review this
+        return {
+            type: 'crypto',
+            created: 0,
+            nonce: '',
+            creator: pubKeyMultihash,
+            signatureValue: result.toHex()
+        }
     }
 
     async verifyMultihash(pubKeyMultihash, multihash, signature) {

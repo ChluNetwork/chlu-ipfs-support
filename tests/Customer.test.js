@@ -11,7 +11,7 @@ const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 const http = require('./utils/http');
 const cryptoTestUtils = require('./utils/crypto');
 
-describe('Customer', () => {
+describe.only('Customer', () => {
 
     let chluIpfs, fakeStore = {}, vm, v, m, preparePoPR;
 
@@ -68,9 +68,10 @@ describe('Customer', () => {
         chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
     });
 
-    it('stores ReviewRecords and automatically publishes them', async () => {
+    it.only('stores ReviewRecords and automatically publishes them', async () => {
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
+        console.log(reviewRecord.popr)
         const result = await chluIpfs.storeReviewRecord(reviewRecord, {
             bitcoinTransactionHash: 'test'
         });
