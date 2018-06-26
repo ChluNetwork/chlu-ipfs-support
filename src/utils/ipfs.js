@@ -52,6 +52,12 @@ function getDAGNodeMultihash(dagNode) {
     return multihashToString(dagNode.multihash);
 }
 
+function getDigestFromMultihash(multihash){
+    validateMultihash(multihash)
+    const decoded = multihashes.decode(multihashToBuffer(multihash));
+    return decoded.digest;
+}
+
 function getDefaultRepoPath(directory = storage.getDefaultDirectory()) {
     // the versioning is required due to https://github.com/ipfs/js-ipfs/issues/1115
     // in short, IPFS upgrades change the format of the repo
@@ -80,5 +86,6 @@ module.exports = {
     multihashToBuffer,
     getDAGNodeMultihash,
     getDefaultRepoPath,
-    getDefaultOrbitDBPath
+    getDefaultOrbitDBPath,
+    getDigestFromMultihash
 };

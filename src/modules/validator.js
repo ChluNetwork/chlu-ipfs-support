@@ -62,14 +62,14 @@ class Validator {
 
     async validateRRSignature(rr, expectedRRPublicKey = null) {
         this.chluIpfs.logger.debug('Validating RR signature');
-        const pubKeyMultihash = this.keyLocationToKeyMultihash(rr.key_location);
-        const isExpectedKey = expectedRRPublicKey === null || expectedRRPublicKey === pubKeyMultihash;
+        const didId = rr.customer_did_id
+        const isExpectedKey = expectedRRPublicKey === null || expectedRRPublicKey === didId;
         if (!isExpectedKey) {
-            throw new Error('Expected Review Record to be signed by ' + expectedRRPublicKey + ' but found ' + pubKeyMultihash);
+            throw new Error('Expected Review Record to be signed by ' + expectedRRPublicKey + ' but found ' + didId);
         }
-        const valid = await this.chluIpfs.crypto.verifyMultihash(pubKeyMultihash, rr.hash, rr.signature);
+        const valid = await this.chluIpfs.did.verifyMultihash(didId, rr.hash, rr.signature);
         if (valid) {
-            this.chluIpfs.events.emit('discover/keys/customer', pubKeyMultihash);
+            this.chluIpfs.events.emit('discover/did/customer', didId);
         } else {
             throw new Error('The ReviewRecord signature is invalid');
         }
@@ -110,24 +110,25 @@ class Validator {
             }
             const mSignature = popr.marketplace_signature;
             const vSignature = popr.vendor_signature;
-            const vMultihash = this.keyLocationToKeyMultihash(popr.vendor_key_location);
+            const vendorDIDID = popr.vendor_did_id
             const vmSignature = popr.signature;
             const marketplaceUrl = popr.marketplace_url;
-            const mMultihash = await this.fetchMarketplaceKey(marketplaceUrl, useCache);
-            const c = this.chluIpfs.crypto;
+            const marketplaceDIDID = await this.fetchMarketplaceDIDID(marketplaceUrl, useCache);
+            const DID = this.chluIpfs.did;
+            const crypto = this.chluIpfs.crypto
             const validations = await Promise.all([
-                c.verifyMultihash(vMultihash, vmMultihash, vSignature),
-                c.verifyMultihash(mMultihash, vmMultihash, mSignature),
-                c.verifyMultihash(vmMultihash, hash, vmSignature)
+                DID.verifyMultihash(vendorDIDID, vmMultihash, vSignature),
+                DID.verifyMultihash(marketplaceDIDID, vmMultihash, mSignature),
+                crypto.verifyMultihash(vmMultihash, hash, vmSignature)
             ]);
             // false if any validation is false
             const valid = validations.reduce((acc, v) => acc && v);
             if (valid) {
                 if (useCache) this.chluIpfs.cache.cacheValidity(hash);
                 // Emit events about keys discovered
-                this.chluIpfs.events.emit('discover/keys/vendor', vMultihash);
+                this.chluIpfs.events.emit('discover/did/vendor', vendorDIDID);
                 this.chluIpfs.events.emit('discover/keys/vendor-marketplace', vmMultihash);
-                this.chluIpfs.events.emit('discover/keys/marketplace', mMultihash);
+                this.chluIpfs.events.emit('discover/did/marketplace', marketplaceDIDID);
             } else {
                 throw new Error('The PoPR is not correctly signed');
             }
@@ -162,7 +163,6 @@ class Validator {
         // Check validity
         // TODO: check confirmations?
         if (!txInfo.isChlu) {
-            console.log(txInfo, rr.multihash)
             throw new Error(transactionHash + ' is not a Chlu transaction');
         }
         if (rr.multihash !== txInfo.multihash) {
@@ -188,21 +188,21 @@ class Validator {
         return l;
     }
 
-    async fetchMarketplaceKey(marketplaceUrl, useCache = true) {
+    async fetchMarketplaceDIDID(marketplaceUrl, useCache = true) {
         try {
-            this.chluIpfs.logger.debug('Fetching marketplace key for ' + marketplaceUrl);
+            this.chluIpfs.logger.debug('Fetching marketplace DID for ' + marketplaceUrl);
             if (useCache) {
-                const multihash = this.chluIpfs.cache.getMarketplacePubKeyMultihash(marketplaceUrl);
-                if (multihash) return multihash;
+                const didId = this.chluIpfs.cache.getMarketplaceDIDID(marketplaceUrl);
+                if (didId) return didId;
             }
             const response = await this.chluIpfs.http.get(marketplaceUrl + '/.well-known');
-            const multihash = response.data.multihash;
-            IPFSUtils.validateMultihash(multihash);
-            if (useCache) this.chluIpfs.cache.cacheMarketplacePubKeyMultihash(marketplaceUrl, multihash);
-            this.chluIpfs.logger.debug('Fetched marketplace key for ' + marketplaceUrl + ': located at ' + multihash);
-            return multihash;
+            const didId = response.data.didId;
+            // TODO: validate didId
+            if (useCache) this.chluIpfs.cache.cacheMarketplaceDIDID(marketplaceUrl, didId);
+            this.chluIpfs.logger.debug('Fetched marketplace DID for ' + marketplaceUrl + ': ID ' + didId);
+            return didId;
         } catch (error) {
-            throw new Error('Error while fetching the Marketplace key at ' + marketplaceUrl + ': ' + error.message || error);
+            throw new Error('Error while fetching the Marketplace DID at ' + marketplaceUrl + ': ' + error.message || error);
         }
     }
 
@@ -218,7 +218,7 @@ class Validator {
             'currency_symbol',
             'customer_address',
             'vendor_address',
-            'key_location'
+            'customer_did_id'
         ]);
     }
 

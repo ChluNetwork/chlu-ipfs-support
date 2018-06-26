@@ -3,9 +3,8 @@ const sinon = require('sinon');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
-const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 const { genMultihash } = require('./utils/ipfs');
-const { ECPair } = require('bitcoinjs-lib');
+const ChluDID = require('chlu-did/src');
 
 const directory = '/tmp/chlu-test-' + Date.now() + Math.random();
 
@@ -28,14 +27,14 @@ describe('Persistence module', () => {
         expect(loaded).to.deep.equal(data);
     });
 
-    it('saves customer key pair', async () => {
-        const fakeStore = {};
-        api.ipfsUtils = ipfsUtilsStub(fakeStore);
-        const keyPair = await api.crypto.generateKeyPair();
-        await api.crypto.exportKeyPair();
+    it('saves DID', async () => {
+        api.did.publish = sinon.stub().resolves()
+        await api.did.generate();
+        const publicDidDocument = api.did.publicDidDocument
+        const privateKeyBase58 = api.did.privateKeyBase58
         api.storage.save = sinon.stub().resolves();
         await api.persistence.persistData();
-        expect(api.storage.save.args[0][1].keyPair).to.equal(keyPair.toWIF());
+        expect(api.storage.save.args[0][1].did).to.deep.equal({ publicDidDocument, privateKeyBase58 });
     });
 
     it('saves customer last review record multihash', async () => {
@@ -65,14 +64,15 @@ describe('Persistence module', () => {
         expect(data.cache).to.deep.equal(api.cache.export());
     });
 
-    it('loads customer keypair', async () => {
-        const keyPair = ECPair.makeRandom();
-        const data = { keyPair: keyPair.toWIF() };
+    it('loads DID', async () => {
+        const DID = new ChluDID()
+        const did = await DID.generateDID()
+        const data = { did };
         api.storage.load = sinon.stub().resolves(data);
-        api.crypto.importKeyPair = sinon.stub().resolves();
+        api.did.import = sinon.stub().resolves()
         await api.persistence.loadPersistedData();
         expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
-        expect(api.crypto.importKeyPair.calledWith(keyPair.toWIF())).to.be.true;
+        expect(api.did.import.calledWith(did)).to.be.true;
     });
 
     it('loads customer last review record multihash', async () => {

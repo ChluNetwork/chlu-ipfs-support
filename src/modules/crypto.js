@@ -1,16 +1,19 @@
-const multihashes = require('multihashes');
-const { ECPair, ECSignature } = require('bitcoinjs-lib');
-const { multihashToBuffer } = require('../utils/ipfs');
+const elliptic = require('elliptic')
+const brorand = require('brorand')
+const { getDigestFromMultihash } = require('../utils/ipfs')
+
+// TODO: switch this module to elliptic
 
 class Crypto {
     constructor(chluIpfs){
         this.chluIpfs = chluIpfs;
-        this.pubKeyMultihash = null;
-        this.keyPair = null;
+        this.ec = new elliptic.eddsa('ed25519')
+        this.rand = brorand
     }
 
     async storePublicKey(pubKey) {
-        return await this.chluIpfs.ipfsUtils.put(pubKey);
+        const buffer = Buffer.from(pubKey, 'hex')
+        return await this.chluIpfs.ipfsUtils.put(buffer);
     }
 
     async getPublicKey(multihash) {
@@ -21,15 +24,17 @@ class Crypto {
     }
 
     async signMultihash(multihash, keyPair) {
-        const signature = await keyPair.sign(this.getDigestFromMultihash(multihash));
-        return signature.toDER().toString('hex');
+        const data = getDigestFromMultihash(multihash).toString('hex')
+        const result = await keyPair.sign(data);
+        return result.toHex()
     }
 
     async verifyMultihash(pubKeyMultihash, multihash, signature) {
         this.chluIpfs.logger.debug(`Verifying multihash ${pubKeyMultihash} ${multihash} ${signature}`);
         const buffer = await this.getPublicKey(pubKeyMultihash);
-        const keyPair = await ECPair.fromPublicKeyBuffer(buffer);
-        const result = keyPair.verify(this.getDigestFromMultihash(multihash), ECSignature.fromDER(Buffer.from(signature, 'hex')));
+        const keyPair = this.ec.keyFromPublic(buffer.toString('hex'))
+        const data = getDigestFromMultihash(multihash).toString('hex')
+        const result = keyPair.verify(data, signature);
         this.chluIpfs.logger.debug(`Verifying multihash ${pubKeyMultihash} ${multihash} ${signature} ..... ${result}`);
         return result;
     }
@@ -44,36 +49,24 @@ class Crypto {
         return obj;
     }
 
-    async signReviewRecord(obj, keyPair) {
-        if (!obj.hash) {
-            obj.signature = '';
-            obj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
+    async generateKeyPair(store = true) {
+        const keyPair = this.ec.keyFromSecret(this.rand(128))
+        if (store) {
+            const pubKeyMultihash = await this.storePublicKey(keyPair.getPublic('hex'));
+            return { keyPair, pubKeyMultihash };
+        } else {
+            return { keyPair }
         }
-        obj.signature = await this.signMultihash(obj.hash, keyPair);
-        return obj;
-    }
-
-    async generateKeyPair() {
-        this.keyPair = ECPair.makeRandom();
-        this.pubKeyMultihash = await this.storePublicKey(this.keyPair.getPublicKeyBuffer());
-        return this.keyPair;
     }
 
     async importKeyPair(exported) {
-        this.keyPair = ECPair.fromWIF(exported);
-        this.pubKeyMultihash = await this.storePublicKey(this.keyPair.getPublicKeyBuffer());
-        return this.keyPair;
+        const keyPair = this.ec.keyFromSecret(exported)
+        const pubKeyMultihash = await this.storePublicKey(keyPair.getPublic('hex'));
+        return { keyPair, pubKeyMultihash };
     }
 
-    async exportKeyPair() {
-        if (this.keyPair) {
-            return this.keyPair.toWIF();
-        }
-    }
-
-    getDigestFromMultihash(multihash){
-        const decoded = multihashes.decode(multihashToBuffer(multihash));
-        return decoded.digest;
+    async exportKeyPair(keyPair) {
+        return keyPair.getSecret('hex')
     }
 }
 

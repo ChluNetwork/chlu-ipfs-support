@@ -7,6 +7,7 @@ const Validator = require('./modules/validator');
 const DB = require('./modules/orbitdb');
 const Persistence = require('./modules/persistence');
 const ServiceNode = require('./modules/servicenode');
+const DID = require('./modules/did');
 const Crypto = require('./modules/crypto');
 const Bitcoin = require('./modules/bitcoin');
 const storageUtils = require('./utils/storage');
@@ -106,6 +107,7 @@ class ChluIPFS {
         this.validator = new Validator(this);
         this.persistence = new Persistence(this);
         this.serviceNode = new ServiceNode(this);
+        this.did = new DID(this);
         this.crypto = new Crypto(this);
         this.bitcoin = new Bitcoin(this, {
             apiKey: options.blockCypherApiKey,
@@ -132,12 +134,8 @@ class ChluIPFS {
         await this.room.start();
         await this.bitcoin.start();
 
-        if (this.type === constants.types.customer && this.crypto.keyPair === null) {
-            // Generate a key pair
-            // Note: this action requires IPFS to be already started
-            await this.crypto.generateKeyPair();
-            await this.persistence.persistData();
-        }
+        // Note: this action requires IPFS to be already started and persisted data to be loaded
+        await this.did.start()
 
         if (this.type === constants.types.service) {
             await this.serviceNode.start();

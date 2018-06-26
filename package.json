@@ -1,6 +1,6 @@
 {
   "name": "chlu-ipfs-support",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Libraries providing IPFS integration for Chlu",
   "main": "src/index.js",
   "engines": {
@@ -25,11 +25,13 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^0.18.0",
-    "bitcoinjs-lib": "^3.3.2",
-    "blockcypher": "ChluNetwork/node-client#fixes",
+    "blockcypher": "ChluNetwork/node-client",
+    "brorand": "^1.1.0",
+    "chlu-did": "ChluNetwork/chlu-did",
     "chlu-wallet-support-js": "ChluNetwork/chlu-wallet-support-js",
     "commander": "^2.15.1",
     "debounce-async": "^0.0.1",
+    "elliptic": "^6.4.0",
     "ipfs": "~0.28.2",
     "ipfs-api": "^20.0.0",
     "libp2p-websocket-star-rendezvous": "^0.2.3",
@@ -95,10 +97,6 @@
       "no-console": 0,
       "no-debugger": 1,
       "no-var": 1,
-      "semi": [
-        1,
-        "always"
-      ],
       "no-trailing-spaces": 0,
       "eol-last": 0,
       "no-underscore-dangle": 0,

@@ -14,9 +14,9 @@ class Persistence {
                 // multihash of last review record created
                 data.lastReviewRecordMultihash = this.chluIpfs.lastReviewRecordMultihash;
             }
-            if (this.chluIpfs.crypto.keyPair) {
-                // Crypto keypair
-                data.keyPair = await this.chluIpfs.crypto.exportKeyPair();
+            if (this.chluIpfs.did.isPresent()) {
+                // save DID
+                data.did = this.chluIpfs.did.export()
             }
             this.chluIpfs.logger.debug('Saving persisted data');
             try {
@@ -38,8 +38,9 @@ class Persistence {
             if (IPFSUtils.isValidMultihash(data.lastReviewRecordMultihash)) {
                 this.chluIpfs.lastReviewRecordMultihash = data.lastReviewRecordMultihash;
             }
-            if (data.keyPair) {
-                this.chluIpfs.crypto.keyPair = await this.chluIpfs.crypto.importKeyPair(data.keyPair);
+            if (data.did) {
+                // Don't publish. If it's in persisted data, it was published before
+                await this.chluIpfs.did.import(data.did, false);
             }
             if (data.cache) {
                 this.chluIpfs.cache.import(data.cache);

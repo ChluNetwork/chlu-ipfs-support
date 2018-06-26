@@ -29,7 +29,7 @@ function strip(obj) {
 
 describe('Customer and Service Node integration', function() {
     let server, testDir, ipfsDir, customerNode, customerIpfs, serviceNode, serviceIpfs;
-    let v, vm, m, makeKeyPair, preparePoPR;
+    let v, vm, m, preparePoPR;
 
     before(async () => {
         if (env.isNode()) {
@@ -71,12 +71,13 @@ describe('Customer and Service Node integration', function() {
     
         // Stubs
         const crypto = cryptoTestUtils(serviceNode);
-        makeKeyPair = crypto.makeKeyPair;
+        const makeKeyPair = crypto.makeKeyPair;
+        const makeDID = crypto.makeDID
         preparePoPR = crypto.preparePoPR;
         vm = await makeKeyPair();
-        v = await makeKeyPair();
-        m = await makeKeyPair();
-        const http = fakeHttpModule(() => ({ multihash: m.multihash }));
+        v = await makeDID();
+        m = await makeDID();
+        const http = fakeHttpModule(() => ({ didId: m.publicDidDocument.id }));
         serviceNode.http = http;
         customerNode.http = http;
         serviceNode.ipfsUtils.stop = sinon.stub().resolves();
@@ -84,7 +85,21 @@ describe('Customer and Service Node integration', function() {
         serviceNode.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
         customerNode.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
 
+        // Start nodes
         await Promise.all([serviceNode.start(), customerNode.start()]);
+
+        // Do some DID prework to make sure nodes have everything they need
+
+        // Publish Vendor and Marketplace DIDs from service node
+        await serviceNode.did.publish(v.publicDidDocument, false)
+        await serviceNode.did.publish(m.publicDidDocument, false)
+        // wait until Customer DID is replicated into Service Node's OrbitDB
+        await serviceNode.orbitDb.getDID(customerNode.did.didId, true)
+        // wait for customer node to have DIDs for vendor and marketplace
+        await customerNode.orbitDb.getDID(v.publicDidDocument.id, true)
+        await customerNode.orbitDb.getDID(m.publicDidDocument.id, true)
+        // IMPORTANT note for the future: do not parallelize these operations,
+        // it introduces some kind of OrbitDB bug where the tests fail intermittently
     });
 
     after(async () => {

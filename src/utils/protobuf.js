@@ -21,10 +21,11 @@ module.exports = `
         required uint32 chlu_version = 11;
         repeated ReviewAttribute attributes = 12;
         required string signature = 13;
-        required string vendor_key_location = 14;
+        optional string vendor_key_location = 14;
         required string vendor_encryption_key_location = 15;
         required string vendor_signature = 16;
         required string marketplace_signature = 17;
+        optional string vendor_did_id = 18;
     }
   
     message ReviewRecord {
@@ -45,8 +46,9 @@ module.exports = `
         optional string last_reviewrecord_multihash = 11;
         required string hash = 12;
         required string signature = 13;
-        required string key_location = 14;
+        optional string key_location = 14;
         optional string previous_version_multihash = 15;
+        optional string customer_did_id = 16;
     }
 
     message PaymentRecord {

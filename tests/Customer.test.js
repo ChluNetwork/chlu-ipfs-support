@@ -13,7 +13,7 @@ const cryptoTestUtils = require('./utils/crypto');
 
 describe('Customer', () => {
 
-    let chluIpfs, fakeStore = {}, vm, v, m, makeKeyPair, preparePoPR;
+    let chluIpfs, fakeStore = {}, vm, v, m, preparePoPR;
 
     beforeEach(async () => {
         chluIpfs = new ChluIPFS({
@@ -44,7 +44,7 @@ describe('Customer', () => {
                 publish
             }
         };
-        chluIpfs.orbitDb.setAndWaitForReplication = sinon.stub().resolves();
+        chluIpfs.orbitDb.putReviewRecordAndWaitForReplication = sinon.stub().resolves();
         chluIpfs.orbitDb.getReviewRecordMetadata = sinon.stub().returns({
             bitcoinTransactionHash: 'fake'
         });
@@ -52,13 +52,19 @@ describe('Customer', () => {
         // Crypto
         chluIpfs.crypto.generateKeyPair();
         const crypto = cryptoTestUtils(chluIpfs);
-        makeKeyPair = crypto.makeKeyPair;
+        const makeKeyPair = crypto.makeKeyPair;
+        const makeDID = crypto.makeDID 
         preparePoPR = crypto.preparePoPR;
         vm = await makeKeyPair();
-        v = await makeKeyPair();
-        m = await makeKeyPair();
+        v = await makeDID();
+        m = await makeDID();
+        // DID 
+        chluIpfs.did.publish = sinon.stub().resolves()
+        await chluIpfs.did.start()
+        const didMap = crypto.buildDIDMap([v, m, chluIpfs.did.export() ])
+        chluIpfs.did.getDID = sinon.stub().callsFake(async id => didMap[id])
         // Other mocks
-        chluIpfs.http = http(() => ({ multihash: m.multihash }));
+        chluIpfs.http = http(() => ({ didId: m.publicDidDocument.id }));
         chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
     });
 
@@ -130,9 +136,9 @@ describe('Customer', () => {
             bitcoinTransactionHash: 'test'
         });
         const rr = await chluIpfs.readReviewRecord(multihash);
-        expect(rr.key_location).to.equal('/ipfs/' + chluIpfs.crypto.pubKeyMultihash);
+        expect(rr.customer_did_id).to.equal(chluIpfs.did.didId);
         expect(rr.signature).to.be.a('string');
-        const valid = await chluIpfs.crypto.verifyMultihash(chluIpfs.crypto.pubKeyMultihash, rr.hash, rr.signature);
+        const valid = await chluIpfs.did.verifyMultihash(chluIpfs.did.didId, rr.hash, rr.signature);
         expect(valid).to.be.true;
     });
 

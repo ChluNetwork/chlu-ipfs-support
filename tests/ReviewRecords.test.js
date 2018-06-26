@@ -15,7 +15,7 @@ const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 describe('ReviewRecords module', () => {
     let chluIpfs;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         chluIpfs = new ChluIPFS({
             type: ChluIPFS.types.customer,
             enablePersistence: false,
@@ -23,6 +23,8 @@ describe('ReviewRecords module', () => {
             logger: logger('Customer')
         });
         chluIpfs.waitUntilReady = sinon.stub().resolves();
+        chluIpfs.did.publish = sinon.stub().resolves()
+        await chluIpfs.did.start() // generate a DID
     });
 
     it('reads ReviewRecords from IPFS', async () => {
@@ -56,7 +58,7 @@ describe('ReviewRecords module', () => {
         chluIpfs.lastReviewRecordMultihash = lastReviewRecordMultihash.slice(0); // make a copy
         const fakeStore = {};
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
-        chluIpfs.orbitDb.setAndWaitForReplication = sinon.stub().resolves();
+        chluIpfs.orbitDb.putReviewRecordAndWaitForReplication = sinon.stub().resolves();
         chluIpfs.reviewRecords.waitForRemotePin = sinon.stub().resolves();
         chluIpfs.crypto.generateKeyPair();
         const multihash = await chluIpfs.storeReviewRecord(fakeReviewRecord, {
@@ -132,7 +134,7 @@ describe('ReviewRecords module', () => {
         const fakeStore = {};
         const txId = 'test transaction id';
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
-        chluIpfs.orbitDb.setAndWaitForReplication = sinon.stub().resolves();
+        chluIpfs.orbitDb.putReviewRecordAndWaitForReplication = sinon.stub().resolves();
         chluIpfs.room.broadcastUntil = sinon.stub().resolves();
         chluIpfs.validator.validateReviewRecord = sinon.stub().resolves();
         chluIpfs.crypto.generateKeyPair();
@@ -140,7 +142,7 @@ describe('ReviewRecords module', () => {
         // Check pass to validator
         expect(chluIpfs.validator.validateReviewRecord.args[0][1].bitcoinTransactionHash).to.equal(txId);
         // Check pass to orbitdb module
-        expect(chluIpfs.orbitDb.setAndWaitForReplication.args[0]).to.deep.equal([
+        expect(chluIpfs.orbitDb.putReviewRecordAndWaitForReplication.args[0]).to.deep.equal([
             multihash, null, txId, chluIpfs.bitcoin.getNetwork()
         ]);
         // Check pass to broadcastUntil

@@ -33,7 +33,7 @@ describe('OrbitDB Module', () => {
     });
 
     it('exposes method to get the latest version of a RR by multihash', () => {
-        expect(chluIpfs.orbitDb.get).to.be.a('function');
+        expect(chluIpfs.orbitDb.getLatestReviewRecordUpdate).to.be.a('function');
     });
 
     describe('Chlu Store InMemory Index', () => {
@@ -107,5 +107,29 @@ describe('OrbitDB Module', () => {
             expect(idx.getLatestReviewRecordUpdate(genMultihash(3)))
                 .to.deep.equal(genMultihash(4));
         });
+
+        it('handles DIDs', () => {
+            expect(idx.getDID('did:chlu:abc')).to.be.null
+            applyOperation(idx, {
+                op: ChluInMemoryIndex.operations.PUT_DID,
+                didId: 'did:chlu:abc',
+                multihash: genMultihash(1)
+            })
+            expect(idx.getDID('did:chlu:abc')).to.equal(genMultihash(1))
+            // replaces old value
+            applyOperation(idx, {
+                op: ChluInMemoryIndex.operations.PUT_DID,
+                didId: 'did:chlu:abc',
+                multihash: genMultihash(2)
+            })
+            expect(idx.getDID('did:chlu:abc')).to.equal(genMultihash(2))
+        })
+
+        // TODO: implementation
+
+        it.skip('handles unverified reviews')
+
+        it.skip('returns both verified and unverified reviews together')
+
     });
 });

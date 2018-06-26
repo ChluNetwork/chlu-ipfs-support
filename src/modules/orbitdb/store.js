@@ -2,6 +2,7 @@ const IPFSUtils = require('../../utils/ipfs');
 const Store = require('orbit-db-store');
 const ChluAbstractIndex = require('./abstract');
 const ChluInMemoryIndex = require('./inmemory');
+const DID = require('../did')
 
 const version = 0;
 
@@ -41,6 +42,34 @@ class ChluStore extends Store {
             previousVersionMultihash,
             version
         });
+    }
+
+    putDID(didId, multihash, signature) {
+        if (!DID.isDIDID(didId)) throw new Error('DID ID invalid')
+        return this._addOperation({
+            op: ChluAbstractIndex.operations.PUT_DID,
+            didId,
+            multihash,
+            signature,
+            version
+        })
+    }
+
+    putUnverifiedReviews(didId, reviews, signature) {
+        if (!DID.isDIDID(didId)) throw new Error('DID ID invalid')
+        if (!Array.isArray(reviews)) throw new Error('Reviews must be an array')
+        // TODO: verify signature
+        return this._addOperation({
+            op: ChluAbstractIndex.operations.PUT_UNVERIFIED_REVIEWS,
+            didId,
+            reviews,
+            signature,
+            version
+        })
+    }
+
+    getDID(didId) {
+        return this._index.getDID(didId)
     }
 
     getReviewRecordList() {

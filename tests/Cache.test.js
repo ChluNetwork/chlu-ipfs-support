@@ -35,17 +35,17 @@ describe('Cache Module', () => {
     });
 
     it('caches marketplace pub key multihash correctly', () => {
-        expect(cache.getMarketplacePubKeyMultihash(url)).to.be.null;
-        cache.cacheMarketplacePubKeyMultihash(url, genMultihash());
-        expect(cache.getMarketplacePubKeyMultihash(url)).to.equal(genMultihash());
+        expect(cache.getMarketplaceDIDID(url)).to.be.null;
+        cache.cacheMarketplaceDIDID(url, genMultihash());
+        expect(cache.getMarketplaceDIDID(url)).to.equal(genMultihash());
         expect(cache.persistData.called).to.be.true;
     });
 
     it('does not cache when disabled', () => {
         cache.options.enabled = false;
-        expect(cache.getMarketplacePubKeyMultihash(url)).to.be.null;
-        cache.cacheMarketplacePubKeyMultihash(url, genMultihash());
-        expect(cache.getMarketplacePubKeyMultihash(url)).to.be.null;
+        expect(cache.getMarketplaceDIDID(url)).to.be.null;
+        cache.cacheMarketplaceDIDID(url, genMultihash());
+        expect(cache.getMarketplaceDIDID(url)).to.be.null;
         expect(cache.isValidityCached(genMultihash())).to.be.false;
         cache.cacheValidity(genMultihash());
         expect(cache.isValidityCached(genMultihash())).to.be.false;
