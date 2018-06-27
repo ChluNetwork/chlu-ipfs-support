@@ -38,12 +38,18 @@ class Crypto {
     }
 
     async verifyMultihash(pubKeyMultihash, multihash, signature) {
-        this.chluIpfs.logger.debug(`Verifying multihash ${pubKeyMultihash} ${multihash} ${signature}`);
-        const buffer = await this.getPublicKey(pubKeyMultihash);
+        if (signature.type !== 'crypto') {
+            throw new Error('Unhandled signature type')
+        }
+        if (pubKeyMultihash !== signature.creator) {
+            throw new Error(`Expected data to be signed by ${pubKeyMultihash}, found ${signature.creator} instead`)
+        }
+        this.chluIpfs.logger.debug(`Verifying signature by ${signature.creator} on ${multihash}: ${signature.signatureValue}`);
+        const buffer = await this.getPublicKey(signature.creator);
         const keyPair = this.ec.keyFromPublic(buffer.toString('hex'))
         const data = getDigestFromMultihash(multihash).toString('hex')
-        const result = keyPair.verify(data, signature);
-        this.chluIpfs.logger.debug(`Verifying multihash ${pubKeyMultihash} ${multihash} ${signature} ..... ${result}`);
+        const result = keyPair.verify(data, signature.signatureValue);
+        this.chluIpfs.logger.debug(`Verified signature by ${signature.creator} on ${multihash}: ${signature.signatureValue} => ${result}`);
         return result;
     }
 

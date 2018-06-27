@@ -4,7 +4,7 @@ const multihashing = require('multihashing-async');
 const constants = require('../constants');
 const protobuf = protons(require('../utils/protobuf'));
 const IPFSUtils = require('./ipfs');
-const { cloneDeep, findIndex } = require('lodash');
+const { cloneDeep, findIndex, isObject, isString, isEmpty } = require('lodash');
 
 class ReviewRecords {
 
@@ -43,6 +43,7 @@ class ReviewRecords {
     }
 
     async getHistory(reviewRecord, history = []) {
+        // TODO: maybe we should involve orbit-db here
         const prev = reviewRecord.previous_version_multihash;
         if (prev) {
             if (history.map(o => o.multihash).indexOf(prev) >= 0) {
@@ -99,7 +100,7 @@ class ReviewRecords {
             }
         }
         if (checkForUpdates) this.watchReviewRecord(m, validate);
-        const didId = reviewRecord.customer_did_id;
+        const didId = reviewRecord.issuer
         reviewRecord.editable = didId === this.chluIpfs.did.didId;
         reviewRecord.requestedMultihash = multihash;
         reviewRecord.watching = Boolean(checkForUpdates);
@@ -122,7 +123,7 @@ class ReviewRecords {
     }
 
     async prepareReviewRecord(reviewRecord, bitcoinTransactionHash = null, validate = true) {
-        reviewRecord.customer_did_id = this.chluIpfs.did.didId
+        reviewRecord.issuer = this.chluIpfs.did.didId
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
         // Remove hash in case it's wrong (or this is an update). It's going to be calculated by the signing function
         reviewRecord.hash = '';
@@ -216,6 +217,10 @@ class ReviewRecords {
 
     async hashObject(object, encoder) {
         const obj = cloneDeep(object);
+        if (obj.issuer_signature && obj.issuer_signature.type !== 'empty') {
+            console.trace(obj)
+            throw new Error('Signature not empty')
+        }
         let name;
         try {
             // Try to detect existing multihash type
@@ -227,10 +232,6 @@ class ReviewRecords {
             name = 'sha2-256';
         }
         obj.hash = '';
-        if (typeof obj.signature !== 'undefined') {
-            // Signature is applied after hashing, so remove it for hashing
-            obj.signature = '';
-        }
         this.chluIpfs.logger.debug('Preparing to hash the object: ' + JSON.stringify(obj));
         const toHash = encoder(obj); 
         const multihash = await new Promise((resolve, reject) => {
@@ -238,30 +239,59 @@ class ReviewRecords {
                 if (err) reject(err); else resolve(multihash);
             });
         });
-        obj.hash = multihashes.toB58String(multihash);
-        if (typeof object.signature !== 'undefined') {
-            // Restore signature if it was present originally
-            obj.signature = object.signature;
+        const hash = multihashes.toB58String(multihash);
+        /*
+        if (decoder) {
+            // TODO: this is test code
+            const target = cloneDeep(obj)
+            delete target.multihash
+            const decoded = decoder(toHash)
+            decoded.hash = ''
+            const expect = require('chai').expect
+            expect(decoded).to.deep.equal(target)
+            if (obj.hash) expect(hash).to.equal(obj.hash)
         }
+        */
+        obj.hash = hash
         this.chluIpfs.logger.debug('Hashed to ' + obj.hash + ' the object ' + JSON.stringify(obj));
         return obj;
     }
 
     async hashReviewRecord(reviewRecord) {
+        const obj = cloneDeep(reviewRecord)
         // TODO: better checks
-        if (!reviewRecord.last_reviewrecord_multihash) reviewRecord.last_reviewrecord_multihash = '';
-        if (!reviewRecord.previous_version_multihash) reviewRecord.previous_version_multihash = '';
-        // TODO: fields are optional but the protons lib fails if it's not there as an empty string
-        if (!reviewRecord.key_location) reviewRecord.key_location = ''
-        if (!reviewRecord.customer_did_id) reviewRecord.customer_did_id = ''
-        return await this.hashObject(reviewRecord, protobuf.ReviewRecord.encode);
+        const sig = cloneDeep(obj.issuer_signature)
+        obj.issuer_signature = {
+            type: 'empty',
+            created: 0,
+            nonce: '',
+            creator: '',
+            signatureValue: ''
+        }
+        if (!obj.key_location) obj.key_location = ''
+        if (!obj.previous_version_multihash) obj.previous_version_multihash = ''
+        if (!obj.last_reviewrecord_multihash) obj.last_reviewrecord_multihash = ''
+        const hashed = await this.hashObject(obj, protobuf.ReviewRecord.encode);
+        hashed.issuer_signature = sig
+        return hashed
     }
 
     async hashPoPR(popr) {
+        const obj = cloneDeep(popr)
         // TODO: fields are optional but the protons lib fails if it's not there as an empty string
-        if (!popr.key_location) popr.vendor_key_location = ''
-        if (!popr.vendor_did) popr.vendor_did = ''
-        return await this.hashObject(popr, protobuf.PoPR.encode);
+        if (!obj.key_location) obj.key_location = ''
+        if (!obj.vendor_did) obj.vendor_did = ''
+        const sig = cloneDeep(obj.sig)
+        obj.sig = {
+            type: 'empty',
+            created: 0,
+            nonce: '',
+            creator: '',
+            signatureValue: ''
+        }
+        const hashed = await this.hashObject(obj, protobuf.PoPR.encode);
+        hashed.sig = sig
+        return hashed
     }
 
     setPointerToLastReviewRecord(reviewRecord) {
@@ -270,11 +300,10 @@ class ReviewRecords {
     }
 
     isReviewRecordUpdate(reviewRecord) {
-        return Boolean(reviewRecord
-            && reviewRecord.previous_version_multihash
-            && typeof reviewRecord.previous_version_multihash === 'string'
-            && IPFSUtils.isValidMultihash(reviewRecord.previous_version_multihash)
-        );
+        return (isObject(reviewRecord)
+            && isString(reviewRecord.previous_version_multihash)
+            && !isEmpty(reviewRecord.previous_version_multihash)
+            && IPFSUtils.isValidMultihash(reviewRecord.previous_version_multihash))
     }
 
 }

@@ -65,6 +65,20 @@ function getFakeReviewRecord() {
                 creator: 'did:chlu:rando',
                 signatureValue: ''
             },
+            marketplace_sig: {
+                type: 'did:chlu',
+                nonce: '',
+                created: 0,
+                creator: 'did:chlu:rando',
+                signatureValue: ''
+            },
+            vendor_sig: {
+                type: 'did:chlu',
+                nonce: '',
+                created: 0,
+                creator: 'did:chlu:rando',
+                signatureValue: ''
+            },
             vendor_did: '',
         },
         last_reviewrecord_multihash: '',

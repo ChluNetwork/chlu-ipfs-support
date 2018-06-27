@@ -88,12 +88,23 @@ class ChluIPFSDID {
     }
 
     async verifyMultihash(didId, multihash, signature) {
+        if (signature.type !== 'did:chlu') {
+            throw new Error('Unhandled signature type')
+        }
+        if (didId !== signature.creator) {
+            throw new Error(`Expected data to be signed by ${didId}, found ${signature.creator} instead`)
+        }
         const data = getDigestFromMultihash(multihash)
-        return await this.verify(didId, data, signature) 
+        return await this.verify(signature.creator, data, signature.signatureValue) 
     }
 
     async signReviewRecord(obj) {
-        if (!obj.hash) {
+        let changed = false
+        if (obj.issuer !== this.didId) {
+            obj.issuer = this.didId
+            changed = true
+        }
+        if (!obj.hash || changed) {
             // TODO: review this
             obj.issuer_signature = {
                 type: 'empty',

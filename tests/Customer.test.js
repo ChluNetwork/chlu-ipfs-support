@@ -11,7 +11,7 @@ const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 const http = require('./utils/http');
 const cryptoTestUtils = require('./utils/crypto');
 
-describe.only('Customer', () => {
+describe('Customer', () => {
 
     let chluIpfs, fakeStore = {}, vm, v, m, preparePoPR;
 
@@ -68,10 +68,9 @@ describe.only('Customer', () => {
         chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
     });
 
-    it.only('stores ReviewRecords and automatically publishes them', async () => {
+    it('stores ReviewRecords and automatically publishes them', async () => {
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
-        console.log(reviewRecord.popr)
         const result = await chluIpfs.storeReviewRecord(reviewRecord, {
             bitcoinTransactionHash: 'test'
         });
@@ -137,9 +136,12 @@ describe.only('Customer', () => {
             bitcoinTransactionHash: 'test'
         });
         const rr = await chluIpfs.readReviewRecord(multihash);
-        expect(rr.customer_did_id).to.equal(chluIpfs.did.didId);
-        expect(rr.signature).to.be.a('string');
-        const valid = await chluIpfs.did.verifyMultihash(chluIpfs.did.didId, rr.hash, rr.signature);
+        expect(rr.issuer).to.equal(chluIpfs.did.didId);
+        expect(rr.issuer_signature.type).to.equal('did:chlu')
+        expect(rr.issuer_signature.creator).to.equal(chluIpfs.did.didId)
+        expect(rr.issuer_signature.created).to.be.a('number')
+        expect(rr.issuer_signature.signatureValue).to.be.a('string')
+        const valid = await chluIpfs.did.verifyMultihash(chluIpfs.did.didId, rr.hash, rr.issuer_signature);
         expect(valid).to.be.true;
     });
 

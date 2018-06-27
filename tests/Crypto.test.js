@@ -7,7 +7,7 @@ const { isValidMultihash } = require('../src/utils/ipfs');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub')
 
 describe('Crypto Module', () => {
-    let chluIpfs, keyPair, makeKeyPair, pubKeyMultihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1';
+    let chluIpfs, keyPair, makeKeyPair, pubKeyMultihash
 
     beforeEach(async () => {
         chluIpfs = new ChluIPFS({
@@ -19,10 +19,9 @@ describe('Crypto Module', () => {
         makeKeyPair = async () => (await chluIpfs.crypto.generateKeyPair(false)).keyPair
         const keys = await chluIpfs.crypto.generateKeyPair(false)
         keyPair = keys.keyPair
-        const fakeStore = {
-            [pubKeyMultihash]: Buffer.from(keyPair.getPublic('hex'), 'hex')
-        }
+        const fakeStore = {}
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore)
+        pubKeyMultihash = await chluIpfs.ipfsUtils.put(Buffer.from(keyPair.getPublic('hex'), 'hex'))
     });
 
     afterEach(() => {
@@ -47,7 +46,7 @@ describe('Crypto Module', () => {
             return await chluIpfs.crypto.verifyMultihash(
                 pubKeyMultihash,
                 hashed.hash,
-                hashed.signature
+                hashed.sig
             );
         }
         const reviewRecord = await getFakeReviewRecord();

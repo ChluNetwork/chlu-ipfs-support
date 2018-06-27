@@ -47,9 +47,9 @@ describe('DID Module', () => {
         async function verifyRR(rr) {
             const hashed = await chluIpfs.reviewRecords.hashReviewRecord(rr);
             return await chluIpfs.did.verifyMultihash(
-                chluIpfs.did.didId,
+                hashed.issuer,
                 hashed.hash,
-                hashed.signature
+                hashed.issuer_signature
             );
         }
         let reviewRecord = await getFakeReviewRecord();
@@ -57,7 +57,7 @@ describe('DID Module', () => {
         const verification = await verifyRR(reviewRecord);
         expect(verification).to.be.true;
         // Test failure case: change a field and validate again
-        reviewRecord.review_text = 'Hellooooo';
+        reviewRecord.review.text = 'Hellooooo';
         const verificationToFail = await verifyRR(reviewRecord);
         expect(verificationToFail).to.be.false;
     });

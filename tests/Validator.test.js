@@ -200,13 +200,13 @@ describe('Validator Module', () => {
         invalidPopr.hash = 'lol not the real hash';
         expect(test(invalidPopr)).to.throw;
         invalidPopr = cloneDeep(popr);
-        invalidPopr.signature = invalidPopr.vendor_signature;
+        invalidPopr.signature = invalidPopr.vendor_sig;
         expect(test(invalidPopr)).to.throw;
         invalidPopr = cloneDeep(popr);
-        invalidPopr.marketplace_signature = invalidPopr.vendor_signature;
+        invalidPopr.marketplace_sig = invalidPopr.vendor_sig;
         expect(test(invalidPopr)).to.throw;
         invalidPopr = cloneDeep(popr);
-        invalidPopr.vendor_signature = invalidPopr.marketplace_signature;
+        invalidPopr.vendor_sig = invalidPopr.marketplace_sig;
         expect(test(invalidPopr)).to.throw;
     });
 
@@ -237,7 +237,7 @@ describe('Validator Module', () => {
         invalidRR.hash = 'lol not the real hash';
         expect(test(invalidRR)).to.throw;
         invalidRR = cloneDeep(reviewRecord);
-        invalidRR.key_location = 'wrong';
+        invalidRR.issuer = 'wrong';
         expect(test(invalidRR)).to.throw;
         invalidRR = cloneDeep(reviewRecord);
         invalidRR.review_text = 'wrong again';

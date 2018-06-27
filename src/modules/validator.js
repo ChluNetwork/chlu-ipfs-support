@@ -1,5 +1,4 @@
 const { cloneDeep, isEqual } = require('lodash');
-const IPFSUtils = require('../utils/ipfs');
 
 class Validator {
 
@@ -62,12 +61,12 @@ class Validator {
 
     async validateRRSignature(rr, expectedRRPublicKey = null) {
         this.chluIpfs.logger.debug('Validating RR signature');
-        const didId = rr.customer_did_id
+        const didId = rr.issuer
         const isExpectedKey = expectedRRPublicKey === null || expectedRRPublicKey === didId;
         if (!isExpectedKey) {
             throw new Error('Expected Review Record to be signed by ' + expectedRRPublicKey + ' but found ' + didId);
         }
-        const valid = await this.chluIpfs.did.verifyMultihash(didId, rr.hash, rr.signature);
+        const valid = await this.chluIpfs.did.verifyMultihash(didId, rr.hash, rr.issuer_signature);
         if (valid) {
             this.chluIpfs.events.emit('discover/did/customer', didId);
         } else {
@@ -108,10 +107,10 @@ class Validator {
             if (!isExpectedKey) {
                 throw new Error('Expected PoPR to be signed by ' + expectedPoPRPublicKey + ' but found ' + vmMultihash);
             }
-            const mSignature = popr.marketplace_signature;
-            const vSignature = popr.vendor_signature;
+            const mSignature = popr.marketplace_sig;
+            const vSignature = popr.vendor_sig;
             const vendorDIDID = popr.vendor_did
-            const vmSignature = popr.signature;
+            const vmSignature = popr.sig;
             const marketplaceUrl = popr.marketplace_url;
             const marketplaceDIDID = await this.fetchMarketplaceDIDID(marketplaceUrl, useCache);
             const DID = this.chluIpfs.did;
@@ -218,7 +217,7 @@ class Validator {
             'currency_symbol',
             'customer_address',
             'vendor_address',
-            'customer_did_id'
+            'issuer'
         ]);
     }
 

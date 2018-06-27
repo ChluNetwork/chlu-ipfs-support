@@ -74,6 +74,10 @@ module.exports = `
         required string vendor_did = 16;
     
         required Signature sig = 17;
+
+        required Signature marketplace_sig = 18;
+        
+        required Signature vendor_sig = 19;
     }
 
 
