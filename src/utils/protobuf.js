@@ -73,7 +73,7 @@ module.exports = `
         // vendor key location and vendor encryption key location should resolve from the did
         required string vendor_did = 16;
     
-        required Signature sig = 17;
+        optional Signature sig = 17;
 
         required Signature marketplace_sig = 18;
         

@@ -217,7 +217,7 @@ class ReviewRecords {
 
     async hashObject(object, encoder) {
         const obj = cloneDeep(object);
-        if (obj.issuer_signature && obj.issuer_signature.type !== 'empty') {
+        if (obj.issuer_signature) {
             console.trace(obj)
             throw new Error('Signature not empty')
         }
@@ -261,13 +261,7 @@ class ReviewRecords {
         const obj = cloneDeep(reviewRecord)
         // TODO: better checks
         const sig = cloneDeep(obj.issuer_signature)
-        obj.issuer_signature = {
-            type: 'empty',
-            created: 0,
-            nonce: '',
-            creator: '',
-            signatureValue: ''
-        }
+        obj.issuer_signature = null
         if (!obj.key_location) obj.key_location = ''
         if (!obj.previous_version_multihash) obj.previous_version_multihash = ''
         if (!obj.last_reviewrecord_multihash) obj.last_reviewrecord_multihash = ''
@@ -282,13 +276,7 @@ class ReviewRecords {
         if (!obj.key_location) obj.key_location = ''
         if (!obj.vendor_did) obj.vendor_did = ''
         const sig = cloneDeep(obj.sig)
-        obj.sig = {
-            type: 'empty',
-            created: 0,
-            nonce: '',
-            creator: '',
-            signatureValue: ''
-        }
+        obj.sig = null
         const hashed = await this.hashObject(obj, protobuf.PoPR.encode);
         hashed.sig = sig
         return hashed

@@ -56,13 +56,7 @@ class Crypto {
     async signPoPR(obj, keyPair) {
         if (!obj.hash) {
             // TODO: review this
-            obj.sig = {
-                type: 'empty',
-                created: 0,
-                nonce: '',
-                creator: '',
-                signatureValue: ''
-            };
+            obj.sig = null
             obj = await this.chluIpfs.reviewRecords.hashPoPR(obj);
         }
         obj.sig = await this.signMultihash(obj.hash, keyPair);

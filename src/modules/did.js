@@ -106,13 +106,7 @@ class ChluIPFSDID {
         }
         if (!obj.hash || changed) {
             // TODO: review this
-            obj.issuer_signature = {
-                type: 'empty',
-                created: 0,
-                nonce: '',
-                creator: '',
-                signatureValue: ''
-            };
+            obj.issuer_signature = null
             obj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
         }
         obj.issuer_signature = await this.signMultihash(obj.hash);
