@@ -24,4 +24,21 @@ describe('Protobuf', () => {
         const decoded = protobuf.PoPR.decode(buffer);
         expect(decoded).to.deep.equal(fakePoPR);
     });
+
+    it('works with proto3', async () => {
+        const source = `
+            syntax = "proto3";
+
+            message Msg {
+                string content = 1;
+                string from = 2;
+            }
+        `
+        const p = protons(source)
+        const msg = {
+            from: 'user',
+            content: 'my message'
+        }
+        expect(p.Msg.decode(p.Msg.encode(msg))).to.deep.equal(msg)
+    })
 });
