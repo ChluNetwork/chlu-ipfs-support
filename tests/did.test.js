@@ -46,11 +46,19 @@ describe('DID Module', () => {
         await chluIpfs.did.start()
         async function verifyRR(rr) {
             const hashed = await chluIpfs.reviewRecords.hashReviewRecord(rr);
-            return await chluIpfs.did.verifyMultihash(
+            const issuer = await chluIpfs.did.verifyMultihash(
                 hashed.issuer,
                 hashed.hash,
                 hashed.issuer_signature
             );
+            const customer = await chluIpfs.did.verifyMultihash(
+                hashed.customer_signature.creator,
+                hashed.hash,
+                hashed.customer_signature
+            )
+            expect(hashed.issuer).to.equal(chluIpfs.did.didId)
+            expect(hashed.customer_signature.creator).to.equal(chluIpfs.did.didId)
+            return issuer && customer
         }
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord = await chluIpfs.did.signReviewRecord(reviewRecord);

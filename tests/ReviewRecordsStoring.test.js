@@ -9,7 +9,7 @@ const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 const http = require('./utils/http');
 const cryptoTestUtils = require('./utils/crypto');
 
-describe('Customer', () => {
+describe('ReviewRecord storing and publishing', () => {
 
     let chluIpfs, fakeStore = {}, vm, v, m, preparePoPR;
 
@@ -66,8 +66,11 @@ describe('Customer', () => {
         chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
     });
 
-    it('stores ReviewRecords and automatically publishes them', async () => {
+    it.skip('can import Unverified Reviews')
+
+    it('stores Reviews and automatically publishes them', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        delete reviewRecord.issuer // force Chlu to sign it as issuer
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         const result = await chluIpfs.storeReviewRecord(reviewRecord, {
             bitcoinTransactionHash: 'test'
@@ -79,8 +82,9 @@ describe('Customer', () => {
         expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
     });
 
-    it('can store ReviewRecords without publishing', async () => {
+    it('can store Review without publishing', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        delete reviewRecord.issuer // force Chlu to sign it as issuer
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
         const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
@@ -90,8 +94,9 @@ describe('Customer', () => {
         expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
     });
 
-    it('can store ReviewRecords without publishing then store them again and publish them', async () => {
+    it('can store Reviews without publishing then store them again and publish them', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        delete reviewRecord.issuer // force Chlu to sign it as issuer
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
         let actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
@@ -108,8 +113,9 @@ describe('Customer', () => {
         expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
     });
 
-    it('correctly checks expected multihash when storing a review record', async () => {
+    it('correctly checks expected multihash when storing a review', async () => {
         const reviewRecord = await getFakeReviewRecord();
+        delete reviewRecord.issuer // force Chlu to sign it as issuer
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         let errorMessage, multihash;
         try {
@@ -127,7 +133,15 @@ describe('Customer', () => {
         expect(errorMessage).to.be.null;
     });
 
-    it('signs review records correctly', async () => {
+    it('signs reviews correctly', async () => {
+        async function verifySignature(rr, didId, field) {
+            expect(rr[field].type).to.equal('did:chlu')
+            expect(rr[field].creator).to.equal(didId)
+            expect(rr[field].created).to.be.a('number')
+            expect(rr[field].signatureValue).to.be.a('string')
+            const valid = await chluIpfs.did.verifyMultihash(didId, rr.hash, rr[field]);
+            expect(valid).to.be.true;
+        }
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         const multihash = await chluIpfs.storeReviewRecord(reviewRecord, {
@@ -135,12 +149,8 @@ describe('Customer', () => {
         });
         const rr = await chluIpfs.readReviewRecord(multihash);
         expect(rr.issuer).to.equal(chluIpfs.did.didId);
-        expect(rr.issuer_signature.type).to.equal('did:chlu')
-        expect(rr.issuer_signature.creator).to.equal(chluIpfs.did.didId)
-        expect(rr.issuer_signature.created).to.be.a('number')
-        expect(rr.issuer_signature.signatureValue).to.be.a('string')
-        const valid = await chluIpfs.did.verifyMultihash(chluIpfs.did.didId, rr.hash, rr.issuer_signature);
-        expect(valid).to.be.true;
+        await verifySignature(rr, chluIpfs.did.didId, 'issuer_signature')
+        await verifySignature(rr, chluIpfs.did.didId, 'customer_signature')
     });
 
 });

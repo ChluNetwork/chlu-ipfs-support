@@ -212,6 +212,8 @@ module.exports = `
         optional Verification verification = 26;
 
         optional Signature issuer_signature = 27;
+
+        optional Signature customer_signature = 28;
         
     }
 `;

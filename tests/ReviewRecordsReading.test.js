@@ -4,14 +4,13 @@ const sinon = require('sinon');
 const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
 
-const protons = require('protons');
 const { getFakeReviewRecord } = require('./utils/protobuf');
 const multihashes = require('multihashes');
 const { isValidMultihash } = require('../src/utils/ipfs');
 const { cloneDeep } = require('lodash');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 
-describe('ReviewRecords module', () => {
+describe('ReviewRecord reading and other functions', () => {
     let chluIpfs;
 
     beforeEach(async () => {
@@ -26,7 +25,7 @@ describe('ReviewRecords module', () => {
         await chluIpfs.did.start() // generate a DID
     });
 
-    it('reads ReviewRecords from IPFS', async () => {
+    it('reads Verified Review from IPFS', async () => {
         const fakeReviewRecord = await getFakeReviewRecord();
         const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
         const multihashBuffer = multihashes.fromB58String(multihash);
@@ -42,6 +41,8 @@ describe('ReviewRecords module', () => {
         expect(reviewRecord).to.not.be.undefined;
         expect(reviewRecord.chlu_version).to.not.be.undefined;
     });
+
+    it.skip('reads Unverified Reviews from IPFS')
 
     it('recognizes valid and invalid multihashes', async () => {
         let multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ';

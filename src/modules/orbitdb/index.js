@@ -93,10 +93,6 @@ class DB {
         this.chluIpfs.logger.debug('Remote replication event received: OrbitDB Write operation Done');
     }
 
-    async putUnverifiedReviews(didId, reviews, signature) {
-        return this.db.putUnverifiedReviews(didId, reviews, signature)
-    }
-
     async getDID(didId, waitUntilPresent = false) {
         let multihash = null, firstTry = true
         while(!multihash && (firstTry || waitUntilPresent)) {

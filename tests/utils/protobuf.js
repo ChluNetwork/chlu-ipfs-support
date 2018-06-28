@@ -6,9 +6,9 @@ function getFakeReviewRecord() {
         customer_address: 'customer_address',
         vendor_address: 'vendor_address',
         issued: 0,
-        issuer: 'did:rando',
+        issuer: 'did:chlu:rando',
         subject: {
-            did: 'did:rando',
+            did: 'did:chlu:rando',
             address: '',
             categories: [],
             location: null,
@@ -91,7 +91,14 @@ function getFakeReviewRecord() {
             creator: 'did:chlu:rando',
             signatureValue: ''
         },
-        verifiable: false,
+        customer_signature: {
+            type: 'did:chlu',
+            nonce: '',
+            created: 0,
+            creator: 'did:chlu:rando',
+            signatureValue: ''
+        },
+        verifiable: true,
         verification: null
     };
 }

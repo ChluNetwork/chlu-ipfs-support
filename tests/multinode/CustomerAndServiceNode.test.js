@@ -119,7 +119,9 @@ describe('Customer and Service Node integration', function() {
         customerNode.bitcoin.api.returnMatchingTXForRR(Object.assign({}, rr, { multihash }));
     }
 
-    it('handles review records', async () => {
+    it.skip('handles Unverified Reviews')
+
+    it('handles Verified Reviews', async () => {
         // Create fake review record
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
@@ -147,7 +149,7 @@ describe('Customer and Service Node integration', function() {
         expect(strip(readRecord)).to.deep.equal(strip(customerRecord));
     });
 
-    it('handles review updates', async () => {
+    it('handles Verified Review updates', async () => {
         // Create fake review record
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
@@ -175,7 +177,7 @@ describe('Customer and Service Node integration', function() {
         expect(strip(rr)).to.deep.equal(strip(rrUpdate));
     });
 
-    it('handles review updates happening after calling readReviewRecord', async () => {
+    it('handles Verified Review updates happening after calling readReviewRecord', async () => {
         await new Promise(async (resolve, reject) => {
             // Create fake review record
             let reviewRecord = await getFakeReviewRecord();
@@ -213,7 +215,7 @@ describe('Customer and Service Node integration', function() {
         });
     });
 
-    it('handles review updates written by the current node', async () => {
+    it('handles Verified Review updates written by the current node', async () => {
         // Create fake review record
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
@@ -239,7 +241,7 @@ describe('Customer and Service Node integration', function() {
         expect(strip(rrUpdate)).to.deep.equal(strip(rr));
     });
 
-    it('handles review updates written by the current node but that happened after the read', async () => {
+    it('handles Verified Review updates written by the current node but that happened after the read', async () => {
         await new Promise(async (resolve, reject) => {
             // Create fake review record
             let reviewRecord = await getFakeReviewRecord();

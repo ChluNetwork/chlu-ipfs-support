@@ -1,9 +1,8 @@
-const protons = require('protons');
 const multihashes = require('multihashes');
 const multihashing = require('multihashing-async');
 const constants = require('../constants');
 const IPFSUtils = require('./ipfs');
-const { cloneDeep, findIndex, isObject, isString, isEmpty } = require('lodash');
+const { cloneDeep, defaultsDeep, findIndex, isObject, isString, isEmpty } = require('lodash');
 
 class ReviewRecords {
 
@@ -122,11 +121,35 @@ class ReviewRecords {
     }
 
     async prepareReviewRecord(reviewRecord, bitcoinTransactionHash = null, validate = true) {
-        reviewRecord.issuer = this.chluIpfs.did.didId
+        reviewRecord = defaultsDeep(reviewRecord, {
+            currency_symbol: '',
+            amount: 0,
+            customer_address: '',
+            vendor_address: '',
+            popr: null,
+            chlu_version: 0,
+            previous_version_multihash: '', // TODO: review this
+            location: {
+                lat: 0,
+                lon: 0
+            },
+            subject: {
+                did: ''
+            },
+            issued: 0, // TODO: timestamp
+            issuer: this.chluIpfs.did.didId,
+            verification: null
+        })
+        // TODO: review this
+        const signAsIssuer = true 
+        reviewRecord.verifiable = !isEmpty(reviewRecord.customer_address) && !isEmpty(reviewRecord.currency_symbol)
+        if (!reviewRecord.verifiable) throw new Error('Unverified Reviews are not supported yet')
+        const signAsCustomer = reviewRecord.verifiable
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
         // Remove hash in case it's wrong (or this is an update). It's going to be calculated by the signing function
         reviewRecord.hash = '';
-        reviewRecord = await this.chluIpfs.did.signReviewRecord(reviewRecord);
+        if (signAsIssuer) reviewRecord.issuer = this.chluIpfs.did.didId
+        reviewRecord = await this.chluIpfs.did.signReviewRecord(reviewRecord, signAsIssuer, signAsCustomer);
         const dagNode = await this.getReviewRecordDAGNode(reviewRecord);
         reviewRecord.multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         if (validate) {
@@ -136,6 +159,14 @@ class ReviewRecords {
             }, validationSettings));
         }
         return { reviewRecord, dagNode };
+    }
+
+    async importUnverifiedReviews(reviews) {
+        const multihashes = []
+        for (const review of reviews) {
+            const { multihash } = await this.storeReviewRecord(review)
+            multihashes.push(multihash)
+        }
     }
 
     async storeReviewRecord(reviewRecord, options = {}){
@@ -216,10 +247,6 @@ class ReviewRecords {
 
     async hashObject(object, encoder) {
         const obj = cloneDeep(object);
-        if (obj.issuer_signature) {
-            console.trace(obj)
-            throw new Error('Signature not empty')
-        }
         let name;
         try {
             // Try to detect existing multihash type
@@ -259,13 +286,16 @@ class ReviewRecords {
     async hashReviewRecord(reviewRecord) {
         const obj = cloneDeep(reviewRecord)
         // TODO: better checks
-        const sig = cloneDeep(obj.issuer_signature)
+        const issuer_signature = cloneDeep(obj.issuer_signature)
+        const customer_signature = cloneDeep(obj.customer_signature)
         obj.issuer_signature = null
+        obj.customer_signature = null
         if (!obj.key_location) obj.key_location = ''
         if (!obj.previous_version_multihash) obj.previous_version_multihash = ''
         if (!obj.last_reviewrecord_multihash) obj.last_reviewrecord_multihash = ''
         const hashed = await this.hashObject(obj, this.chluIpfs.protobuf.ReviewRecord.encode);
-        hashed.issuer_signature = sig
+        hashed.issuer_signature = issuer_signature
+        hashed.customer_signature = customer_signature
         return hashed
     }
 

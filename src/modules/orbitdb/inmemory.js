@@ -90,10 +90,6 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         return this._index.did.data[didId] || null
     }
 
-    _putUnverifiedReviews(didId, reviews) {
-        this._index.unverifiedReviews[didId] = reviews
-    }
-
     _getReviewsByDID(didId) {
         return this._index.unverifiedReviews[didId] || []
     }

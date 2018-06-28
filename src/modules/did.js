@@ -98,18 +98,20 @@ class ChluIPFSDID {
         return await this.verify(signature.creator, data, signature.signatureValue) 
     }
 
-    async signReviewRecord(obj) {
-        let changed = false
-        if (obj.issuer !== this.didId) {
+    async signReviewRecord(obj, asIssuer = true, asCustomer = true) {
+        if (asIssuer) {
             obj.issuer = this.didId
-            changed = true
         }
-        if (!obj.hash || changed) {
-            // TODO: review this
-            obj.issuer_signature = null
-            obj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
+        // TODO: write customer did id ? where ?
+        // IMPORTANT: the fields must change before the hashing
+        obj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
+        const signature = await this.signMultihash(obj.hash);
+        if (asIssuer) {
+            obj.issuer_signature = signature
         }
-        obj.issuer_signature = await this.signMultihash(obj.hash);
+        if (asCustomer) {
+            obj.customer_signature = signature
+        }
         return obj;
     }
 
