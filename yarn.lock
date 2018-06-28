@@ -1779,6 +1779,7 @@ chlu-did@ChluNetwork/chlu-did:
     bs58 "4.0.1"
     elliptic "^6.4.0"
     js-sha3 "^0.7.0"
+    jsonld-signatures "2.3.0"
 
 chlu-wallet-support-js@ChluNetwork/chlu-wallet-support-js:
   version "0.0.1"
@@ -3671,6 +3672,10 @@ globby@^5.0.0:
     object-assign "^4.0.1"
     pify "^2.0.0"
     pinkie-promise "^2.0.0"
+
+google-protobuf@^3.6.0:
+  version "3.6.0"
+  resolved "https://registry.yarnpkg.com/google-protobuf/-/google-protobuf-3.6.0.tgz#e2bafb00c20a8734174d8f89e0a842709e2ceed0"
 
 got@^6.7.1:
   version "6.7.1"

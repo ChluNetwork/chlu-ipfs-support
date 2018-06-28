@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "webpack",
+    "build-protobuf": "protoc -I./src/modules/protobuf/sources/ --js_out=import_style=commonjs,binary:./src/modules/protobuf/compiled/ ./src/modules/protobuf/sources/*.proto",
     "test": "npm run test-node && npm run test-browser",
     "test-node": "mocha --opts tests/mocha.opts",
     "test-browser": "karma start --single-run",
@@ -32,6 +33,7 @@
     "commander": "^2.15.1",
     "debounce-async": "^0.0.1",
     "elliptic": "^6.4.0",
+    "google-protobuf": "^3.6.0",
     "ipfs": "~0.28.2",
     "ipfs-api": "^20.0.0",
     "libp2p-websocket-star-rendezvous": "^0.2.3",
