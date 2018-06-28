@@ -30,7 +30,7 @@ describe('Protobuf', () => {
         expect(decoded).to.deep.equal(fakePoPR);
     });
 
-    it('works with proto3', async () => {
+    it('ipfs/protons works with proto3', async () => {
         const source = `
             syntax = "proto3";
 
