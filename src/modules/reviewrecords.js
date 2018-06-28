@@ -2,7 +2,6 @@ const protons = require('protons');
 const multihashes = require('multihashes');
 const multihashing = require('multihashing-async');
 const constants = require('../constants');
-const protobuf = protons(require('../utils/protobuf'));
 const IPFSUtils = require('./ipfs');
 const { cloneDeep, findIndex, isObject, isString, isEmpty } = require('lodash');
 
@@ -67,7 +66,7 @@ class ReviewRecords {
     async getReviewRecord(multihash){
         IPFSUtils.validateMultihash(multihash);
         const buffer = await this.chluIpfs.ipfsUtils.get(multihash);
-        const rr = protobuf.ReviewRecord.decode(buffer);
+        const rr = this.chluIpfs.protobuf.ReviewRecord.decode(buffer);
         rr.multihash = multihash;
         return rr;
     }
@@ -115,7 +114,7 @@ class ReviewRecords {
 
     async getReviewRecordDAGNode(reviewRecord) {
         this.chluIpfs.logger.debug('Encoding (protobuf) review record');
-        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
+        const buffer = this.chluIpfs.protobuf.ReviewRecord.encode(reviewRecord);
         this.chluIpfs.logger.debug('Encoding (dagnode) review record');
         const dagNode = await this.chluIpfs.ipfsUtils.createDAGNode(buffer); // don't store to IPFS
         this.chluIpfs.logger.debug('Encoded (dagnode) review record: ' + IPFSUtils.getDAGNodeMultihash(dagNode));
@@ -265,7 +264,7 @@ class ReviewRecords {
         if (!obj.key_location) obj.key_location = ''
         if (!obj.previous_version_multihash) obj.previous_version_multihash = ''
         if (!obj.last_reviewrecord_multihash) obj.last_reviewrecord_multihash = ''
-        const hashed = await this.hashObject(obj, protobuf.ReviewRecord.encode);
+        const hashed = await this.hashObject(obj, this.chluIpfs.protobuf.ReviewRecord.encode);
         hashed.issuer_signature = sig
         return hashed
     }
@@ -277,7 +276,7 @@ class ReviewRecords {
         if (!obj.vendor_did) obj.vendor_did = ''
         const sig = cloneDeep(obj.sig)
         obj.sig = null
-        const hashed = await this.hashObject(obj, protobuf.PoPR.encode);
+        const hashed = await this.hashObject(obj, this.chluIpfs.protobuf.PoPR.encode);
         hashed.sig = sig
         return hashed
     }

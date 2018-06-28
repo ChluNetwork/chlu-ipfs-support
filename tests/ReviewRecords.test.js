@@ -5,7 +5,6 @@ const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
 
 const protons = require('protons');
-const protobuf = protons(require('../src/utils/protobuf'));
 const { getFakeReviewRecord } = require('./utils/protobuf');
 const multihashes = require('multihashes');
 const { isValidMultihash } = require('../src/utils/ipfs');
@@ -31,7 +30,7 @@ describe('ReviewRecords module', () => {
         const fakeReviewRecord = await getFakeReviewRecord();
         const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
         const multihashBuffer = multihashes.fromB58String(multihash);
-        const buffer = protobuf.ReviewRecord.encode(fakeReviewRecord);
+        const buffer = chluIpfs.protobuf.ReviewRecord.encode(fakeReviewRecord);
         const ipfs = {
             object: {
                 get: sinon.stub().resolves({ data: buffer })
@@ -65,7 +64,7 @@ describe('ReviewRecords module', () => {
             validate: false,
             bitcoinTransactionHash: 'fake'
         });
-        const reviewRecord = protobuf.ReviewRecord.decode(chluIpfs.ipfsUtils.storeDAGNode.args[0][0].data);
+        const reviewRecord = chluIpfs.protobuf.ReviewRecord.decode(chluIpfs.ipfsUtils.storeDAGNode.args[0][0].data);
         expect(reviewRecord.last_reviewrecord_multihash).to.deep.equal(lastReviewRecordMultihash);
         expect(chluIpfs.lastReviewRecordMultihash).to.deep.equal(multihash);
     });
@@ -119,7 +118,7 @@ describe('ReviewRecords module', () => {
         const reviewRecord = await getFakeReviewRecord();
 
         const hashedReviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(reviewRecord));
-        const rrGoneThroughEncoding = protobuf.ReviewRecord.decode(protobuf.ReviewRecord.encode(reviewRecord));
+        const rrGoneThroughEncoding = chluIpfs.protobuf.ReviewRecord.decode(chluIpfs.protobuf.ReviewRecord.encode(reviewRecord));
         const hashedAgain = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(rrGoneThroughEncoding));
         expect(hashedReviewRecord).to.deep.equal(hashedAgain)
 

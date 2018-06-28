@@ -2,10 +2,15 @@
 const expect = require('chai').expect;
 
 const protons = require('protons');
-const protobuf = protons(require('../src/utils/protobuf')); 
+const ChluProtobuf = require('../src/modules/protobuf')
 const { getFakeReviewRecord } = require('./utils/protobuf');
 
 describe('Protobuf', () => {
+    let protobuf
+
+    before(() => {
+        protobuf = new ChluProtobuf()
+    })
 
     it('ReviewRecord returns the original data if encoded then decoded', async () => {
         const fakeReviewRecord = await getFakeReviewRecord();

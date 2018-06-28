@@ -1,4 +1,5 @@
 const IPFSUtils = require('./modules/ipfs');
+const ChluProtobuf = require('./modules/protobuf')
 const Cache = require('./modules/cache');
 const Pinning = require('./modules/pinning');
 const Room = require('./modules/room');
@@ -97,6 +98,7 @@ class ChluIPFS {
             throw new Error('Invalid type');
         }
         // Load Modules
+        this.protobuf = new ChluProtobuf()
         this.cache = new Cache(this, options.cache);
         this.http = http;
         this.ipfsUtils = new IPFSUtils(this);

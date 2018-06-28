@@ -9,7 +9,6 @@ const cryptoTestUtils = require('./utils/crypto');
 const http = require('./utils/http');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 const protons = require('protons');
-const protobuf = protons(require('../src/utils/protobuf'));
 const IPFSUtils = require('../src/utils/ipfs');
 const btcUtils = require('./utils/bitcoin');
 
@@ -42,7 +41,7 @@ describe('Validator Module', () => {
 
     it('performs all ReviewRecord validations', async () => {
         const reviewRecord = await getFakeReviewRecord();
-        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
+        const buffer = chluIpfs.protobuf.ReviewRecord.encode(reviewRecord);
         const dagNode = await chluIpfs.ipfsUtils.createDAGNode(buffer);
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         reviewRecord.multihash = multihash;
