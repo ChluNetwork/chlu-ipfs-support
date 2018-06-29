@@ -31,6 +31,7 @@ class ChluIPFS {
         } else {
             this.instance = new ChluIPFSImpl(options);
         }
+        this.events = this.instance.events
     }
     
     /**
@@ -110,19 +111,69 @@ class ChluIPFS {
      * @param {boolean} options.validate default true, check for validity before writing. Throws if invalid
      * @param {boolean} options.publish default true, when false the RR is not shared with the Chlu network
      * and not advertised to other nodes
-     * @param {string} options.previousVersionMultihash set this if you want this RR to be an update of an
-     * old one previously published
+     * @param {string} options.bitcoinTransactionHash set this to the transaction hash of the bitcoin transaction if applicable
      */
     async storeReviewRecord(reviewRecord, options = {}){
         return await this.instance.storeReviewRecord(reviewRecord, options);
     }
 
-    async exportData() {
-        return await this.instance.exportData();
+    /**
+     * Import unverified reviews and publish them on Chlu.
+     * Make sure the reviews are in the right format
+     *
+     * @param {[Object]} reviews
+     * @returns {[string]} multihashes
+     * @memberof ChluIPFS
+     */
+    async importUnverifiedReviews(reviews) {
+        return await this.instance.importUnverifiedReviews(reviews)
     }
 
-    async importData(exportedData) {
-        return await this.instance.importData(exportedData);
+    /**
+     * Generate a new DID and switch to it.
+     *
+     * @param {boolean} [publish=true] if you want to publish the DID
+     * @param {boolean} [waitForReplication=false] if you want our promise to resolve only when the data has been replicated remotely
+     * @memberof ChluIPFS
+     */
+    async generateNewDID(publish = true, waitForReplication = false) {
+        return await this.instance.generateNewDID(publish, waitForReplication)
+    }
+
+    /**
+     * Get the DID public document and private key used by Chlu
+     *
+     * @returns {Object} did
+     * @memberof ChluIPFS
+     */
+    async exportDID() {
+        return await this.instance.exportDID()
+    }
+
+    /**
+     * Import an existing DID
+     *
+     * @param {Object} did
+     * @param {Object} did.publicDidDocument your public did document
+     * @param {Object} did.privateKeyBase58 your DID private key
+     * @param {boolean} [publish=true] if you want to publish the DID
+     * @param {boolean} [waitForReplication=false] if you want our promise to resolve only when the data has been replicated remotely
+     * @memberof ChluIPFS
+     */
+    async importDID(did, publish = true, waitForReplication = false) {
+        return await this.instance.importDID(did, publish, waitForReplication)
+    }
+
+    async getReviewsByDID(didId, offset = 0, limit = null) {
+        return await this.instance.getReviewsByDID(didId, offset, limit)
+    }
+
+    async getReviewList(offset = 0, limit = null) {
+        return await this.instance.getReviewList(offset, limit)
+    }
+
+    async getDID(didId) {
+        return await this.instance.getDID(didId)
     }
 }
 

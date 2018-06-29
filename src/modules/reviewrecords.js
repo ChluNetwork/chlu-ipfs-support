@@ -161,7 +161,6 @@ class ReviewRecords {
 
     async storeReviewRecord(reviewRecord, options = {}){
         const {
-            previousVersionMultihash,
             publish = true,
             validate = {
                 // Disable cache when storing
@@ -170,6 +169,7 @@ class ReviewRecords {
             },
             bitcoinTransactionHash = null
         } = options;
+        const previousVersionMultihash = reviewRecord.previous_version_multihash
         const isUpdate = this.isReviewRecordUpdate(reviewRecord) || IPFSUtils.isValidMultihash(previousVersionMultihash);
         const verified = reviewRecord.verifiable
         if (verified && !bitcoinTransactionHash && publish && !isUpdate) {

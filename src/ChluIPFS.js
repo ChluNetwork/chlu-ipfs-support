@@ -203,27 +203,39 @@ class ChluIPFS {
         return await this.reviewRecords.storeReviewRecord(reviewRecord, options);
     }
 
-    async exportData() {
-        const exported = {};
-        if (this.type === constants.types.customer) {
-            exported.customerDbKeys = {
-                pub: await this.db.keystore.exportPublicKey(),
-                priv: await this.db.keystore.exportPrivateKey()
-            };
-        }
-        return exported;
+    async importUnverifiedReviews(reviews) {
+        await this.waitUntilReady()
+        return await this.reviewRecords.importUnverifiedReviews(reviews)
     }
 
-    async importData() {
-        throw new Error('not implemented');
+    async generateNewDID(publish, waitForReplication) {
+        await this.waitUntilReady()
+        return await this.did.generate(publish, waitForReplication)
     }
 
-    async getVendorKeys() {
-        throw new Error('not implemented');
+    async exportDID() {
+        await this.waitUntilReady()
+        return await this.did.export()
     }
-    
-    async publishKeys() {
-        throw new Error('not implemented');
+
+    async importDID(did, publish, waitForReplication) {
+        await this.waitUntilReady()
+        return await this.did.import(did, publish, waitForReplication)
+    }
+
+    async getReviewsByDID(didId, offset, limit) {
+        await this.waitUntilReady()
+        return await this.orbitDb.getReviewsByDID(didId, offset, limit)
+    }
+
+    async getReviewList(offset, limit) {
+        await this.waitUntilReady()
+        return await this.orbitDb.getReviewRecordList(offset, limit)
+    }
+
+    async getDID(didId) {
+        await this.waitUntilReady()
+        return await this.did.getDID(didId)
     }
 
 }

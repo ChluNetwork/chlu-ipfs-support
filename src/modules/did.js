@@ -29,9 +29,9 @@ class ChluIPFSDID {
         }
     }
 
-    async generate() {
+    async generate(publish, waitForReplication) {
         const did = await this.chluDID.generateDID()
-        return await this.import(did)
+        return await this.import(did, publish, waitForReplication)
     }
 
     async import(did, publish = true, waitForReplication = false) {

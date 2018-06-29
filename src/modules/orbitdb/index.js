@@ -50,6 +50,10 @@ class DB {
         return this.db.getReviewRecordList();
     }
 
+    getReviewsByDID(did, offset, limit) {
+        return this.db.getReviewsByDID(did, offset, limit)
+    }
+
     getReviewRecordMetadata(multihash) {
         return this.db.getReviewRecordMetadata(multihash);
     }

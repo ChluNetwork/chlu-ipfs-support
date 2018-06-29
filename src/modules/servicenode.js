@@ -68,10 +68,6 @@ class ServiceNode {
             this.chluIpfs.events.removeListener('pubsub/message', this.handler);
             this.handler = undefined;
         }
-        if (this.chluIpfs.dbs) {
-            await Promise.all(Object.values(this.chluIpfs.dbs).map(db => db.close()));
-        }
-        this.chluIpfs.dbs = {};
     }
 
     async handleMessage(message) {
