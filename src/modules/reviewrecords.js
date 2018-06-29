@@ -169,8 +169,8 @@ class ReviewRecords {
             },
             bitcoinTransactionHash = null
         } = options;
-        const previousVersionMultihash = reviewRecord.previous_version_multihash
-        const isUpdate = this.isReviewRecordUpdate(reviewRecord) || IPFSUtils.isValidMultihash(previousVersionMultihash);
+        const isUpdate = this.isReviewRecordUpdate(reviewRecord)
+        const previousVersionMultihash = isUpdate ? reviewRecord.previous_version_multihash : null
         const verified = reviewRecord.verifiable
         if (verified && !bitcoinTransactionHash && publish && !isUpdate) {
             throw new Error('Payment information is required for publishing a Review Record');

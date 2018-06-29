@@ -188,9 +188,8 @@ describe('Integration with IPFS and Service Node', function() {
             // Check that the review list is updated
             expect((await customerNode.orbitDb.getReviewRecordList())[0]).to.equal(multihash);
             // Store the update
-            const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, {
-                previousVersionMultihash: multihash
-            });
+            reviewUpdate.previous_version_multihash = multihash
+            const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate);
             const rr = await serviceNode.readReviewRecord(multihash, { getLatestVersion: true });
             const rrUpdate = await serviceNode.readReviewRecord(updatedMultihash);
             expect(strip(rr)).to.deep.equal(strip(rrUpdate));
@@ -224,13 +223,12 @@ describe('Integration with IPFS and Service Node', function() {
                 await serviceNode.readReviewRecord(multihash, { checkForUpdates: true });
                 // Now create a fake update
                 let reviewUpdate = await getFakeReviewRecord();
+                reviewUpdate.previous_version_multihash = multihash
                 reviewUpdate.popr = cloneDeep(reviewRecord.popr);
                 reviewUpdate.review_text = 'Actually it broke after just a week!';
                 reviewUpdate.rating = 1;
                 // Store the update
-                await customerNode.storeReviewRecord(reviewUpdate, {
-                    previousVersionMultihash: multihash
-                });
+                await customerNode.storeReviewRecord(reviewUpdate);
             });
         });
 
@@ -252,9 +250,8 @@ describe('Integration with IPFS and Service Node', function() {
                 bitcoinTransactionHash: btcUtils.exampleTransaction.hash
             });
             // Store the update
-            const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, {
-                previousVersionMultihash: multihash
-            });
+            reviewUpdate.previous_version_multihash = multihash
+            const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate);
             const rr = await customerNode.readReviewRecord(multihash, { getLatestVersion: true });
             const rrUpdate = await customerNode.readReviewRecord(updatedMultihash);
             expect(strip(rrUpdate)).to.deep.equal(strip(rr));
@@ -290,13 +287,12 @@ describe('Integration with IPFS and Service Node', function() {
                 await customerNode.readReviewRecord(multihash, { checkForUpdates: true });
                 // Now create a fake update
                 let reviewUpdate = await getFakeReviewRecord();
+                reviewUpdate.previous_version_multihash = multihash
                 reviewUpdate.popr = cloneDeep(reviewRecord.popr);
                 reviewUpdate.review_text = 'Actually it broke after just a week!';
                 reviewUpdate.rating = 1;
                 // Store the update
-                await customerNode.storeReviewRecord(reviewUpdate, {
-                    previousVersionMultihash: multihash
-                });
+                await customerNode.storeReviewRecord(reviewUpdate);
             });
         });
     })

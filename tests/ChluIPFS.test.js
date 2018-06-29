@@ -42,21 +42,6 @@ describe('ChluIPFS', () => {
         process.env = backupEnv;
     });
 
-    it('exportData', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
-        chluIpfs.db = {
-            keystore: {
-                exportPublicKey: () => 'examplePublicKey',
-                exportPrivateKey: () => 'examplePrivateKey'
-            }
-        };
-        const exported = await chluIpfs.exportData();
-        expect(exported.customerDbKeys).to.deep.equal({
-            pub: 'examplePublicKey',
-            priv: 'examplePrivateKey'
-        });
-    });
-
     it('starts and stops', async () => {
         let server;
         if (env.isNode()) {
@@ -99,19 +84,11 @@ describe('ChluIPFS', () => {
 
     it('switches type correctly from service node', async () => {
         const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.service, enablePersistence: false, logger: logger('Service') });
-        const fakeDb = {
-            close: sinon.stub().resolves()
-        };
-        chluIpfs.dbs = {
-            first: fakeDb
-        };
         sinon.spy(chluIpfs.events, 'removeListener');
         chluIpfs.serviceNodeRoomMessageListener = 'test';
         expect(chluIpfs.type).to.equal(ChluIPFS.types.service);
         await chluIpfs.switchType(ChluIPFS.types.customer);
         expect(chluIpfs.type).to.equal(ChluIPFS.types.customer);
-        expect(chluIpfs.dbs).to.deep.equal({});
-        expect(fakeDb.close.called).to.be.true;
         expect(chluIpfs.events.removeListener.calledWith('message', chluIpfs.serviceNodeRoomMessageListener));
     });
 
