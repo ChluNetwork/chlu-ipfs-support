@@ -120,10 +120,10 @@ class Validator {
         const hash = popr.hash;
         if (!useCache || !this.chluIpfs.cache.isValidityCached(hash)) {
             const vmMultihash = this.keyLocationToKeyMultihash(popr.key_location);
-            const mSignature = popr.marketplace_sig;
-            const vSignature = popr.vendor_sig;
+            const mSignature = popr.marketplace_signature;
+            const vSignature = popr.vendor_signature;
             const vendorDIDID = popr.vendor_did
-            const vmSignature = popr.sig;
+            const vmSignature = popr.signature;
             const marketplaceUrl = popr.marketplace_url;
             const marketplaceDIDID = await this.fetchMarketplaceDIDID(marketplaceUrl, useCache);
             const DID = this.chluIpfs.did;

@@ -46,7 +46,7 @@ describe('Crypto Module', () => {
             return await chluIpfs.crypto.verifyMultihash(
                 pubKeyMultihash,
                 hashed.hash,
-                hashed.sig
+                hashed.signature
             );
         }
         const reviewRecord = await getFakeReviewRecord();

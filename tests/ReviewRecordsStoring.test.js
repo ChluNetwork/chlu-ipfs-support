@@ -66,7 +66,7 @@ describe('ReviewRecord storing and publishing', () => {
         chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
     });
 
-    it.skip('can import Unverified Reviews')
+    it.skip('imports Unverified Reviews')
 
     it('stores Reviews and automatically publishes them', async () => {
         const reviewRecord = await getFakeReviewRecord();

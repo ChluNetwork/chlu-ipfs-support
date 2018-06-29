@@ -58,21 +58,21 @@ function getFakeReviewRecord() {
                     is_required: true
                 }
             ],
-            sig: {
+            signature: {
                 type: 'did:chlu',
                 nonce: '',
                 created: 0,
                 creator: 'did:chlu:rando',
                 signatureValue: ''
             },
-            marketplace_sig: {
+            marketplace_signature: {
                 type: 'did:chlu',
                 nonce: '',
                 created: 0,
                 creator: 'did:chlu:rando',
                 signatureValue: ''
             },
-            vendor_sig: {
+            vendor_signature: {
                 type: 'did:chlu',
                 nonce: '',
                 created: 0,

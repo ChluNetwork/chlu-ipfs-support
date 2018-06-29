@@ -304,10 +304,10 @@ class ReviewRecords {
         // TODO: fields are optional but the protons lib fails if it's not there as an empty string
         if (!obj.key_location) obj.key_location = ''
         if (!obj.vendor_did) obj.vendor_did = ''
-        const sig = cloneDeep(obj.sig)
-        obj.sig = null
+        const signature = cloneDeep(obj.signature)
+        obj.signature = null
         const hashed = await this.hashObject(obj, this.chluIpfs.protobuf.PoPR.encode);
-        hashed.sig = sig
+        hashed.signature = signature
         return hashed
     }
 
