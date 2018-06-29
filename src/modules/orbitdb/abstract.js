@@ -15,101 +15,99 @@ class ChluAbstractIndex {
     /**
      * Called by OrbitDB to update the index 
      */
-    updateIndex(oplog) {
-        oplog.values
-            .slice()
-            .forEach(item => {
-                // Skip operations from a different chlu store version
-                // TODO: handle errors
-                if (item.payload.version === this._version) {
-                    // TODO: check update validity, RR validity if possible
-                    if (item.payload.op === operations.ADD_REVIEW_RECORD && IPFSUtils.isValidMultihash(item.payload.multihash)) {
-                        this.addOriginalReviewRecord({
-                            multihash: item.payload.multihash,
-                            didId: item.payload.didId,
-                            bitcoinTransactionHash: item.payload.bitcoinTransactionHash
+    async updateIndex(oplog) {
+        for (const item of oplog.values.slice()) {
+            // Skip operations from a different chlu store version
+            // TODO: handle errors
+            if (item.payload.version === this._version) {
+                // TODO: check update validity, RR validity if possible
+                if (item.payload.op === operations.ADD_REVIEW_RECORD && IPFSUtils.isValidMultihash(item.payload.multihash)) {
+                    await this.addOriginalReviewRecord({
+                        multihash: item.payload.multihash,
+                        didId: item.payload.didId,
+                        bitcoinTransactionHash: item.payload.bitcoinTransactionHash
+                    });
+                } else if (item.payload.op === operations.UPDATE_REVIEW_RECORD) {
+                    if (IPFSUtils.isValidMultihash(item.payload.multihash) && IPFSUtils.isValidMultihash(item.payload.previousVersionMultihash)) {
+                        // TODO: check that whatever is being updated is in the DB
+                        // the multihash to be updated might already be an update. Be careful!
+                        const from = await this.getLatestReviewRecordUpdate(item.payload.previousVersionMultihash);
+                        await this.addReviewRecordUpdate({
+                            fromMultihash: from,
+                            toMultihash: item.payload.multihash
                         });
-                    } else if (item.payload.op === operations.UPDATE_REVIEW_RECORD) {
-                        if (IPFSUtils.isValidMultihash(item.payload.multihash) && IPFSUtils.isValidMultihash(item.payload.previousVersionMultihash)) {
-                            // TODO: check that whatever is being updated is in the DB
-                            // the multihash to be updated might already be an update. Be careful!
-                            const from = this.getLatestReviewRecordUpdate(item.payload.previousVersionMultihash);
-                            this.addReviewRecordUpdate({
-                                fromMultihash: from,
-                                toMultihash: item.payload.multihash
-                            });
-                        }
-                    } else if (item.payload.op === operations.PUT_DID) {
-                        if (DID.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.multihash)) {
-                            // TODO: check signature
-                            this.putDID(item.payload.didId, item.payload.multihash, item.payload.signature)
-                        }
+                    }
+                } else if (item.payload.op === operations.PUT_DID) {
+                    if (DID.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.multihash)) {
+                        // TODO: check signature
+                        await this.putDID(item.payload.didId, item.payload.multihash, item.payload.signature)
                     }
                 }
-            });
+            }
+        }
     }
     
     // Review records
 
-    addOriginalReviewRecord(obj) {
+    async addOriginalReviewRecord(obj) {
         IPFSUtils.validateMultihash(obj.multihash);
-        return this._addOriginalReviewRecord(obj);
+        return await this._addOriginalReviewRecord(obj);
     }
 
-    addReviewRecordUpdate(obj) {
+    async addReviewRecordUpdate(obj) {
         IPFSUtils.validateMultihash(obj.fromMultihash);
         IPFSUtils.validateMultihash(obj.toMultihash);
-        return this._addReviewRecordUpdate(obj);
+        return await this._addReviewRecordUpdate(obj);
     }
 
-    getLatestReviewRecordUpdate(multihash) {
+    async getLatestReviewRecordUpdate(multihash) {
         IPFSUtils.validateMultihash(multihash);
-        return this._getLatestReviewRecordUpdate(multihash) || multihash;
+        return await this._getLatestReviewRecordUpdate(multihash) || multihash;
     }
 
-    getReviewRecordList(offset = 0, limit = 0) {
-        return this._getReviewRecordList(offset, limit);
+    async getReviewRecordList(offset = 0, limit = 0) {
+        return await this._getReviewRecordList(offset, limit);
     }
 
-    getOriginalReviewRecord(updatedMultihash) {
+    async getOriginalReviewRecord(updatedMultihash) {
         IPFSUtils.validateMultihash(updatedMultihash);
-        return this._getOriginalReviewRecord(updatedMultihash) || updatedMultihash;
+        return await this._getOriginalReviewRecord(updatedMultihash) || updatedMultihash;
     }
 
-    getReviewRecordMetadata(multihash) {
+    async getReviewRecordMetadata(multihash) {
         IPFSUtils.validateMultihash(multihash);
-        return this._getReviewRecordMetadata(multihash);
+        return await this._getReviewRecordMetadata(multihash);
     }
 
-    getReviewRecordCount() {
-        return this._getReviewRecordCount();
+    async getReviewRecordCount() {
+        return await this._getReviewRecordCount();
     }
 
-    _addOriginalReviewRecord() {
+    async _addOriginalReviewRecord() {
         notImplemented();
     }
 
-    _addReviewRecordUpdate() {
+    async _addReviewRecordUpdate() {
         notImplemented();
     }
 
-    _getLatestReviewRecordUpdate() {
+    async _getLatestReviewRecordUpdate() {
         notImplemented();
     }
 
-    _getOriginalReviewRecord() {
+    async _getOriginalReviewRecord() {
         notImplemented();
     }
 
-    _getReviewRecordMetadata() {
+    async _getReviewRecordMetadata() {
         notImplemented();
     }
 
-    _getReviewRecordList() {
+    async _getReviewRecordList() {
         notImplemented();
     }
 
-    _getReviewRecordCount() {
+    async _getReviewRecordCount() {
         notImplemented();
     }
 
@@ -117,29 +115,29 @@ class ChluAbstractIndex {
 
     // TODO: all kinds of checks on multihashes and DID ID's
 
-    getDID(didId) {
-        return this._getDID(didId)
+    async getDID(didId) {
+        return await this._getDID(didId)
     }
 
-    putDID(didId, didDocumentMultihash, signature) {
-        return this._putDID(didId, didDocumentMultihash, signature)
+    async putDID(didId, didDocumentMultihash, signature) {
+        return await this._putDID(didId, didDocumentMultihash, signature)
     }
 
-    _putDID() {
+    async _putDID() {
         notImplemented();
     }
 
-    _getDID() {
+    async _getDID() {
         notImplemented();
     }
 
     // DID and Reviews
 
-    getReviewsByDID(didId) {
-        return this._getReviewsByDID(didId)
+    async getReviewsByDID(didId) {
+        return await this._getReviewsByDID(didId)
     }
 
-    _getReviewsByDID() {
+    async _getReviewsByDID() {
         notImplemented();
     }
 

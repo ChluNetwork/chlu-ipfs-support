@@ -164,7 +164,7 @@ class Validator {
         if (!transactionHash) {
             // retrieve it from DB
             this.chluIpfs.logger.debug('Searching OrbitDB for TX for ' + rr.multihash);
-            const metadata = this.chluIpfs.orbitDb.getReviewRecordMetadata(rr.multihash);
+            const metadata = await this.chluIpfs.orbitDb.getReviewRecordMetadata(rr.multihash);
             transactionHash = metadata ? metadata.bitcoinTransactionHash : null;
         }
         if (transactionHash) {

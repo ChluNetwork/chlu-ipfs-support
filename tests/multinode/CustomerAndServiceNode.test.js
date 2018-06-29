@@ -186,7 +186,7 @@ describe('Integration with IPFS and Service Node', function() {
                 bitcoinTransactionHash: btcUtils.exampleTransaction.hash
             });
             // Check that the review list is updated
-            expect(customerNode.orbitDb.getReviewRecordList()[0]).to.equal(multihash);
+            expect((await customerNode.orbitDb.getReviewRecordList())[0]).to.equal(multihash);
             // Store the update
             const updatedMultihash = await customerNode.storeReviewRecord(reviewUpdate, {
                 previousVersionMultihash: multihash
