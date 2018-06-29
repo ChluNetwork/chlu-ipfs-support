@@ -3,7 +3,7 @@ const sinon = require('sinon');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
-const { getFakeReviewRecord } = require('./utils/protobuf');
+const { getFakeReviewRecord, makeUnverified } = require('./utils/protobuf');
 const { cloneDeep } = require('lodash');
 const cryptoTestUtils = require('./utils/crypto');
 const http = require('./utils/http');
@@ -68,7 +68,35 @@ describe('Validator Module', () => {
         expect(chluIpfs.cache.cacheValidity.calledWith(multihash)).to.be.false;
     });
 
-    it.skip('performs all Unverified Review validations')
+    it('performs all Unverified Review validations', async () => {
+        const reviewRecord = makeUnverified(await getFakeReviewRecord())
+        const buffer = chluIpfs.protobuf.ReviewRecord.encode(reviewRecord);
+        const dagNode = await chluIpfs.ipfsUtils.createDAGNode(buffer);
+        const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
+        reviewRecord.multihash = multihash;
+        chluIpfs.bitcoin.api.returnMatchingTXForRR(reviewRecord);
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validateRRIssuerSignature = sinon.stub().resolves();
+        chluIpfs.validator.validateRRCustomerSignature = sinon.stub().resolves();
+        chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
+        chluIpfs.validator.validateMultihash = sinon.stub().resolves();
+        chluIpfs.validator.validateHistory = sinon.stub().resolves();
+        chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
+        await chluIpfs.validator.validateReviewRecord(reviewRecord);
+        expect(chluIpfs.validator.validateMultihash.called).to.be.true;
+        expect(chluIpfs.validator.validateHistory.called).to.be.true;
+        expect(chluIpfs.validator.validateVersion.called).to.be.true;
+        expect(chluIpfs.validator.validatePoPRSignaturesAndKeys.called).to.be.false;
+        expect(chluIpfs.validator.validateRRIssuerSignature.called).to.be.true;
+        expect(chluIpfs.validator.validateRRCustomerSignature.called).to.be.false;
+        expect(chluIpfs.validator.validateBitcoinTransaction.called).to.be.false;
+        // --- Cache behavior
+        expect(chluIpfs.cache.cacheValidity.calledWith(multihash)).to.be.true;
+        chluIpfs.cache.cacheValidity.resetHistory();
+        expect(chluIpfs.cache.cacheValidity.called).to.be.false;
+        await chluIpfs.validator.validateReviewRecord(reviewRecord, { useCache: false });
+        expect(chluIpfs.cache.cacheValidity.calledWith(multihash)).to.be.false;
+    })
 
     it('is called by default but can be disabled', async () => {
         chluIpfs.validator.validateReviewRecord = sinon.stub().resolves();

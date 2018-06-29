@@ -1,16 +1,14 @@
 const IPFSUtils = require('../../utils/ipfs');
 const ChluAbstractIndex = require('./abstract');
+const { get } = require('lodash')
 
 const version = 0;
 
 class ChluInMemoryIndex extends ChluAbstractIndex {
     constructor(){
         const _index = {
-            verifiedReviews: {
+            reviews: {
                 list: [],
-                data: {}
-            },
-            unverifiedReviews: {
                 data: {}
             },
             did: {
@@ -22,8 +20,8 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
     }
 
     _addOriginalReviewRecord(obj) {
-        const list = this._index.verifiedReviews.list
-        const data = this._index.verifiedReviews.data
+        const list = this._index.reviews.list
+        const data = this._index.reviews.data
         if (list.indexOf(obj.multihash) < 0) {
             list.splice(0, 0, obj.multihash);
             data[obj.multihash] = {
@@ -31,12 +29,18 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
                 addedAt: getTime(),
                 bitcoinTransactionHash: obj.bitcoinTransactionHash || null
             };
-            // TODO: Add it to reviewsByDID
+            if (obj.didId) {
+                if (!this._index.did.reviewsByDid[obj.didId]) {
+                    this._index.did.reviewsByDid[obj.didId] = [obj.multihash]
+                } else {
+                    this._index.did.reviewsByDid[obj.didId].push(obj.multihash)
+                }
+            }
         }
     }
 
     _addReviewRecordUpdate(obj) {
-        const data = this._index.verifiedReviews.data
+        const data = this._index.reviews.data
         const existing = data[obj.fromMultihash];
         existing.nextVersion = obj.toMultihash;
         const nextVersionData = {
@@ -49,11 +53,11 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
     }
 
     _getLatestReviewRecordUpdate(multihash) {
-        return this.followPointerAcyclic(multihash, this._index.verifiedReviews.data, 'nextVersion', undefined, IPFSUtils.isValidMultihash);
+        return this.followPointerAcyclic(multihash, this._index.reviews.data, 'nextVersion', undefined, IPFSUtils.isValidMultihash);
     }
 
     _getOriginalReviewRecord(multihash) {
-        return this.followPointerAcyclic(multihash, this._index.verifiedReviews.data, 'previousVersion', undefined, IPFSUtils.isValidMultihash);
+        return this.followPointerAcyclic(multihash, this._index.reviews.data, 'previousVersion', undefined, IPFSUtils.isValidMultihash);
     }
 
     followPointerAcyclic(value, kvstore, pointerName, stack = [value], validate = null) {
@@ -71,33 +75,42 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
     }
 
     _getReviewRecordMetadata(multihash) {
-        return this._index.verifiedReviews.data[multihash] || null;
+        return this._index.reviews.data[multihash] || null;
     }
 
     _getReviewRecordList(offset, limit) {
-        return this._index.verifiedReviews.list.slice(offset, (limit > 0 ? (offset + limit) : undefined));
+        return slice(this._index.reviews.list, offset, limit);
     }
 
     _getReviewRecordCount() {
-        return this._index.verifiedReviews.list.length;
+        return this._index.reviews.list.length;
     }
 
     _putDID(didId, didDocumentMultihash) {
-        this._index.did.data[didId] = didDocumentMultihash
+        if (!this._index.did.data[didId]) {
+            this._index.did.data[didId] = { multihash: didDocumentMultihash }
+        } else {
+            this._index.did.data[didId].multihash = didDocumentMultihash
+        }
     }
 
     _getDID(didId) {
-        return this._index.did.data[didId] || null
+        return get(this._index.did.data[didId], 'multihash', null)
     }
 
-    _getReviewsByDID(didId) {
-        return this._index.unverifiedReviews[didId] || []
+    _getReviewsByDID(didId, offset, limit) {
+        return slice(this._index.did.reviewsByDid[didId], offset, limit)
     }
 
 }
 
 function getTime() {
     return Date.now();
+}
+
+function slice(array, offset, limit) {
+    if (!Array.isArray(array) || array.length === 0) return []
+    return array.slice(offset, (limit > 0 ? (offset + limit) : undefined))
 }
 
 module.exports = ChluInMemoryIndex;

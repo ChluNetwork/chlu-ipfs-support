@@ -61,13 +61,13 @@ class DB {
         return this.db.getLatestReviewRecordUpdate(multihash) || multihash;
     }
 
-    async putReviewRecord(multihash, previousVersionMultihash = null, txId = null, bitcoinNetwork = null) {
+    async putReviewRecord(multihash, didId, previousVersionMultihash = null, txId = null, bitcoinNetwork = null) {
         if (previousVersionMultihash) {
             this.chluIpfs.logger.debug('Writing to OrbitDB: Review Update from ' + multihash + ' to ' + previousVersionMultihash);
             await this.db.updateReviewRecord(multihash, previousVersionMultihash);
         } else {
             this.chluIpfs.logger.debug('Writing to OrbitDB: Review Record ' + multihash + (txId ? (' with txId ' + txId) : ''));
-            await this.db.addReviewRecord(multihash, txId, bitcoinNetwork);
+            await this.db.addReviewRecord(multihash, didId, txId, bitcoinNetwork);
         }
     }
 

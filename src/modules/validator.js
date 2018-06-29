@@ -19,7 +19,7 @@ class Validator {
             throwErrors: true,
             validateVersion: true,
             validateMultihash: true,
-            validateHistory: false,
+            validateHistory: true,
             validateSignatures: true,
             bitcoinTransactionHash: null,
             forceTransactionValidation: false

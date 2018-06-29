@@ -26,6 +26,7 @@ class ChluAbstractIndex {
                     if (item.payload.op === operations.ADD_REVIEW_RECORD && IPFSUtils.isValidMultihash(item.payload.multihash)) {
                         this.addOriginalReviewRecord({
                             multihash: item.payload.multihash,
+                            didId: item.payload.didId,
                             bitcoinTransactionHash: item.payload.bitcoinTransactionHash
                         });
                     } else if (item.payload.op === operations.UPDATE_REVIEW_RECORD) {
@@ -42,10 +43,6 @@ class ChluAbstractIndex {
                         if (DID.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.multihash)) {
                             // TODO: check signature
                             this.putDID(item.payload.didId, item.payload.multihash, item.payload.signature)
-                        }
-                    } else if (item.payload.op === operations.PUT_UNVERIFIED_REVIEWS) {
-                        if (DID.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.reviewsMultihash)) {
-                            this.putUnverifiedReviews(item.payload.didId, item.payload.reviewsMultihash, item.payload.signature)
                         }
                     }
                 }
@@ -118,6 +115,8 @@ class ChluAbstractIndex {
 
     // DID
 
+    // TODO: all kinds of checks on multihashes and DID ID's
+
     getDID(didId) {
         return this._getDID(didId)
     }
@@ -144,16 +143,6 @@ class ChluAbstractIndex {
         notImplemented();
     }
 
-    // Unverified Reviews
-
-    putUnverifiedReviews(didId, reviewsMultihash, signature) {
-        return this._putUnverifiedReviews(didId, reviewsMultihash, signature)
-    }
-
-    _putUnverifiedReviews() {
-        notImplemented();
-    }
-
 }
 
 function notImplemented() {
@@ -163,8 +152,7 @@ function notImplemented() {
 const operations = {
     ADD_REVIEW_RECORD: 'ADD_REVIEW_RECORD',
     UPDATE_REVIEW_RECORD: 'UPDATE_REVIEW_RECORD',
-    PUT_DID: 'PUT_DID',
-    PUT_UNVERIFIED_REVIEWS: 'PUT_UNVERIFIED_REVIEWS'
+    PUT_DID: 'PUT_DID'
 };
 
 module.exports = Object.assign(ChluAbstractIndex, { operations, version });

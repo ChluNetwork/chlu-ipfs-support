@@ -2,7 +2,7 @@ const multihashes = require('multihashes');
 const multihashing = require('multihashing-async');
 const constants = require('../constants');
 const IPFSUtils = require('./ipfs');
-const { cloneDeep, defaultsDeep, findIndex, isObject, isString, isEmpty } = require('lodash');
+const { cloneDeep, get, findIndex, isObject, isString, isEmpty } = require('lodash');
 
 class ReviewRecords {
 
@@ -203,11 +203,13 @@ class ReviewRecords {
         }
         this.chluIpfs.logger.debug('Stored review record ' + multihash + ' in IPFS');
         this.chluIpfs.logger.debug('Running Publish tasks for ' + multihash);
+        const didId = get(reviewRecord, 'popr.vendor_did', get(reviewRecord, 'subject.did', null)) || null // force empty string to null
+        // TODO: what if didId ends up null?
         await Promise.all([
             // Wait for it to be remotely pinned
             this.waitForRemotePin(multihash, txId),
             // Write to OrbitDB and wait for replication
-            this.writeToOrbitDB(multihash, previousVersionMultihash, txId)
+            this.writeToOrbitDB(multihash, didId, previousVersionMultihash, txId)
         ]);
         // Operation succeeded: set this as the last review record published
         this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: executing post-publish tasks');
@@ -227,9 +229,10 @@ class ReviewRecords {
         }, constants.eventTypes.pinned + '_' + multihash);
     }
 
-    async writeToOrbitDB(multihash, previousVersionMultihash = null, txId = null) {
+    async writeToOrbitDB(multihash, didId, previousVersionMultihash = null, txId = null) {
         await this.chluIpfs.orbitDb.putReviewRecordAndWaitForReplication(
             multihash,
+            didId,
             previousVersionMultihash,
             txId,
             txId ? this.chluIpfs.bitcoin.getNetwork() : null

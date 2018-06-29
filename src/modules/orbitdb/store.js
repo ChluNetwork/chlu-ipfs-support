@@ -17,11 +17,12 @@ class ChluStore extends Store {
         }
     }
 
-    addReviewRecord(multihash, bitcoinTransactionHash, bitcoinNetwork) {
+    addReviewRecord(multihash, didId, bitcoinTransactionHash, bitcoinNetwork) {
         IPFSUtils.validateMultihash(multihash);
         const operation = {
             op: ChluAbstractIndex.operations.ADD_REVIEW_RECORD,
             multihash,
+            didId,
             version
         };
         if (bitcoinTransactionHash) {
@@ -50,19 +51,6 @@ class ChluStore extends Store {
             op: ChluAbstractIndex.operations.PUT_DID,
             didId,
             multihash,
-            signature,
-            version
-        })
-    }
-
-    putUnverifiedReviews(didId, reviews, signature) {
-        if (!DID.isDIDID(didId)) throw new Error('DID ID invalid')
-        if (!Array.isArray(reviews)) throw new Error('Reviews must be an array')
-        // TODO: verify signature
-        return this._addOperation({
-            op: ChluAbstractIndex.operations.PUT_UNVERIFIED_REVIEWS,
-            didId,
-            reviews,
             signature,
             version
         })

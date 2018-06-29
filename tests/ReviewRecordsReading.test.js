@@ -158,7 +158,7 @@ describe('ReviewRecord reading and other functions', () => {
         expect(chluIpfs.validator.validateReviewRecord.args[0][1].bitcoinTransactionHash).to.equal(txId);
         // Check pass to orbitdb module
         expect(chluIpfs.orbitDb.putReviewRecordAndWaitForReplication.args[0]).to.deep.equal([
-            multihash, null, txId, chluIpfs.bitcoin.getNetwork()
+            multihash, fakeReviewRecord.popr.vendor_did, null, txId, chluIpfs.bitcoin.getNetwork()
         ]);
         // Check pass to broadcastUntil
         expect(chluIpfs.room.broadcastUntil.args[0][0].bitcoinTransactionHash).to.equal(txId);
@@ -170,7 +170,7 @@ describe('ReviewRecord reading and other functions', () => {
         expect(chluIpfs.validator.validateReviewRecord.args[1][1].bitcoinTransactionHash).to.be.null
         // Check pass to orbitdb module
         expect(chluIpfs.orbitDb.putReviewRecordAndWaitForReplication.args[1]).to.deep.equal([
-            unverifiedMultihash, null, null, null
+            unverifiedMultihash, fakeReviewRecord.subject.did, null, null, null
         ]);
         // Check pass to broadcastUntil
         expect(chluIpfs.room.broadcastUntil.args[1][0].bitcoinTransactionHash).to.be.null;

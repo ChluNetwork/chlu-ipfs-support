@@ -8,7 +8,7 @@ function getFakeReviewRecord() {
         issued: 0,
         issuer: 'did:chlu:rando',
         subject: {
-            did: 'did:chlu:rando',
+            did: 'did:chlu:vendor',
             address: '',
             categories: [],
             location: null,
@@ -76,10 +76,10 @@ function getFakeReviewRecord() {
                 type: 'did:chlu',
                 nonce: '',
                 created: 0,
-                creator: 'did:chlu:rando',
+                creator: 'did:chlu:vendor',
                 signatureValue: ''
             },
-            vendor_did: '',
+            vendor_did: 'did:chlu:vendor',
         },
         last_reviewrecord_multihash: '',
         chlu_version: 0,
