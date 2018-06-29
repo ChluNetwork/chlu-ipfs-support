@@ -1,7 +1,7 @@
 const expect = require('chai').expect;
 
 const ChluIPFS = require('../../src/ChluIPFS.js');
-const { getFakeReviewRecord } = require('../utils/protobuf');
+const { getFakeReviewRecord, makeUnverified } = require('../utils/protobuf');
 const utils = require('../utils/ipfs');
 const env = require('../../src/utils/env');
 const rimraf = require('rimraf');
@@ -68,6 +68,9 @@ describe('Integration with IPFS and Service Node', function() {
 
         serviceNode.ipfs = serviceIpfs;
         customerNode.ipfs = customerIpfs;
+
+        // Spies
+        sinon.spy(serviceNode.pinning, 'pin');
     
         // Stubs
         const crypto = cryptoTestUtils(serviceNode);
@@ -119,14 +122,28 @@ describe('Integration with IPFS and Service Node', function() {
         customerNode.bitcoin.api.returnMatchingTXForRR(Object.assign({}, rr, { multihash }));
     }
 
-    it.skip('handles Unverified Reviews')
+    it('handles Unverified Reviews', async () => {
+        // Create fake review record
+        let reviewRecord = makeUnverified(await getFakeReviewRecord())
+        // import reviews and await for completion
+        const reviews = [reviewRecord]
+        const [hash] = await customerNode.reviewRecords.importUnverifiedReviews(reviews)
+        const customerRecord = await customerNode.readReviewRecord(hash);
+        expect(customerRecord.editable).to.be.true;
+        // check hash validity
+        expect(hash).to.be.a('string').that.is.not.empty;
+        // the service node should already have pinned the hash
+        expect(serviceNode.pinning.pin.calledWith(hash)).to.be.true;
+        // check that reading works
+        const readRecord = await serviceNode.readReviewRecord(hash);
+        expect(readRecord.editable).to.be.false;
+        expect(strip(readRecord)).to.deep.equal(strip(customerRecord));
+    })
 
     it('handles Verified Reviews', async () => {
         // Create fake review record
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
-        // Spy on pinning activity on the service node
-        sinon.spy(serviceNode.pinning, 'pin');
         // store review record and await for completion
         const hash = await customerNode.storeReviewRecord(reviewRecord, {
             publish: false

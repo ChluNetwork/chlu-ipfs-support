@@ -34,16 +34,22 @@ class Validator {
             if (v.validateVersion) this.validateVersion(rr);
             if (!rr.multihash || !v.useCache || !this.chluIpfs.cache.isValidityCached(rr.multihash)) {
                 if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
-                if (v.validateSignatures){
-                    await Promise.all([
-                        this.validateRRIssuerSignature(rr),
-                        this.validateRRCustomerSignature(rr),
-                        this.validatePoPRSignaturesAndKeys(rr.popr, v.useCache)
-                    ]);
+                if (v.validateSignatures) {
+                    let signatureValidations = [
+                        this.validateRRIssuerSignature(rr)
+                    ]
+                    if (rr.verifiable) {
+                        signatureValidations = [
+                            ...signatureValidations,
+                            this.validateRRCustomerSignature(rr),
+                            this.validatePoPRSignaturesAndKeys(rr.popr, v.useCache)
+                        ]
+                    }
+                    await Promise.all(signatureValidations);
                 }
                 if (v.validateHistory) await this.validateHistory(rr, v);
                 const isUpdate = this.chluIpfs.reviewRecords.isReviewRecordUpdate(rr);
-                if (!isUpdate && (v.forceTransactionValidation || v.bitcoinTransactionHash)) {
+                if (rr.verifiable && !isUpdate && (v.forceTransactionValidation || v.bitcoinTransactionHash)) {
                     await this.validateBitcoinTransaction(rr, v.bitcoinTransactionHash, v.useCache);
                 }
                 if (rr.multihash && v.useCache) this.chluIpfs.cache.cacheValidity(rr.multihash);

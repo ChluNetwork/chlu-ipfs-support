@@ -103,4 +103,19 @@ function getFakeReviewRecord() {
     };
 }
 
-module.exports = { getFakeReviewRecord };
+function makeUnverified(reviewRecord) {
+    // Remove payment info
+    reviewRecord.amount = 0
+    reviewRecord.customer_address = ''
+    reviewRecord.vendor_address = ''
+    // Remove PoPR
+    reviewRecord.popr = null
+    // Remove verification info
+    reviewRecord.verifiable = false
+    reviewRecord.verification = null
+    // Remove customer signature
+    reviewRecord.customer_signature = null
+    return reviewRecord
+}
+
+module.exports = { getFakeReviewRecord, makeUnverified };

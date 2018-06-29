@@ -1,4 +1,5 @@
 const constants = require('../constants');
+const { isEmpty } = require('lodash')
 
 class ServiceNode {
     constructor(chluIpfs) {
@@ -54,6 +55,7 @@ class ServiceNode {
         this.chluIpfs.events.on('pubsub/message', this.handler);
         // Pin DIDs and public keys
         this.chluIpfs.events.on('discover/did/customer', this.didPinner);
+        this.chluIpfs.events.on('discover/did/issuer', this.didPinner);
         this.chluIpfs.events.on('discover/did/vendor', this.didPinner);
         this.chluIpfs.events.on('discover/did/marketplace', this.didPinner);
         this.chluIpfs.events.on('discover/keys/vendor-marketplace', this.pinner);
@@ -80,19 +82,16 @@ class ServiceNode {
             try {
                 // Read review record first. This caches the content, the history, and throws if it's not valid
                 this.chluIpfs.logger.debug('Reading and validating ReviewRecord ' + obj.multihash);
-                if(obj.bitcoinNetwork !== this.chluIpfs.bitcoin.getNetwork()) {
+                if(!isEmpty(obj.bitcoinNetwork) && obj.bitcoinNetwork !== this.chluIpfs.bitcoin.getNetwork()) {
                     throw new Error(
                         'Review Record ' + obj.multihash + ' with txId ' + obj.bitcoinTransactionHash
                         + ' had bitcoin network ' + obj.bitcoinNetwork
                         + ' (expected ' + this.chluIpfs.bitcoin.getNetwork() + ')'
                     );
                 }
-                const reviewRecord = await this.chluIpfs.readReviewRecord(obj.multihash, {
+                await this.chluIpfs.readReviewRecord(obj.multihash, {
                     bitcoinTransactionHash: obj.bitcoinTransactionHash
                 });
-                if (!reviewRecord.previous_version_multihash && !obj.bitcoinTransactionHash) {
-                    throw new Error('Review Record ' + obj.multihash + ' was valid but had no matching transaction and was not an update');
-                }
                 this.chluIpfs.logger.debug('Pinning validated ReviewRecord ' + obj.multihash);
                 await this.chluIpfs.pinning.pin(obj.multihash);
                 this.chluIpfs.logger.info('Validated and Pinned ReviewRecord ' + obj.multihash);

@@ -4,7 +4,7 @@ const sinon = require('sinon');
 const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
 
-const { getFakeReviewRecord } = require('./utils/protobuf');
+const { getFakeReviewRecord, makeUnverified } = require('./utils/protobuf');
 const multihashes = require('multihashes');
 const { isValidMultihash } = require('../src/utils/ipfs');
 const { cloneDeep } = require('lodash');
@@ -25,7 +25,7 @@ describe('ReviewRecord reading and other functions', () => {
         await chluIpfs.did.start() // generate a DID
     });
 
-    it('reads Verified Review from IPFS', async () => {
+    it('reads Verified Review from IPFS (no validation)', async () => {
         const fakeReviewRecord = await getFakeReviewRecord();
         const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
         const multihashBuffer = multihashes.fromB58String(multihash);
@@ -42,7 +42,22 @@ describe('ReviewRecord reading and other functions', () => {
         expect(reviewRecord.chlu_version).to.not.be.undefined;
     });
 
-    it.skip('reads Unverified Reviews from IPFS')
+    it('reads Unverified Reviews from IPFS (no validation)', async () => {
+        const fakeReviewRecord = makeUnverified(await getFakeReviewRecord())
+        const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
+        const multihashBuffer = multihashes.fromB58String(multihash);
+        const buffer = chluIpfs.protobuf.ReviewRecord.encode(fakeReviewRecord);
+        const ipfs = {
+            object: {
+                get: sinon.stub().resolves({ data: buffer })
+            }
+        };
+        chluIpfs.ipfs = ipfs;
+        const reviewRecord = await chluIpfs.readReviewRecord(multihash, { validate: false });
+        expect(ipfs.object.get.args[0][0]).to.deep.equal(multihashBuffer);
+        expect(reviewRecord).to.not.be.undefined;
+        expect(reviewRecord.chlu_version).to.not.be.undefined;
+    })
 
     it('recognizes valid and invalid multihashes', async () => {
         let multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ';
@@ -129,7 +144,6 @@ describe('ReviewRecord reading and other functions', () => {
     });
 
     it('handles the bitcoin transaction id', async () => {
-        const fakeReviewRecord = await getFakeReviewRecord();
         const fakeStore = {};
         const txId = 'test transaction id';
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
@@ -137,6 +151,8 @@ describe('ReviewRecord reading and other functions', () => {
         chluIpfs.room.broadcastUntil = sinon.stub().resolves();
         chluIpfs.validator.validateReviewRecord = sinon.stub().resolves();
         chluIpfs.crypto.generateKeyPair();
+        // --- Verified Review
+        const fakeReviewRecord = await getFakeReviewRecord();
         const multihash = await chluIpfs.storeReviewRecord(fakeReviewRecord, { bitcoinTransactionHash: txId });
         // Check pass to validator
         expect(chluIpfs.validator.validateReviewRecord.args[0][1].bitcoinTransactionHash).to.equal(txId);
@@ -147,5 +163,17 @@ describe('ReviewRecord reading and other functions', () => {
         // Check pass to broadcastUntil
         expect(chluIpfs.room.broadcastUntil.args[0][0].bitcoinTransactionHash).to.equal(txId);
         expect(chluIpfs.room.broadcastUntil.args[0][0].bitcoinNetwork).to.equal(chluIpfs.bitcoin.getNetwork());
+        // --- Unverified Review
+        const unverifiedReview = makeUnverified(await getFakeReviewRecord())
+        const unverifiedMultihash = await chluIpfs.storeReviewRecord(unverifiedReview, { bitcoinTransactionHash: txId });
+        // Check pass to validator
+        expect(chluIpfs.validator.validateReviewRecord.args[1][1].bitcoinTransactionHash).to.be.null
+        // Check pass to orbitdb module
+        expect(chluIpfs.orbitDb.putReviewRecordAndWaitForReplication.args[1]).to.deep.equal([
+            unverifiedMultihash, null, null, null
+        ]);
+        // Check pass to broadcastUntil
+        expect(chluIpfs.room.broadcastUntil.args[1][0].bitcoinTransactionHash).to.be.null;
+        expect(chluIpfs.room.broadcastUntil.args[1][0].bitcoinNetwork).to.be.null
     });
 });

@@ -120,30 +120,18 @@ class ReviewRecords {
         return dagNode;
     }
 
+    isVerifiable(reviewRecord) {
+        return (
+            !isEmpty(reviewRecord.customer_address)
+            && !isEmpty(reviewRecord.currency_symbol)
+            && !isEmpty(reviewRecord.popr)
+        )
+    }
+
     async prepareReviewRecord(reviewRecord, bitcoinTransactionHash = null, validate = true) {
-        reviewRecord = defaultsDeep(reviewRecord, {
-            currency_symbol: '',
-            amount: 0,
-            customer_address: '',
-            vendor_address: '',
-            popr: null,
-            chlu_version: 0,
-            previous_version_multihash: '', // TODO: review this
-            location: {
-                lat: 0,
-                lon: 0
-            },
-            subject: {
-                did: ''
-            },
-            issued: 0, // TODO: timestamp
-            issuer: this.chluIpfs.did.didId,
-            verification: null
-        })
         // TODO: review this
         const signAsIssuer = true 
-        reviewRecord.verifiable = !isEmpty(reviewRecord.customer_address) && !isEmpty(reviewRecord.currency_symbol)
-        if (!reviewRecord.verifiable) throw new Error('Unverified Reviews are not supported yet')
+        reviewRecord.verifiable = this.isVerifiable(reviewRecord)
         const signAsCustomer = reviewRecord.verifiable
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
         // Remove hash in case it's wrong (or this is an update). It's going to be calculated by the signing function
@@ -153,10 +141,11 @@ class ReviewRecords {
         const dagNode = await this.getReviewRecordDAGNode(reviewRecord);
         reviewRecord.multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         if (validate) {
-            const validationSettings = typeof validate === 'object' ? validate : {};
-            await this.chluIpfs.validator.validateReviewRecord(reviewRecord, Object.assign({
-                bitcoinTransactionHash
-            }, validationSettings));
+            const customValidationSettings = typeof validate === 'object' ? validate : {};
+            const validationSettings = Object.assign({
+                bitcoinTransactionHash: reviewRecord.verifiable ? bitcoinTransactionHash : null
+            }, customValidationSettings)
+            await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validationSettings);
         }
         return { reviewRecord, dagNode };
     }
@@ -164,9 +153,10 @@ class ReviewRecords {
     async importUnverifiedReviews(reviews) {
         const multihashes = []
         for (const review of reviews) {
-            const { multihash } = await this.storeReviewRecord(review)
+            const multihash = await this.storeReviewRecord(review)
             multihashes.push(multihash)
         }
+        return multihashes
     }
 
     async storeReviewRecord(reviewRecord, options = {}){
@@ -181,14 +171,15 @@ class ReviewRecords {
             bitcoinTransactionHash = null
         } = options;
         const isUpdate = this.isReviewRecordUpdate(reviewRecord) || IPFSUtils.isValidMultihash(previousVersionMultihash);
-        if (!bitcoinTransactionHash && publish && !isUpdate) {
+        const verified = reviewRecord.verifiable
+        if (verified && !bitcoinTransactionHash && publish && !isUpdate) {
             throw new Error('Payment information is required for publishing a Review Record');
         }
         let rr = Object.assign({}, reviewRecord, {
             previous_version_multihash: previousVersionMultihash || ''
         });
         this.chluIpfs.logger.debug('Preparing review record');
-        const prepared = await this.prepareReviewRecord(rr, bitcoinTransactionHash, validate);
+        const prepared = await this.prepareReviewRecord(rr, verified ? bitcoinTransactionHash : null, validate);
         rr = prepared.reviewRecord;
         const dagNode = prepared.dagNode;
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
@@ -198,7 +189,7 @@ class ReviewRecords {
             }
         }
         this.chluIpfs.events.emit('reviewrecord/stored', { multihash, reviewRecord: rr });
-        if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash, rr, bitcoinTransactionHash);
+        if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash, rr, verified ? bitcoinTransactionHash : null);
         return multihash;
     }
 
@@ -231,7 +222,7 @@ class ReviewRecords {
         await this.chluIpfs.room.broadcastUntil({
             type: constants.eventTypes.wroteReviewRecord,
             bitcoinTransactionHash,
-            bitcoinNetwork: this.chluIpfs.bitcoin.getNetwork(),
+            bitcoinNetwork: bitcoinTransactionHash ? this.chluIpfs.bitcoin.getNetwork() : null,
             multihash
         }, constants.eventTypes.pinned + '_' + multihash);
     }
@@ -241,7 +232,7 @@ class ReviewRecords {
             multihash,
             previousVersionMultihash,
             txId,
-            this.chluIpfs.bitcoin.getNetwork()
+            txId ? this.chluIpfs.bitcoin.getNetwork() : null
         );
     }
 
