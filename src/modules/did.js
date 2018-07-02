@@ -81,7 +81,7 @@ class ChluIPFSDID {
         // TODO: Review this!
         return {
             type: 'did:chlu',
-            created: getUnixTimestamp(),
+            created: 0, // TODO: add timestamps
             nonce: '',
             creator: did.publicDidDocument.id,
             signatureValue: result.signature

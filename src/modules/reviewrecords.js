@@ -3,7 +3,6 @@ const multihashing = require('multihashing-async');
 const constants = require('../constants');
 const IPFSUtils = require('./ipfs');
 const { cloneDeep, get, findIndex, isObject, isString, isEmpty } = require('lodash');
-const { getUnixTimestamp } = require('../utils/timing')
 
 class ReviewRecords {
 
