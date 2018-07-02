@@ -243,8 +243,8 @@ class ReviewRecords {
         );
     }
 
-    async hashObject(object, encoder) {
-        const obj = cloneDeep(object);
+    async hashObject(object, encoder, decoder) {
+        let obj = cloneDeep(object);
         let name;
         try {
             // Try to detect existing multihash type
@@ -256,6 +256,7 @@ class ReviewRecords {
             name = 'sha2-256';
         }
         obj.hash = '';
+        obj = decoder(encoder(obj)) // This fixes missing fields and other weirdness. TODO: this is dirty fix
         this.chluIpfs.logger.debug('Preparing to hash the object: ' + JSON.stringify(obj));
         const toHash = encoder(obj); 
         const multihash = await new Promise((resolve, reject) => {
@@ -291,7 +292,7 @@ class ReviewRecords {
         if (!obj.key_location) obj.key_location = ''
         if (!obj.previous_version_multihash) obj.previous_version_multihash = ''
         if (!obj.last_reviewrecord_multihash) obj.last_reviewrecord_multihash = ''
-        const hashed = await this.hashObject(obj, this.chluIpfs.protobuf.ReviewRecord.encode);
+        const hashed = await this.hashObject(obj, this.chluIpfs.protobuf.ReviewRecord.encode, this.chluIpfs.protobuf.ReviewRecord.decode);
         hashed.issuer_signature = issuer_signature
         hashed.customer_signature = customer_signature
         return hashed
@@ -304,7 +305,7 @@ class ReviewRecords {
         if (!obj.vendor_did) obj.vendor_did = ''
         const signature = cloneDeep(obj.signature)
         obj.signature = null
-        const hashed = await this.hashObject(obj, this.chluIpfs.protobuf.PoPR.encode);
+        const hashed = await this.hashObject(obj, this.chluIpfs.protobuf.PoPR.encode, this.chluIpfs.protobuf.PoPR.decode);
         hashed.signature = signature
         return hashed
     }
