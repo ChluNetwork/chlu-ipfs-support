@@ -156,7 +156,7 @@ class ReviewRecords {
         for (const review of reviews) {
             this.chluIpfs.logger.debug('Import Unverified Review: starting')
             const multihash = await this.storeReviewRecord(review)
-            this.chluIpfs.logger.debug(`Import Unverified Review: ${multihash} imported, progress ${multihash.length}/${reviews.length}`)
+            this.chluIpfs.logger.debug(`Import Unverified Review: ${multihash} imported, progress ${multihashes.length}/${reviews.length}`)
             multihashes.push(multihash)
         }
         this.chluIpfs.logger.debug(`Import Unverified Review: finished importing ${reviews.length} reviews`)
