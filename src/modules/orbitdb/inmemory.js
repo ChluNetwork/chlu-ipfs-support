@@ -1,5 +1,6 @@
 const IPFSUtils = require('../../utils/ipfs');
 const ChluAbstractIndex = require('./abstract');
+const { getUnixTimestamp } = require('../../utils/timing')
 const { get } = require('lodash')
 
 const version = 0;
@@ -26,14 +27,14 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
             list.splice(0, 0, obj.multihash);
             data[obj.multihash] = {
                 multihash: obj.multihash,
-                addedAt: getTime(),
+                addedAt: getUnixTimestamp(),
                 bitcoinTransactionHash: obj.bitcoinTransactionHash || null
             };
             if (obj.didId) {
                 if (!this._index.did.reviewsByDid[obj.didId]) {
                     this._index.did.reviewsByDid[obj.didId] = [obj.multihash]
-                } else {
-                    this._index.did.reviewsByDid[obj.didId].push(obj.multihash)
+                } else if (this._index.did.reviewsByDid[obj.didId].indexOf(obj.multihash) < 0) {
+                    this._index.did.reviewsByDid[obj.didId].splice(0, 0, obj.multihash)
                 }
             }
         }
@@ -44,7 +45,7 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         const existing = data[obj.fromMultihash];
         existing.nextVersion = obj.toMultihash;
         const nextVersionData = {
-            addedAt: getTime()
+            addedAt: getUnixTimestamp()
         };
         nextVersionData.multihash = obj.toMultihash;
         nextVersionData.previousVersion = obj.fromMultihash;
@@ -102,10 +103,6 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         return slice(this._index.did.reviewsByDid[didId], offset, limit)
     }
 
-}
-
-function getTime() {
-    return Date.now();
 }
 
 function slice(array, offset, limit) {

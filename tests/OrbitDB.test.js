@@ -137,8 +137,8 @@ describe('OrbitDB Module', () => {
                 multihash: genMultihash(2)
             })
             expect(await idx.getReviewsByDID('did:chlu:abc')).to.deep.equal([
-                genMultihash(1),
-                genMultihash(2)
+                genMultihash(2),
+                genMultihash(1)
             ])
             
         })

@@ -46,23 +46,23 @@ class DB {
         this.chluIpfs.logger.debug('Stopped OrbitDB Module');
     }
 
-    getReviewRecordList() {
-        return this.db.getReviewRecordList();
+    async getReviewRecordList() {
+        return await this.db.getReviewRecordList();
     }
 
-    getReviewsByDID(did, offset, limit) {
-        return this.db.getReviewsByDID(did, offset, limit)
+    async getReviewsByDID(did, offset, limit) {
+        return await this.db.getReviewsByDID(did, offset, limit)
     }
 
-    getReviewRecordMetadata(multihash) {
-        return this.db.getReviewRecordMetadata(multihash);
+    async getReviewRecordMetadata(multihash) {
+        return await this.db.getReviewRecordMetadata(multihash);
     }
 
     /**
      * Get the last review record update for the given multihash
      */
-    getLatestReviewRecordUpdate(multihash) {
-        return this.db.getLatestReviewRecordUpdate(multihash) || multihash;
+    async getLatestReviewRecordUpdate(multihash) {
+        return await this.db.getLatestReviewRecordUpdate(multihash) || multihash;
     }
 
     async putReviewRecord(multihash, didId, previousVersionMultihash = null, txId = null, bitcoinNetwork = null) {
@@ -85,7 +85,7 @@ class DB {
     }
 
     async putDID(didId, didDocumentMultihash, signature) {
-        return this.db.putDID(didId, didDocumentMultihash, signature)
+        return await this.db.putDID(didId, didDocumentMultihash, signature)
     }
 
     async putDIDAndWaitForReplication(...args) {
@@ -99,9 +99,10 @@ class DB {
 
     async getDID(didId, waitUntilPresent = false) {
         let multihash = null, firstTry = true
+        this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => ...`)
         while(!multihash && (firstTry || waitUntilPresent)) {
             firstTry = false
-            multihash = this.db.getDID(didId)
+            multihash = await this.db.getDID(didId)
             if (!multihash && waitUntilPresent) {
                 this.chluIpfs.logger.info(`getDID ${didId} waiting (not in OrbitDB)...`)
                 // wait for replication/write then try again
@@ -116,7 +117,7 @@ class DB {
                 this.chluIpfs.logger.info(`getDID ${didId} OrbitDB has been updated, trying again...`)
             }
         }
-        this.chluIpfs.logger.info(`getDID ${didId} => ${multihash}`)
+        this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => ${multihash}`)
         return multihash
     }
 

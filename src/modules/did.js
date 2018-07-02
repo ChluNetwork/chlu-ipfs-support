@@ -1,6 +1,7 @@
 const ChluDID = require('chlu-did/src')
 const { getDigestFromMultihash } = require('../utils/ipfs')
 const { isObject, isString } = require('lodash')
+const { getUnixTimestamp } = require('../utils/timing')
 
 class ChluIPFSDID {
 
@@ -80,7 +81,7 @@ class ChluIPFSDID {
         // TODO: Review this!
         return {
             type: 'did:chlu',
-            created: 0,
+            created: getUnixTimestamp(),
             nonce: '',
             creator: did.publicDidDocument.id,
             signatureValue: result.signature
@@ -129,12 +130,26 @@ class ChluIPFSDID {
     }
 
     async getDID(didId, waitUntilPresent = false) {
-        if (didId === this.didId) return this.publicDidDocument
+        this.chluIpfs.logger.debug(`GetDID ${didId} => ...`)
+        if (didId === this.didId) {
+            this.chluIpfs.logger.debug(`GetDID ${didId}: this is my DID, returning in memory copy`)
+            return this.publicDidDocument
+        }
         const wellKnown = this.getWellKnownDID(didId)
-        if (wellKnown) return wellKnown
+        if (wellKnown) {
+            this.chluIpfs.logger.debug(`GetDID ${didId}: this is a well known DID, returning in memory copy`)
+            return wellKnown
+        }
+        this.chluIpfs.logger.debug(`GetDID ${didId}: calling OrbitDB ${waitUntilPresent ? ', Waiting until present' : ''}`)
         const multihash = await this.chluIpfs.orbitDb.getDID(didId, waitUntilPresent)
-        if (!multihash) return null
-        return await this.chluIpfs.ipfsUtils.getJSON(multihash)
+        if (!multihash) {
+            this.chluIpfs.logger.debug(`GetDID ${didId} not found`)
+            return null
+        }
+        // TODO: maybe this should return the multihash too
+        const data = await this.chluIpfs.ipfsUtils.getJSON(multihash)
+        this.chluIpfs.logger.debug(`GetDID ${didId} => ${multihash} => ${JSON.stringify(data)}`)
+        return data
     }
 
     getWellKnownDID(didId) {

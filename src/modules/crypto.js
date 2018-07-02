@@ -1,8 +1,7 @@
 const elliptic = require('elliptic')
 const brorand = require('brorand')
 const { getDigestFromMultihash } = require('../utils/ipfs')
-
-// TODO: switch this module to elliptic
+const { getUnixTimestamp } = require('../utils/timing')
 
 class Crypto {
     constructor(chluIpfs){
@@ -30,7 +29,7 @@ class Crypto {
         // TODO: review this
         return {
             type: 'crypto',
-            created: 0,
+            created: getUnixTimestamp(),
             nonce: '',
             creator: pubKeyMultihash,
             signatureValue: result.toHex()
