@@ -46,6 +46,7 @@ class Bitcoin {
 
     async getTransactionInfo(txId) {
         const tx = await this.getTransaction(txId);
+        // TODO: tx is undefined if the rate limit for Blockcypher was hit. Investigate this issue
         this.chluIpfs.logger.debug('Preparing TX INFO for ' + txId);
         const opReturn = getOpReturn(tx);
         const multihash = opReturn.string || null;
