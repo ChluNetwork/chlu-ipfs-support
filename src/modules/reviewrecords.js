@@ -200,7 +200,7 @@ class ReviewRecords {
     async publishReviewRecord(dagNode, previousVersionMultihash, expectedMultihash, reviewRecord, txId) {
         this.chluIpfs.logger.debug('Publishing review record to Chlu');
         // TODO: optimization: only publish DID if it has been used in the review record
-        await this.chluIpfs.did.publish()
+        await this.chluIpfs.did.publish(null, false)
         // Broadcast request for pin, then wait for response
         // TODO: handle a timeout and also rebroadcast periodically, otherwise new peers won't see the message
         const multihash = await this.chluIpfs.ipfsUtils.storeDAGNode(dagNode); // store to IPFS
