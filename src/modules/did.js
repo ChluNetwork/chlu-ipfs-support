@@ -31,16 +31,20 @@ class ChluIPFSDID {
     }
 
     async generate(publish, waitForReplication) {
+        this.chluIpfs.logger.debug('Generating DID ...')
         const did = await this.chluDID.generateDID()
+        this.chluIpfs.logger.debug(`Generated DID ${did.publicDidDocument.id}`)
         return await this.import(did, publish, waitForReplication)
     }
 
     async import(did, publish = true, waitForReplication = false) {
+        this.chluIpfs.logger.debug(`Importing DID ${did.publicDidDocument.id}, publish: ${publish ? 'yes' : 'no'}`)
         this.publicDidDocument = did.publicDidDocument
         this.didId = this.publicDidDocument.id
         this.privateKeyBase58 = did.privateKeyBase58
         await this.chluIpfs.persistence.persistData()
         if (publish) await this.publish(null, waitForReplication)
+        this.chluIpfs.logger.debug(`Importing DID ${did.publicDidDocument.id} DONE`)
     }
 
     export() {
@@ -89,6 +93,7 @@ class ChluIPFSDID {
     }
 
     async verifyMultihash(didId, multihash, signature, waitUntilPresent) {
+        this.chluIpfs.logger.debug(`Verifying signature by ${signature.creator} on ${multihash}: ${signature.signatureValue}`);
         if (signature.type !== 'did:chlu') {
             throw new Error('Unhandled signature type')
         }
@@ -96,7 +101,9 @@ class ChluIPFSDID {
             throw new Error(`Expected data to be signed by ${didId}, found ${signature.creator} instead`)
         }
         const data = getDigestFromMultihash(multihash)
-        return await this.verify(signature.creator, data, signature.signatureValue, waitUntilPresent) 
+        const result = await this.verify(signature.creator, data, signature.signatureValue, waitUntilPresent) 
+        this.chluIpfs.logger.debug(`Verified signature by ${signature.creator} on ${multihash}: ${signature.signatureValue} => ${result}`);
+        return result
     }
 
     async signReviewRecord(obj, asIssuer = true, asCustomer = true) {
@@ -118,6 +125,7 @@ class ChluIPFSDID {
 
     async publish(publicDidDocument, waitForReplication = true) {
         if (!publicDidDocument) publicDidDocument = this.publicDidDocument
+        this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}, waitForReplication: ${waitForReplication ? 'yes' : 'no'}`)
         const existingMultihash = await this.chluIpfs.orbitDb.getDID(publicDidDocument.id, false)
         const multihash = await this.chluIpfs.ipfsUtils.putJSON(publicDidDocument)
         if (!existingMultihash || existingMultihash !== multihash) {
@@ -126,6 +134,9 @@ class ChluIPFSDID {
             } else {
                 await this.chluIpfs.orbitDb.putDID(publicDidDocument.id, multihash)
             }
+            this.chluIpfs.logger.debug(`Publish DID ${publicDidDocument.id} DONE`)
+        } else {
+            this.chluIpfs.logger.debug(`No need to publish DID ${publicDidDocument.id}: already published`)
         }
     }
 

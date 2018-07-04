@@ -85,6 +85,7 @@ class DB {
     }
 
     async putDID(didId, didDocumentMultihash, signature) {
+        this.chluIpfs.logger.debug(`Writing DID to OrbitDB: ${didId} => ${didDocumentMultihash}`)
         return await this.db.putDID(didId, didDocumentMultihash, signature)
     }
 
