@@ -59,6 +59,8 @@ describe('ReviewRecord storing and publishing', () => {
         // DID 
         chluIpfs.did.publish = sinon.stub().resolves()
         await chluIpfs.did.start()
+        expect(chluIpfs.did.publish.called).to.be.true
+        chluIpfs.did.publish.resetHistory()
         const didMap = crypto.buildDIDMap([v, m, chluIpfs.did.export() ])
         chluIpfs.did.getDID = sinon.stub().callsFake(async id => didMap[id])
         // Other mocks
@@ -72,6 +74,7 @@ describe('ReviewRecord storing and publishing', () => {
         expect(isValidMultihash(result)).to.be.true;
         // TODO: test signatures and fields like issuer
         const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
+        expect(chluIpfs.did.publish.called).to.be.true
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.true;
         expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
@@ -86,6 +89,7 @@ describe('ReviewRecord storing and publishing', () => {
         });
         const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
+        expect(chluIpfs.did.publish.called).to.be.true
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.true;
         expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
@@ -98,6 +102,7 @@ describe('ReviewRecord storing and publishing', () => {
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
         const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
+        expect(chluIpfs.did.publish.called).to.be.false
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.false;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.false;
         expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
@@ -111,12 +116,14 @@ describe('ReviewRecord storing and publishing', () => {
         let actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.false;
+        expect(chluIpfs.did.publish.called).to.be.false
         expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
         const newResult = await chluIpfs.storeReviewRecord(reviewRecord, {
             expectedMultihash: result,
             bitcoinTransactionHash: 'test'
         });
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
+        expect(chluIpfs.did.publish.called).to.be.true
         expect(newResult).to.equal(result);
         actual = chluIpfs.ipfsUtils.createDAGNode.args[1][0];
         expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
