@@ -175,6 +175,18 @@ class ChluIPFS {
     async getDID(didId) {
         return await this.instance.getDID(didId)
     }
+
+    // Vendor
+
+    /**
+     * Register to a Chlu Marketplace using your DID. The process is non-interactive.
+     *
+     * @param {string} url URL to a reachable service that implements the Chlu Marketplace HTTP API
+     * @memberof ChluIPFS
+     */
+    async registerToMarketplace(url) {
+        return await this.instance.registerToMarketplace(url)        
+    }
 }
 
 module.exports = Object.assign(ChluIPFS, constants);

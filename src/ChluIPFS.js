@@ -11,6 +11,7 @@ const ServiceNode = require('./modules/servicenode');
 const DID = require('./modules/did');
 const Crypto = require('./modules/crypto');
 const Bitcoin = require('./modules/bitcoin');
+const Vendor = require('./modules/vendor');
 const storageUtils = require('./utils/storage');
 const EventEmitter = require('events');
 const constants = require('./constants');
@@ -115,6 +116,7 @@ class ChluIPFS {
             apiKey: options.blockCypherApiKey,
             network: options.bitcoinNetwork
         });
+        this.vendor = new Vendor(this)
         this.ready = false;
         this.starting = false;
     }
@@ -236,6 +238,11 @@ class ChluIPFS {
     async getDID(didId) {
         await this.waitUntilReady()
         return await this.did.getDID(didId)
+    }
+
+    async registerToMarketplace(url) {
+        await this.waitUntilReady()
+        return await this.vendor.registerToMarketplace(url)
     }
 
 }
