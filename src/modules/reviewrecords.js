@@ -91,7 +91,10 @@ class ReviewRecords {
             }
             try {
                 const error = await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
-                if (error) reviewRecord.errors = reviewRecord.errors.concat(error);
+                // errors array needs to stay JSON encodable
+                if (error) reviewRecord.errors = reviewRecord.errors.concat({
+                    message: error.message || error
+                });
             } catch (error) {
                 this.chluIpfs.events.emit('validation/error', error, m);
                 throw error;
