@@ -10,3 +10,4 @@
 ## Unreleased
 
 - unverified reviews are no longer editable
+- removed Mock API
