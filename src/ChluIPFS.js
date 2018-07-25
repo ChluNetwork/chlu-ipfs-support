@@ -99,7 +99,9 @@ class ChluIPFS {
                 config: {
                     Addresses: {
                         Swarm: swarmAddresses
-                    }
+                    },
+                    // TODO: use these when we switch away from rendezvous
+                    Bootstrap: options.useRendezvous !== false ? [] : undefined
                 }
             },
             // additional options set up just now
