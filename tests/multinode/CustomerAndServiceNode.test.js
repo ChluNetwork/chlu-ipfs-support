@@ -1,6 +1,7 @@
 const expect = require('chai').expect;
 
 const ChluIPFS = require('../../src/ChluIPFS.js');
+const ServiceNode = require('../../src/modules/servicenode')
 const { getFakeReviewRecord, makeUnverified } = require('../utils/protobuf');
 const utils = require('../utils/ipfs');
 const env = require('../../src/utils/env');
@@ -49,14 +50,13 @@ describe('Integration with IPFS and Service Node', function() {
         const customerDir = testDir + 'chlu-customer';
 
         serviceNode = new ChluIPFS({
-            type: ChluIPFS.types.service,
             logger: logger('Service'),
             directory: serviceNodeDir,
             enablePersistence: false,
             bootstrap: false
         });
+        serviceNode.serviceNode = new ServiceNode(serviceNode)
         customerNode = new ChluIPFS({
-            type: ChluIPFS.types.customer,
             logger: logger('Customer'),
             directory: customerDir,
             enablePersistence: false,
@@ -90,6 +90,7 @@ describe('Integration with IPFS and Service Node', function() {
 
         // Start nodes
         await Promise.all([serviceNode.start(), customerNode.start()]);
+        await serviceNode.serviceNode.start()
 
         // Do some DID prework to make sure nodes have everything they need
 
@@ -106,6 +107,7 @@ describe('Integration with IPFS and Service Node', function() {
     });
 
     after(async () => {
+        await serviceNode.serviceNode.stop()
         await Promise.all([serviceNode.stop(), customerNode.stop()]);
         if (env.isNode()) {
             await server.stop();

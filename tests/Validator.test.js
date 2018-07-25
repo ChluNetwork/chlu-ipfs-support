@@ -16,7 +16,6 @@ describe('Validator Module', () => {
 
     beforeEach(async () => {
         chluIpfs = new ChluIPFS({
-            type: ChluIPFS.types.service,
             enablePersistence: false,
             cache: { enabled: false },
             logger: logger('Customer')

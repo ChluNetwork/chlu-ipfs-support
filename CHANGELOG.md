@@ -11,3 +11,4 @@
 
 - unverified reviews are no longer editable
 - removed Mock API
+- removed types and the switchType function

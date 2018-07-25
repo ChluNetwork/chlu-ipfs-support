@@ -15,7 +15,6 @@ describe('ReviewRecord storing and publishing', () => {
 
     beforeEach(async () => {
         chluIpfs = new ChluIPFS({
-            type: ChluIPFS.types.customer,
             enablePersistence: false,
             logger: logger('Customer'),
             cache: {

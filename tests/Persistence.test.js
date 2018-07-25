@@ -14,7 +14,6 @@ describe('Persistence module', () => {
 
     beforeEach(() => {
         api = new ChluIPFS({
-            type: ChluIPFS.types.customer,
             directory,
             logger: logger('Customer')
         });
@@ -59,7 +58,7 @@ describe('Persistence module', () => {
         sinon.spy(api.cache, 'import');
         api.storage.load = sinon.stub().resolves(data);
         await api.persistence.loadPersistedData();
-        expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
+        expect(api.storage.load.calledWith(api.directory)).to.be.true;
         expect(api.cache.import.calledWith(data.cache)).to.be.true;
         expect(data.cache).to.deep.equal(api.cache.export());
     });
@@ -71,7 +70,7 @@ describe('Persistence module', () => {
         api.storage.load = sinon.stub().resolves(data);
         api.did.import = sinon.stub().resolves()
         await api.persistence.loadPersistedData();
-        expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
+        expect(api.storage.load.calledWith(api.directory)).to.be.true;
         expect(api.did.import.calledWith(did)).to.be.true;
     });
 
@@ -79,13 +78,12 @@ describe('Persistence module', () => {
         const data = { lastReviewRecordMultihash: 'QmWBTzAwP8fz2zRsmzqUfSKEZ6GRTuPTsBVfJs6Y72D1hz' };
         api.storage.load = sinon.stub().resolves(data);
         await api.persistence.loadPersistedData();
-        expect(api.storage.load.calledWith(api.directory, api.type)).to.be.true;
+        expect(api.storage.load.calledWith(api.directory)).to.be.true;
         expect(api.lastReviewRecordMultihash).to.deep.equal(data.lastReviewRecordMultihash);
     });
     
     it('skips loading if disabled', async () => {
         api = new ChluIPFS({
-            type: ChluIPFS.types.customer,
             directory,
             logger: logger('Customer'),
             cache: { enabled: false },
@@ -98,7 +96,6 @@ describe('Persistence module', () => {
     
     it('skips saving if disabled', async () => {
         api = new ChluIPFS({
-            type: ChluIPFS.types.customer,
             directory,
             logger: logger('Customer'),
             cache: { enabled: false },

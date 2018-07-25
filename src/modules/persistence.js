@@ -20,7 +20,7 @@ class Persistence {
             }
             this.chluIpfs.logger.debug('Saving persisted data');
             try {
-                await this.chluIpfs.storage.save(this.chluIpfs.directory, data, this.chluIpfs.type);
+                await this.chluIpfs.storage.save(this.chluIpfs.directory, data);
             } catch (error) {
                 this.chluIpfs.logger.error('Could not write data: ' + error.message || error);
             }
@@ -34,7 +34,7 @@ class Persistence {
     async loadPersistedData() {
         if (this.chluIpfs.enablePersistence) {
             this.chluIpfs.logger.debug('Loading persisted data');
-            const data = await this.chluIpfs.storage.load(this.chluIpfs.directory, this.chluIpfs.type);
+            const data = await this.chluIpfs.storage.load(this.chluIpfs.directory);
             if (IPFSUtils.isValidMultihash(data.lastReviewRecordMultihash)) {
                 this.chluIpfs.lastReviewRecordMultihash = data.lastReviewRecordMultihash;
             }

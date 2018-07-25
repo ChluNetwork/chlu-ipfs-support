@@ -7,7 +7,6 @@ const ReviewRecords = require('./modules/reviewrecords');
 const Validator = require('./modules/validator');
 const DB = require('./modules/orbitdb');
 const Persistence = require('./modules/persistence');
-const ServiceNode = require('./modules/servicenode');
 const DID = require('./modules/did');
 const Crypto = require('./modules/crypto');
 const Bitcoin = require('./modules/bitcoin');
@@ -114,11 +113,6 @@ class ChluIPFS {
         this.chluBootstrapNodes = cloneDeep(constants.chluBootstrapNodes);
         // disable Chlu bootstrap by default
         this.bootstrap = options.bootstrap;
-        // Check Chlu node type
-        this.type = options.type;
-        if (Object.values(constants.types).indexOf(this.type) < 0) {
-            throw new Error('Invalid type');
-        }
         // Load Modules
         this.protobuf = new ChluProtobuf()
         this.cache = new Cache(this, options.cache);
@@ -130,7 +124,6 @@ class ChluIPFS {
         this.reviewRecords = new ReviewRecords(this);
         this.validator = new Validator(this);
         this.persistence = new Persistence(this);
-        this.serviceNode = new ServiceNode(this);
         this.did = new DID(this);
         this.crypto = new Crypto(this);
         this.bitcoin = new Bitcoin(this, {
@@ -155,7 +148,6 @@ class ChluIPFS {
         this.starting = true;
         this.events.emit('chlu-ipfs/starting');
         this.logger.debug('Starting ChluIPFS');
-        this.logger.debug('Using ' + this.type + ' mode');
         this.logger.debug('Directory: ' + this.directory);
         this.logger.debug('Using Network: ' + (this.network || '----- PRODUCTION -----'));
 
@@ -170,10 +162,6 @@ class ChluIPFS {
 
         // Note: this action requires IPFS to be already started and persisted data to be loaded
         await this.did.start()
-
-        if (this.type === constants.types.service) {
-            await this.serviceNode.start();
-        }
 
         this.ready = true;
         this.starting = false;
@@ -190,7 +178,6 @@ class ChluIPFS {
     async stop() {
         this.events.emit('chlu-ipfs/stopping');
         this.ready = false;
-        await this.serviceNode.stop();
         await this.persistence.persistData();
         await this.orbitDb.stop();
         await this.room.stop();
@@ -207,33 +194,6 @@ class ChluIPFS {
             } else {
                 throw new Error('The ChluIPFS node needs to be started');
             }
-        }
-    }
-
-    /**
-     * Change this node to a new ChluIPFS type. Works
-     * when started or stopped.
-     * 
-     * @param {string} newType
-     */
-    async switchType(newType) {
-        if (this.type !== newType) {
-            this.starting = true;
-            this.events.emit('chlu-ipfs/starting');
-            this.ready = false;
-            await this.persistence.persistData();
-            if (this.type === constants.types.customer) {
-                if (this.db) await this.db.close();
-                this.db = undefined;
-            }
-            if (this.type === constants.types.service) {
-                await this.serviceNode.stop();
-            }
-            this.type = newType;
-            await this.persistence.loadPersistedData();
-            this.starting = false;
-            this.ready = true;
-            this.events.emit('chlu-ipfs/ready');
         }
     }
 

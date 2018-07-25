@@ -21,7 +21,6 @@ describe('OrbitDB Module', () => {
 
     beforeEach(() => {
         chluIpfs = new ChluIPFS({
-            type: ChluIPFS.types.service,
             logger: logger('Service'),
             cache: { enabled: false },
             enablePersistence: false

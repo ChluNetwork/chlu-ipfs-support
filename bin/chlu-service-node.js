@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 const ChluIPFS = require('../src/index.js');
+const ServiceNode = require('../src/modules/servicenode')
 const cli = require('commander');
 const package = require('../package.json');
 const { startRendezvousServer } = require('../src/utils/rendezvous');
 
-let serviceNode = null, rendezvous = null;
+let chluIpfs = null, rendezvous = null;
 
 function handleErrors(fn) {
     return function (...args) {
@@ -22,7 +23,6 @@ async function start(options){
         throw new Error('BTC Blockchain access through BlockCypher is required');
     }
     const config = {
-        type: ChluIPFS.types.service,
         network: options.network || ChluIPFS.networks.experimental,
         directory: options.directory,
         ipfs: {
@@ -40,15 +40,20 @@ async function start(options){
         console.log('Starting rendezvous server for OFFLINE mode');
         rendezvous = await startRendezvousServer(ChluIPFS.rendezvousPorts.local);
     }
-    serviceNode = new ChluIPFS(config);
-    await serviceNode.start();
+    chluIpfs = new ChluIPFS(config);
+    chluIpfs.serviceNode = new ServiceNode(chluIpfs)
+    await chluIpfs.start();
+    await chluIpfs.serviceNode.start()
 }
 
 process.on('SIGINT', async function() {
     try {
         console.log('Stopping gracefully');
-        if (serviceNode) {
-            await serviceNode.stop();
+        if (chluIpfs) {
+            if (chluIpfs.serviceNode) {
+                await chluIpfs.serviceNode.stop()
+            }
+            await chluIpfs.stop();
         }
         if (rendezvous) {
             console.log('Stopping rendezvous server');

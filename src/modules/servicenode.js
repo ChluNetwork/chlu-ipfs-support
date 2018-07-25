@@ -7,6 +7,7 @@ class ServiceNode {
     }
 
     async start() {
+        this.chluIpfs.logger.debug('Starting Service Node')
         const self = this;
         this.handler = message => {
             return self.handleMessage(message);
@@ -61,6 +62,7 @@ class ServiceNode {
         this.chluIpfs.events.on('discover/keys/vendor-marketplace', this.pinner);
         // Send messages on replication
         this.chluIpfs.events.on('db/replicated', this.replicatedNotifier);
+        this.chluIpfs.logger.debug('Started Service Node')
     }
 
     async stop() {
