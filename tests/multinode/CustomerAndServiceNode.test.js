@@ -129,7 +129,7 @@ describe('Integration with IPFS and Service Node', function() {
         const reviews = [reviewRecord]
         const [hash] = await customerNode.reviewRecords.importUnverifiedReviews(reviews)
         const customerRecord = await customerNode.readReviewRecord(hash);
-        expect(customerRecord.editable).to.be.true;
+        expect(customerRecord.editable).to.be.false;
         // check hash validity
         expect(hash).to.be.a('string').that.is.not.empty;
         // the service node should already have pinned the hash

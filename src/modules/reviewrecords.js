@@ -102,7 +102,7 @@ class ReviewRecords {
         }
         if (checkForUpdates) this.watchReviewRecord(m, validate);
         const didId = reviewRecord.issuer
-        reviewRecord.editable = didId === this.chluIpfs.did.didId;
+        reviewRecord.editable = didId === this.chluIpfs.did.didId && this.isVerifiable(reviewRecord);
         reviewRecord.requestedMultihash = multihash;
         reviewRecord.watching = Boolean(checkForUpdates);
         reviewRecord.gotLatestVersion = Boolean(getLatestVersion);
