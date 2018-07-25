@@ -99,13 +99,23 @@ class DB {
     }
 
     async getDID(didId, waitUntilPresent = false) {
-        let multihash = null, firstTry = true
+        // TODO: move sig checking to orbit-db updateIndex
+        let result = null, valid = false, firstTry = true
         this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => ...`)
-        while(!multihash && (firstTry || waitUntilPresent)) {
+        while(!result && (firstTry || waitUntilPresent)) {
             firstTry = false
-            multihash = await this.db.getDID(didId)
-            if (!multihash && waitUntilPresent) {
-                this.chluIpfs.logger.info(`getDID ${didId} waiting (not in OrbitDB)...`)
+            result = await this.db.getDID(didId)
+            valid = false
+            const { multihash, signature } = result
+            if (signature) {
+                this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => verifying signature`)
+                valid = await this.chluIpfs.did.verifyMultihashWithDIDDocumentMultihash(multihash, multihash, signature)
+                this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => signature valid: ${valid ? 'yes' : 'no'}`)
+            } else {
+                this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => missing signature`)
+            }
+            if ((!multihash || !valid) && waitUntilPresent) {
+                this.chluIpfs.logger.info(`getDID ${didId} waiting (not in OrbitDB or not valid)...`)
                 // wait for replication/write then try again
                 await new Promise(resolve => {
                     this.chluIpfs.events.once('db/replicated', address => {
@@ -118,8 +128,13 @@ class DB {
                 this.chluIpfs.logger.info(`getDID ${didId} OrbitDB has been updated, trying again...`)
             }
         }
-        this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => ${multihash}`)
-        return multihash
+        if (valid) {
+            this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => ${result.multihash}`)
+            return result.multihash
+        } else {
+            this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => failed`)
+            return null
+        }
     }
 
     async open() {

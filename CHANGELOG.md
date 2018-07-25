@@ -12,3 +12,4 @@
 - unverified reviews are no longer editable
 - removed Mock API
 - removed types and the switchType function
+- publishing DIDs now includes a signature which is checked on getDID

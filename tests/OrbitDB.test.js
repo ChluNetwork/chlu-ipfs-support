@@ -108,20 +108,20 @@ describe('OrbitDB Module', () => {
         });
 
         it('handles DIDs', async () => {
-            expect(await idx.getDID('did:chlu:abc')).to.be.null
+            expect((await idx.getDID('did:chlu:abc')).multihash).to.be.null
             await applyOperation(idx, {
                 op: ChluInMemoryIndex.operations.PUT_DID,
                 didId: 'did:chlu:abc',
                 multihash: genMultihash(1)
             })
-            expect(await idx.getDID('did:chlu:abc')).to.equal(genMultihash(1))
+            expect((await idx.getDID('did:chlu:abc')).multihash).to.equal(genMultihash(1))
             // replaces old value
             await applyOperation(idx, {
                 op: ChluInMemoryIndex.operations.PUT_DID,
                 didId: 'did:chlu:abc',
                 multihash: genMultihash(2)
             })
-            expect(await idx.getDID('did:chlu:abc')).to.equal(genMultihash(2))
+            expect((await idx.getDID('did:chlu:abc')).multihash).to.equal(genMultihash(2))
         })
 
         it('returns reviews by DID', async () => {

@@ -87,16 +87,17 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         return this._index.reviews.list.length;
     }
 
-    _putDID(didId, didDocumentMultihash) {
+    _putDID(didId, didDocumentMultihash, signature) {
         if (!this._index.did.data[didId]) {
-            this._index.did.data[didId] = { multihash: didDocumentMultihash }
+            this._index.did.data[didId] = { multihash: didDocumentMultihash, signature }
         } else {
             this._index.did.data[didId].multihash = didDocumentMultihash
+            this._index.did.data[didId].signature = signature 
         }
     }
 
     _getDID(didId) {
-        return get(this._index.did.data[didId], 'multihash', null)
+        return get(this._index, `did.data[${didId}]`, { multihash: null, signature: null })
     }
 
     _getReviewsByDID(didId, offset, limit) {
