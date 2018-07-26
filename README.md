@@ -49,7 +49,7 @@ You can start the service node with `chlu-service-node start --offline`. Other a
 machine should detect the service node in offline mode and enter offline mode as well, making sure all of your Chlu
 apps on your machine will talk to each other even if you are completely disconnected.
 
-## API Docs
+## JS API Docs
 
 https://ipfs.io/ipfs/QmTHQog37CpVHrdwWt1EpS8feymig8N2RpoTBY66P9D8cE
 

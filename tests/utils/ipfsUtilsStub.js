@@ -38,13 +38,6 @@ module.exports = function (fakeStore) {
             const data = dagNode.toJSON();
             fakeStore[data.multihash] = data.data;
             return data.multihash;
-        }),
-        createDAGNode: sinon.stub().callsFake(async buf => {
-            return await new Promise((resolve, reject) => {
-                DAGNode.create(buf, [], (err, dagNode) => {
-                    if (err) reject(err); else resolve(dagNode);
-                });
-            });
         })
     };
 };

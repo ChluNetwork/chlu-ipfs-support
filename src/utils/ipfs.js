@@ -3,6 +3,7 @@ const multihashes = require('multihashes');
 const path = require('path');  
 const storage = require('./storage');
 const env = require('./env');
+const DAGNode = require('ipld-dag-pb').DAGNode;
 
 async function createIPFS(options) {
     return await new Promise(resolve => {
@@ -48,6 +49,17 @@ function multihashToBuffer(multihash) {
     return multihashes.fromB58String(multihash);
 }
 
+async function createDAGNode(buf) {
+    if (!Buffer.isBuffer(buf)) {
+        throw new Error('Argument is not a buffer');
+    }
+    return await new Promise((resolve, reject) => {
+        DAGNode.create(buf, [], (err, dagNode) => {
+            if (err) reject(err); else resolve(dagNode);
+        });
+    });
+}
+
 function getDAGNodeMultihash(dagNode) {
     return multihashToString(dagNode.multihash);
 }
@@ -80,6 +92,7 @@ function getDefaultOrbitDBPath(directory = storage.getDefaultDirectory()) {
 
 module.exports = {
     createIPFS,
+    createDAGNode,
     isValidMultihash,
     validateMultihash,
     multihashToString,
