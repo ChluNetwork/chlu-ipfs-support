@@ -11,7 +11,7 @@ read the API docs linked below or check out the examples.
 
 ### In Node
 
-If you are in development, you can pass an option `mock: true` when initializing the class to get a fake API that returns example data.
+Just require this module, then check out the JS API Docs below for usage information.
 
 ### In the Browser
 
@@ -84,10 +84,10 @@ You can access the event emitter at `chluIpfs.instance.events` and listen to som
 - Validation
   - `validation/error` to keep track of invalid review records
 - Discovery
-  - `discover/keys/vendor` to keep track of vendors encountered. Only emitted if the RR containing it is valid
+  - `discover/dids/vendor` to keep track of vendors encountered. Only emitted if the RR containing it is valid
   - `discover/keys/vendor-marketplace` Only emitted if the RR containing it is valid
-  - `discover/keys/marketplace` to keep track of marketplaces encountered. Only emitted if the RR containing it is valid
-  - `discover/keys/customer` only emitted if a customer signed RR containing it is valid
+  - `discover/dids/marketplace` to keep track of marketplaces encountered. Only emitted if the RR containing it is valid
+  - `discover/dids/customer` only emitted if a customer signed RR containing it is valid
 - PubSub
   - `pubsub/subscribed`
   - `pubsub/unsubscribed`
@@ -99,10 +99,8 @@ You can access the event emitter at `chluIpfs.instance.events` and listen to som
 ## Examples
 
 ```javascript
-// Create a ChluIPFS node of type service
-// available types: service, customer, vendor, marketplace
-// only service and customer are implemented. Use service for Service Nodes and customer for writing Chlu Reviews
-const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.service })
+// Create a ChluIPFS node
+const chluIpfs = new ChluIPFS()
 // Start the node. It is possible to modify internal modules or set an existing IPFS instance
 // to be used while the node has not been started yet
 await chluIpfs.start() // this operation is async. Wait for the promise to resolve before doing anything else
