@@ -14,7 +14,8 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
             },
             did: {
                 data: {},
-                reviewsByDid: {}
+                reviewsWrittenByDid: {},
+                reviewsAboutDid: {}
             }
         };
         super(_index, version);
@@ -30,11 +31,20 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
                 addedAt: getUnixTimestamp(),
                 bitcoinTransactionHash: obj.bitcoinTransactionHash || null
             };
-            if (obj.didId) {
-                if (!this._index.did.reviewsByDid[obj.didId]) {
-                    this._index.did.reviewsByDid[obj.didId] = [obj.multihash]
-                } else if (this._index.did.reviewsByDid[obj.didId].indexOf(obj.multihash) < 0) {
-                    this._index.did.reviewsByDid[obj.didId].splice(0, 0, obj.multihash)
+            const authorDidId = obj.authorDidId
+            const subjectDidId = obj.subjectDidId
+            if (subjectDidId) {
+                if (!this._index.did.reviewsAboutDid[subjectDidId]) {
+                    this._index.did.reviewsAboutDid[subjectDidId] = [obj.multihash]
+                } else if (this._index.did.reviewsAboutDid[subjectDidId].indexOf(obj.multihash) < 0) {
+                    this._index.did.reviewsAboutDid[subjectDidId].splice(0, 0, obj.multihash)
+                }
+            }
+            if (authorDidId) {
+                if (!this._index.did.reviewsWrittenByDid[authorDidId]) {
+                    this._index.did.reviewsWrittenByDid[authorDidId] = [obj.multihash]
+                } else if (this._index.did.reviewsWrittenByDid[authorDidId].indexOf(obj.multihash) < 0) {
+                    this._index.did.reviewsWrittenByDid[authorDidId].splice(0, 0, obj.multihash)
                 }
             }
         }
@@ -100,8 +110,12 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         return get(this._index, `did.data[${didId}]`, { multihash: null, signature: null })
     }
 
-    _getReviewsByDID(didId, offset, limit) {
-        return slice(this._index.did.reviewsByDid[didId], offset, limit)
+    _getReviewsAboutDID(didId, offset, limit) {
+        return slice(this._index.did.reviewsAboutDid[didId], offset, limit)
+    }
+
+    _getReviewsWrittenByDID(didId, offset, limit) {
+        return slice(this._index.did.reviewsWrittenByDid[didId], offset, limit)
     }
 
 }

@@ -140,6 +140,9 @@ describe('Integration with IPFS and Service Node', function() {
         const readRecord = await serviceNode.readReviewRecord(hash);
         expect(readRecord.editable).to.be.false;
         expect(strip(readRecord)).to.deep.equal(strip(customerRecord));
+        // check orbit-db did indexing
+        expect(await serviceNode.orbitDb.getReviewsAboutDID(readRecord.subject.did))
+            .to.contain(hash)
     })
 
     it('handles Verified Reviews', async () => {
@@ -166,6 +169,11 @@ describe('Integration with IPFS and Service Node', function() {
         const readRecord = await serviceNode.readReviewRecord(hash);
         expect(readRecord.editable).to.be.false;
         expect(strip(readRecord)).to.deep.equal(strip(customerRecord));
+        // check orbit-db by did indexing
+        expect(await serviceNode.orbitDb.getReviewsWrittenByDID(readRecord.customer_signature.creator))
+            .to.contain(hash)
+        expect(await serviceNode.orbitDb.getReviewsAboutDID(readRecord.popr.vendor_did))
+            .to.contain(hash)
     });
 
     describe('Verified Review Updates', () => {

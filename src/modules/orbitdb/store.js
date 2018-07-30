@@ -17,12 +17,13 @@ class ChluStore extends Store {
         }
     }
 
-    addReviewRecord(multihash, didId, bitcoinTransactionHash, bitcoinNetwork) {
+    addReviewRecord(multihash, authorDidId, subjectDidId, bitcoinTransactionHash, bitcoinNetwork) {
         IPFSUtils.validateMultihash(multihash);
         const operation = {
             op: ChluAbstractIndex.operations.ADD_REVIEW_RECORD,
             multihash,
-            didId,
+            authorDidId,
+            subjectDidId,
             version
         };
         if (bitcoinTransactionHash) {
@@ -64,8 +65,12 @@ class ChluStore extends Store {
         return this._index.getReviewRecordList(...arguments);
     }
 
-    getReviewsByDID() {
-        return this._index.getReviewsByDID(...arguments)
+    getReviewsAboutDID() {
+        return this._index.getReviewsAboutDID(...arguments)
+    }
+
+    getReviewsWrittenByDID() {
+        return this._index.getReviewsWrittenByDID(...arguments)
     }
 
     getReviewRecordMetadata(multihash) {

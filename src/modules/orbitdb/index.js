@@ -50,8 +50,12 @@ class DB {
         return await this.db.getReviewRecordList();
     }
 
-    async getReviewsByDID(did, offset, limit) {
-        return await this.db.getReviewsByDID(did, offset, limit)
+    async getReviewsAboutDID(did, offset, limit) {
+        return await this.db.getReviewsAboutDID(did, offset, limit)
+    }
+
+    async getReviewsWrittenByDID(did, offset, limit) {
+        return await this.db.getReviewsWrittenByDID(did, offset, limit)
     }
 
     async getReviewRecordMetadata(multihash) {
@@ -65,13 +69,13 @@ class DB {
         return await this.db.getLatestReviewRecordUpdate(multihash) || multihash;
     }
 
-    async putReviewRecord(multihash, didId, previousVersionMultihash = null, txId = null, bitcoinNetwork = null) {
+    async putReviewRecord(multihash, authorDidId, subjectDidId, previousVersionMultihash = null, txId = null, bitcoinNetwork = null) {
         if (previousVersionMultihash) {
             this.chluIpfs.logger.debug('Writing to OrbitDB: Review Update from ' + multihash + ' to ' + previousVersionMultihash);
             await this.db.updateReviewRecord(multihash, previousVersionMultihash);
         } else {
             this.chluIpfs.logger.debug('Writing to OrbitDB: Review Record ' + multihash + (txId ? (' with txId ' + txId) : ''));
-            await this.db.addReviewRecord(multihash, didId, txId, bitcoinNetwork);
+            await this.db.addReviewRecord(multihash, authorDidId, subjectDidId, txId, bitcoinNetwork);
         }
     }
 

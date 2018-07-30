@@ -24,7 +24,8 @@ class ChluAbstractIndex {
                 if (item.payload.op === operations.ADD_REVIEW_RECORD && IPFSUtils.isValidMultihash(item.payload.multihash)) {
                     await this.addOriginalReviewRecord({
                         multihash: item.payload.multihash,
-                        didId: item.payload.didId,
+                        subjectDidId: item.payload.subjectDidId || item.payload.didId, // Retrocompatibility
+                        authorDidId: item.payload.authorDidId,
                         bitcoinTransactionHash: item.payload.bitcoinTransactionHash
                     });
                 } else if (item.payload.op === operations.UPDATE_REVIEW_RECORD) {
@@ -133,11 +134,19 @@ class ChluAbstractIndex {
 
     // DID and Reviews
 
-    async getReviewsByDID(didId) {
-        return await this._getReviewsByDID(didId)
+    async getReviewsAboutDID(didId) {
+        return await this._getReviewsAboutDID(didId)
     }
 
-    async _getReviewsByDID() {
+    async getReviewsWrittenByDID(didId) {
+        return await this._getReviewsWrittenByDID(didId)
+    }
+
+    async _getReviewsAboutDID() {
+        notImplemented();
+    }
+
+    async _getReviewsWrittenByDID() {
         notImplemented();
     }
 
