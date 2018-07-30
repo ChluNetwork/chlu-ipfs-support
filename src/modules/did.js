@@ -1,6 +1,6 @@
 const ChluDID = require('chlu-did/src')
 const { getDigestFromMultihash } = require('../utils/ipfs')
-const { isObject, isString } = require('lodash')
+const { isObject, isString, get } = require('lodash')
 
 class ChluIPFSDID {
 
@@ -106,6 +106,9 @@ class ChluIPFSDID {
     }
 
     async verifyMultihashWithDIDDocumentMultihash(didDocumentMultihash, multihash, signature) {
+        if (!get(signature, 'signatureValue')) {
+            throw new Error('Missing signature value')
+        }
         const publicDidDocument = await this.chluIpfs.ipfsUtils.getJSON(didDocumentMultihash)
         this.chluIpfs.logger.debug(`Verifying signature by ${publicDidDocument.id} on ${multihash}: ${signature.signatureValue}`);
         if (signature.type !== 'did:chlu') {
@@ -138,18 +141,38 @@ class ChluIPFSDID {
     }
 
     async publish(did, waitForReplication = true) {
-        let publicDidDocument
+        let publicDidDocument, privateKeyBase58, signature
         if (did) { 
             publicDidDocument = did.publicDidDocument
+            signature = did.signature
+            privateKeyBase58 = did.privateKeyBase58
         } else {
             publicDidDocument = this.publicDidDocument
+            privateKeyBase58 = this.privateKeyBase58
         }
         this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}, waitForReplication: ${waitForReplication ? 'yes' : 'no'}`)
-        const existingMultihash = await this.chluIpfs.orbitDb.getDID(publicDidDocument.id, false)
         const multihash = await this.chluIpfs.ipfsUtils.putJSON(publicDidDocument)
+        if (!signature) {
+            this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}: missing signature, signing...`)
+            if (privateKeyBase58) {
+                // Create signature
+                signature = await this.signMultihash(multihash, { publicDidDocument, privateKeyBase58 })
+            } else {
+                throw new Error('Missing signature and private key, cannot sign Public DID Document')
+            }
+        } else {
+            this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}: signature provided by caller`)
+        }
+        // Validate signature
+        const valid = await this.verifyMultihashWithDIDDocumentMultihash(multihash, multihash, signature)
+        if (!valid) {
+            throw new Error('Signature is invalid')
+        } else {
+            this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}: signature was valid`)
+        }
+        const existingMultihash = await this.chluIpfs.orbitDb.getDID(publicDidDocument.id, false)
         if (!existingMultihash || existingMultihash !== multihash) {
-            // TODO: pass custom full did and use it to sign
-            const signature = await this.signMultihash(multihash, did)
+            this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}: publish required, writing to OrbitDB...`)
             if (waitForReplication) {
                 await this.chluIpfs.orbitDb.putDIDAndWaitForReplication(publicDidDocument.id, multihash, signature)
             } else {
@@ -157,7 +180,7 @@ class ChluIPFSDID {
             }
             this.chluIpfs.logger.debug(`Publish DID ${publicDidDocument.id} DONE`)
         } else {
-            this.chluIpfs.logger.debug(`No need to publish DID ${publicDidDocument.id}: already published`)
+            this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}: already published, no operation required`)
         }
     }
 
