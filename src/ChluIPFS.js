@@ -286,6 +286,25 @@ class ChluIPFS {
     }
 
     /**
+     * Publish a public DID Document. Needs to be signed by the owner.
+     * Only use this to publish third party DIDs and the in use DID, which
+     * is automatically published.
+     *
+     * @param {object} publicDidDocument
+     * @param {object} [signature=null]
+     * @param {boolean} [waitForReplication=true]
+     * @memberof ChluIPFS
+     */
+    async publishDID(publicDidDocument, signature, waitForReplication = true) {
+        if (!publicDidDocument) throw new Error('publicDidDocument is required')
+        if (!signature) throw new Error('signature is required')
+        return await this.did.publish({
+            publicDidDocument,
+            signature
+        }, waitForReplication)
+    }
+
+    /**
      * Import an existing DID
      *
      * @param {Object} did
