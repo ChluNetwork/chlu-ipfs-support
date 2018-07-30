@@ -124,23 +124,43 @@ describe('OrbitDB Module', () => {
             expect((await idx.getDID('did:chlu:abc')).multihash).to.equal(genMultihash(2))
         })
 
-        it('returns reviews by DID', async () => {
+        it('returns reviews about subject DID', async () => {
             await applyOperation(idx, {
                 op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
-                didId: 'did:chlu:abc',
+                didId: 'did:chlu:abc', // Retrocompatibility
                 multihash: genMultihash(1)
             })
             await applyOperation(idx, {
                 op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
-                didId: 'did:chlu:abc',
+                subjectDidId: 'did:chlu:abc',
                 multihash: genMultihash(2)
             })
-            expect(await idx.getReviewsByDID('did:chlu:abc')).to.deep.equal([
+            expect(await idx.getReviewsAboutDID('did:chlu:abc')).to.deep.equal([
                 genMultihash(2),
                 genMultihash(1)
             ])
-            
+            expect(await idx.getReviewsWrittenByDID('did:chlu:abc')).to.deep.equal([])
         })
+
+        it('returns reviews written by author DID', async () => {
+            await applyOperation(idx, {
+                op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
+                authorDidId: 'did:chlu:abc', // Retroncompatibility
+                multihash: genMultihash(1)
+            })
+            await applyOperation(idx, {
+                op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
+                authorDidId: 'did:chlu:abc',
+                multihash: genMultihash(2)
+            })
+            expect(await idx.getReviewsWrittenByDID('did:chlu:abc')).to.deep.equal([
+                genMultihash(2),
+                genMultihash(1)
+            ])
+            expect(await idx.getReviewsAboutDID('did:chlu:abc')).to.deep.equal([])
+        })
+
+
 
     });
 });

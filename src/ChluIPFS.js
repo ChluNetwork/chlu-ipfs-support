@@ -319,9 +319,14 @@ class ChluIPFS {
         return await this.did.import(did, publish, waitForReplication)
     }
 
-    async getReviewsByDID(didId, offset, limit) {
+    async getReviewsWrittenByDID(didId, offset, limit) {
         await this.waitUntilReady()
-        return await this.orbitDb.getReviewsByDID(didId, offset, limit)
+        return await this.orbitDb.getReviewsWrittenByDID(didId, offset, limit)
+    }
+
+    async getReviewsAboutDID(didId, offset, limit) {
+        await this.waitUntilReady()
+        return await this.orbitDb.getReviewsAboutDID(didId, offset, limit)
     }
 
     async getReviewList(offset, limit) {

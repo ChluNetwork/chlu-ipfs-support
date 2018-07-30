@@ -8,6 +8,7 @@ const { isValidMultihash } = require('../src/utils/ipfs');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
 const http = require('./utils/http');
 const cryptoTestUtils = require('./utils/crypto');
+const { cloneDeep } = require('lodash');
 
 describe('ReviewRecord storing and publishing', () => {
 
@@ -173,6 +174,53 @@ describe('ReviewRecord storing and publishing', () => {
         expect(rr.issuer).to.equal(chluIpfs.did.didId);
         await verifySignature(rr, chluIpfs.did.didId, 'issuer_signature')
         await verifySignature(rr, chluIpfs.did.didId, 'customer_signature')
+    });
+
+    it('hashes consistently in weird edge cases', async () => {
+        const reviewRecord = await getFakeReviewRecord();
+
+        const hashedReviewRecord = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(reviewRecord));
+        const rrGoneThroughEncoding = chluIpfs.protobuf.ReviewRecord.decode(chluIpfs.protobuf.ReviewRecord.encode(reviewRecord));
+        const hashedAgain = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(rrGoneThroughEncoding));
+        expect(hashedReviewRecord).to.deep.equal(hashedAgain)
+
+        delete reviewRecord.last_reviewrecord_multihash;
+        const hashedAgain2 = await chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(reviewRecord));
+        expect(hashedReviewRecord).to.deep.equal(hashedAgain2);
+    });
+
+    it('handles the bitcoin transaction id', async () => {
+        const fakeStore = {};
+        const txId = 'test transaction id';
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
+        chluIpfs.orbitDb.putReviewRecordAndWaitForReplication = sinon.stub().resolves();
+        chluIpfs.room.broadcastUntil = sinon.stub().resolves();
+        chluIpfs.validator.validateReviewRecord = sinon.stub().resolves();
+        chluIpfs.crypto.generateKeyPair();
+        // --- Verified Review
+        const fakeReviewRecord = await getFakeReviewRecord();
+        await chluIpfs.storeReviewRecord(fakeReviewRecord, { bitcoinTransactionHash: txId });
+        // Check pass to validator
+        expect(chluIpfs.validator.validateReviewRecord.args[0][1].bitcoinTransactionHash).to.equal(txId);
+        // Check pass to orbitdb module
+        expect(chluIpfs.orbitDb.putReviewRecordAndWaitForReplication.args[0].slice(4, 6)).to.deep.equal([
+            txId, chluIpfs.bitcoin.getNetwork()
+        ]);
+        // Check pass to broadcastUntil
+        expect(chluIpfs.room.broadcastUntil.args[0][0].bitcoinTransactionHash).to.equal(txId);
+        expect(chluIpfs.room.broadcastUntil.args[0][0].bitcoinNetwork).to.equal(chluIpfs.bitcoin.getNetwork());
+        // --- Unverified Review
+        const unverifiedReview = makeUnverified(await getFakeReviewRecord())
+        const unverifiedMultihash = await chluIpfs.storeReviewRecord(unverifiedReview, { bitcoinTransactionHash: txId });
+        // Check pass to validator
+        expect(chluIpfs.validator.validateReviewRecord.args[1][1].bitcoinTransactionHash).to.be.null
+        // Check pass to orbitdb module
+        expect(chluIpfs.orbitDb.putReviewRecordAndWaitForReplication.args[1]).to.deep.equal([
+            unverifiedMultihash, null, fakeReviewRecord.subject.did, null, null, null
+        ]);
+        // Check pass to broadcastUntil
+        expect(chluIpfs.room.broadcastUntil.args[1][0].bitcoinTransactionHash).to.be.null;
+        expect(chluIpfs.room.broadcastUntil.args[1][0].bitcoinNetwork).to.be.null
     });
 
 });
