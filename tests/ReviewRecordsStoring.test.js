@@ -15,7 +15,6 @@ describe('ReviewRecord storing and publishing', () => {
 
     beforeEach(async () => {
         chluIpfs = new ChluIPFS({
-            type: ChluIPFS.types.customer,
             enablePersistence: false,
             logger: logger('Customer'),
             cache: {
@@ -73,11 +72,9 @@ describe('ReviewRecord storing and publishing', () => {
         const result = await chluIpfs.storeReviewRecord(reviewRecord)
         expect(isValidMultihash(result)).to.be.true;
         // TODO: test signatures and fields like issuer
-        const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(chluIpfs.did.publish.called).to.be.true
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.true;
-        expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
     })
 
     it('stores Reviews and automatically publishes them', async () => {
@@ -87,12 +84,10 @@ describe('ReviewRecord storing and publishing', () => {
         const result = await chluIpfs.storeReviewRecord(reviewRecord, {
             bitcoinTransactionHash: 'test'
         });
-        const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
         expect(chluIpfs.did.publish.called).to.be.true
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.true;
-        expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
     });
 
     it('can store Review without publishing', async () => {
@@ -100,12 +95,10 @@ describe('ReviewRecord storing and publishing', () => {
         delete reviewRecord.issuer // force Chlu to sign it as issuer
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
-        const actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
         expect(chluIpfs.did.publish.called).to.be.false
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.false;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.false;
-        expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
     });
 
     it('can store Reviews without publishing then store them again and publish them', async () => {
@@ -113,11 +106,9 @@ describe('ReviewRecord storing and publishing', () => {
         delete reviewRecord.issuer // force Chlu to sign it as issuer
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
-        let actual = chluIpfs.ipfsUtils.createDAGNode.args[0][0];
         expect(isValidMultihash(result)).to.be.true;
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.false;
         expect(chluIpfs.did.publish.called).to.be.false
-        expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
         const newResult = await chluIpfs.storeReviewRecord(reviewRecord, {
             expectedMultihash: result,
             bitcoinTransactionHash: 'test'
@@ -125,8 +116,6 @@ describe('ReviewRecord storing and publishing', () => {
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
         expect(chluIpfs.did.publish.called).to.be.true
         expect(newResult).to.equal(result);
-        actual = chluIpfs.ipfsUtils.createDAGNode.args[1][0];
-        expect(chluIpfs.protobuf.ReviewRecord.decode(actual).chlu_version).to.not.be.undefined;
     });
 
     it('correctly checks expected multihash when storing a review', async () => {

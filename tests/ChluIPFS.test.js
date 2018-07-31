@@ -8,35 +8,25 @@ const utils = require('./utils/ipfs');
 const env = require('../src/utils/env');
 
 describe('ChluIPFS', () => {
-    it('constructor', () => {
-        let type = ChluIPFS.types.customer;
-        let chluIpfs = new ChluIPFS({ type });
-        expect(chluIpfs.type).to.equal(type);
-        type = ChluIPFS.types.vendor;
-        chluIpfs = new ChluIPFS({ type });
-        expect(chluIpfs.type).to.equal(type);
-        type = ChluIPFS.types.marketplace;
-        chluIpfs = new ChluIPFS({ type });
-        expect(chluIpfs.type).to.equal(type);
-        type = 'anything else';
-        expect(() => new ChluIPFS({ type })).to.throw();
+    it('constructor does not crash', () => {
+        new ChluIPFS();
     });
 
     it('chooses the network correctly', () => {
         const backupEnv = cloneDeep(process.env);
-        let chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, network: 'mynet' });
+        let chluIpfs = new ChluIPFS({ network: 'mynet' });
         expect(chluIpfs.network).to.equal('mynet');
-        chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+        chluIpfs = new ChluIPFS();
         expect(chluIpfs.network).to.equal('experimental');
         process.env.NODE_ENV = 'test';
-        chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+        chluIpfs = new ChluIPFS();
         expect(chluIpfs.network).to.equal(ChluIPFS.networks.experimental);
         process.env.CHLU_NETWORK = 'mynet';
-        chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+        chluIpfs = new ChluIPFS();
         expect(chluIpfs.network).to.equal('mynet');
         delete process.env.CHLU_NETWORK;
         process.env.NODE_ENV = 'production';
-        chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer });
+        chluIpfs = new ChluIPFS();
         expect(chluIpfs.network).to.equal('');
         // Restore env
         process.env = backupEnv;
@@ -50,7 +40,6 @@ describe('ChluIPFS', () => {
         try {
             const testDir = '/tmp/chlu-test-' + Date.now() + Math.random() + '/startandstop';
             const chluIpfs = new ChluIPFS({
-                type: ChluIPFS.types.service,
                 enablePersistence: false,
                 directory: testDir,
                 logger: logger('Service'),
@@ -80,28 +69,5 @@ describe('ChluIPFS', () => {
             throw error;
         }
         if (env.isNode()) await server.stop();
-    });
-
-    it('switches type correctly from service node', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.service, enablePersistence: false, logger: logger('Service') });
-        sinon.spy(chluIpfs.events, 'removeListener');
-        chluIpfs.serviceNodeRoomMessageListener = 'test';
-        expect(chluIpfs.type).to.equal(ChluIPFS.types.service);
-        await chluIpfs.switchType(ChluIPFS.types.customer);
-        expect(chluIpfs.type).to.equal(ChluIPFS.types.customer);
-        expect(chluIpfs.events.removeListener.calledWith('message', chluIpfs.serviceNodeRoomMessageListener));
-    });
-
-    it('switches type correctly from customer', async () => {
-        const chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
-        const fakeDb = {
-            close: sinon.stub().resolves()
-        };
-        chluIpfs.db = fakeDb;
-        expect(chluIpfs.type).to.equal(ChluIPFS.types.customer);
-        await chluIpfs.switchType(ChluIPFS.types.vendor);
-        expect(chluIpfs.type).to.equal(ChluIPFS.types.vendor);
-        expect(chluIpfs.db).to.be.undefined;
-        expect(fakeDb.close.called).to.be.true;
     });
 });

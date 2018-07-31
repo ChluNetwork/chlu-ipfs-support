@@ -1,4 +1,3 @@
-const DAGNode = require('ipld-dag-pb').DAGNode;
 const utils = require('../utils/ipfs');
 const env = require('../utils/env');
 const IPFSAPI = require('ipfs-api');
@@ -128,17 +127,6 @@ class IPFS {
             }
         }
         return data
-    }
-
-    async createDAGNode(buf) {
-        if (!Buffer.isBuffer(buf)) {
-            throw new Error('Argument is not a buffer');
-        }
-        return await new Promise((resolve, reject) => {
-            DAGNode.create(buf, [], (err, dagNode) => {
-                if (err) reject(err); else resolve(dagNode);
-            });
-        });
     }
 
     async storeDAGNode(dagNode) {

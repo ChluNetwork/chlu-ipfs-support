@@ -13,7 +13,6 @@ describe('Cache Module', () => {
 
     beforeEach(() => {
         chluIpfs = new ChluIPFS({
-            type: ChluIPFS.types.service,
             enablePersistence: false,
             // cache should be enabled by default
             cache: {

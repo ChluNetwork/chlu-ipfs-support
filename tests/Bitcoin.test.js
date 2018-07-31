@@ -14,7 +14,6 @@ describe('Bitcoin Module', () => {
 
     beforeEach(() => {
         chluIpfs = new ChluIPFS({
-            type: ChluIPFS.types.vendor,
             enablePersistence: false,
             cache: { enabled: false },
             logger: logger('Service'),

@@ -2,6 +2,7 @@ const multihashes = require('multihashes');
 const multihashing = require('multihashing-async');
 const constants = require('../constants');
 const IPFSUtils = require('./ipfs');
+const { createDAGNode } = require('../utils/ipfs')
 const { cloneDeep, get, findIndex, isObject, isString, isEmpty } = require('lodash');
 
 class ReviewRecords {
@@ -102,7 +103,7 @@ class ReviewRecords {
         }
         if (checkForUpdates) this.watchReviewRecord(m, validate);
         const didId = reviewRecord.issuer
-        reviewRecord.editable = didId === this.chluIpfs.did.didId;
+        reviewRecord.editable = didId === this.chluIpfs.did.didId && this.isVerifiable(reviewRecord);
         reviewRecord.requestedMultihash = multihash;
         reviewRecord.watching = Boolean(checkForUpdates);
         reviewRecord.gotLatestVersion = Boolean(getLatestVersion);
@@ -118,7 +119,7 @@ class ReviewRecords {
         this.chluIpfs.logger.debug('Encoding (protobuf) review record');
         const buffer = this.chluIpfs.protobuf.ReviewRecord.encode(reviewRecord);
         this.chluIpfs.logger.debug('Encoding (dagnode) review record');
-        const dagNode = await this.chluIpfs.ipfsUtils.createDAGNode(buffer); // don't store to IPFS
+        const dagNode = await createDAGNode(buffer); // don't store to IPFS
         this.chluIpfs.logger.debug('Encoded (dagnode) review record: ' + IPFSUtils.getDAGNodeMultihash(dagNode));
         return dagNode;
     }

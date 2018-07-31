@@ -107,6 +107,9 @@ class Validator {
         if (history.length > 0) {
             const reviewRecords = [{ reviewRecord }].concat(history);
             const validations = reviewRecords.map(async (item, i) => {
+                if (!this.chluIpfs.reviewRecords.isVerifiable(item.reviewRecord)) {
+                    throw new Error('Cannot update an unverified review')
+                }
                 await this.validateReviewRecord(item.reviewRecord, v);
                 if (i !== reviewRecords.length-1) {
                     this.validatePrevious(item.reviewRecord, reviewRecords[i+1].reviewRecord);

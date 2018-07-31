@@ -1,6 +1,7 @@
 const expect = require('chai').expect;
 
 const ChluIPFS = require('../../src/ChluIPFS.js');
+const ServiceNode = require('../../src/modules/servicenode')
 const { getFakeReviewRecord, makeUnverified } = require('../utils/protobuf');
 const utils = require('../utils/ipfs');
 const env = require('../../src/utils/env');
@@ -49,14 +50,13 @@ describe('Integration with IPFS and Service Node', function() {
         const customerDir = testDir + 'chlu-customer';
 
         serviceNode = new ChluIPFS({
-            type: ChluIPFS.types.service,
             logger: logger('Service'),
             directory: serviceNodeDir,
             enablePersistence: false,
             bootstrap: false
         });
+        serviceNode.serviceNode = new ServiceNode(serviceNode)
         customerNode = new ChluIPFS({
-            type: ChluIPFS.types.customer,
             logger: logger('Customer'),
             directory: customerDir,
             enablePersistence: false,
@@ -90,12 +90,13 @@ describe('Integration with IPFS and Service Node', function() {
 
         // Start nodes
         await Promise.all([serviceNode.start(), customerNode.start()]);
+        await serviceNode.serviceNode.start()
 
         // Do some DID prework to make sure nodes have everything they need
 
         // Publish Vendor and Marketplace DIDs from service node
-        await serviceNode.did.publish(v.publicDidDocument, false)
-        await serviceNode.did.publish(m.publicDidDocument, false)
+        await serviceNode.did.publish(v, false)
+        await serviceNode.did.publish(m, false)
         // wait until Customer DID is replicated into Service Node's OrbitDB
         await serviceNode.orbitDb.getDID(customerNode.did.didId, true)
         // wait for customer node to have DIDs for vendor and marketplace
@@ -106,6 +107,7 @@ describe('Integration with IPFS and Service Node', function() {
     });
 
     after(async () => {
+        await serviceNode.serviceNode.stop()
         await Promise.all([serviceNode.stop(), customerNode.stop()]);
         if (env.isNode()) {
             await server.stop();
@@ -129,7 +131,7 @@ describe('Integration with IPFS and Service Node', function() {
         const reviews = [reviewRecord]
         const [hash] = await customerNode.reviewRecords.importUnverifiedReviews(reviews)
         const customerRecord = await customerNode.readReviewRecord(hash);
-        expect(customerRecord.editable).to.be.true;
+        expect(customerRecord.editable).to.be.false;
         // check hash validity
         expect(hash).to.be.a('string').that.is.not.empty;
         // the service node should already have pinned the hash

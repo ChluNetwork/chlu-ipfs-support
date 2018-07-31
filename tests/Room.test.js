@@ -23,7 +23,6 @@ describe('Room module', () => {
 
     it('chooses the pubsub topic correctly', async () => {
         const chluIpfs = new ChluIPFS({
-            type: ChluIPFS.types.customer,
             logger: logger('Customer')
         });
         // Mock
@@ -52,7 +51,7 @@ describe('Room module', () => {
         let chluIpfs;
 
         beforeEach(async () => {
-            chluIpfs = new ChluIPFS({ type: ChluIPFS.types.customer, enablePersistence: false, logger: logger('Customer') });
+            chluIpfs = new ChluIPFS({ enablePersistence: false, logger: logger('Customer') });
             chluIpfs.ipfs = getMockIpfsWithPubSub();
             await chluIpfs.room.start();
         });

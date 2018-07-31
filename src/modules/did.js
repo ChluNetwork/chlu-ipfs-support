@@ -1,7 +1,6 @@
 const ChluDID = require('chlu-did/src')
 const { getDigestFromMultihash } = require('../utils/ipfs')
 const { isObject, isString } = require('lodash')
-const { getUnixTimestamp } = require('../utils/timing')
 
 class ChluIPFSDID {
 
@@ -75,7 +74,7 @@ class ChluIPFSDID {
         return await this.chluDID.verify(didDocument, data, signature)
     }
 
-    async signMultihash(multihash, did) {
+    async signMultihash(multihash, did = null) {
         if (!did) did = {
             privateKeyBase58: this.privateKeyBase58,
             publicDidDocument: this.publicDidDocument
@@ -93,7 +92,7 @@ class ChluIPFSDID {
     }
 
     async verifyMultihash(didId, multihash, signature, waitUntilPresent) {
-        this.chluIpfs.logger.debug(`Verifying signature by ${signature.creator} on ${multihash}: ${signature.signatureValue}`);
+        this.chluIpfs.logger.debug(`Verifying signature by ${didId} on ${multihash}: ${signature.signatureValue}`);
         if (signature.type !== 'did:chlu') {
             throw new Error('Unhandled signature type')
         }
@@ -103,6 +102,21 @@ class ChluIPFSDID {
         const data = getDigestFromMultihash(multihash)
         const result = await this.verify(signature.creator, data, signature.signatureValue, waitUntilPresent) 
         this.chluIpfs.logger.debug(`Verified signature by ${signature.creator} on ${multihash}: ${signature.signatureValue} => ${result}`);
+        return result
+    }
+
+    async verifyMultihashWithDIDDocumentMultihash(didDocumentMultihash, multihash, signature) {
+        const publicDidDocument = await this.chluIpfs.ipfsUtils.getJSON(didDocumentMultihash)
+        this.chluIpfs.logger.debug(`Verifying signature by ${publicDidDocument.id} on ${multihash}: ${signature.signatureValue}`);
+        if (signature.type !== 'did:chlu') {
+            throw new Error('Unhandled signature type')
+        }
+        if (publicDidDocument.id !== signature.creator) {
+            throw new Error(`Expected data to be signed by ${publicDidDocument.id}, found ${signature.creator} instead`)
+        }
+        const data = getDigestFromMultihash(multihash)
+        const result = await this.chluDID.verify(publicDidDocument, data, signature.signatureValue) 
+        this.chluIpfs.logger.debug(`Verified signature by ${publicDidDocument.id} on ${multihash}: ${signature.signatureValue} => ${result}`);
         return result
     }
 
@@ -123,16 +137,23 @@ class ChluIPFSDID {
         return obj;
     }
 
-    async publish(publicDidDocument, waitForReplication = true) {
-        if (!publicDidDocument) publicDidDocument = this.publicDidDocument
+    async publish(did, waitForReplication = true) {
+        let publicDidDocument
+        if (did) { 
+            publicDidDocument = did.publicDidDocument
+        } else {
+            publicDidDocument = this.publicDidDocument
+        }
         this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}, waitForReplication: ${waitForReplication ? 'yes' : 'no'}`)
         const existingMultihash = await this.chluIpfs.orbitDb.getDID(publicDidDocument.id, false)
         const multihash = await this.chluIpfs.ipfsUtils.putJSON(publicDidDocument)
         if (!existingMultihash || existingMultihash !== multihash) {
+            // TODO: pass custom full did and use it to sign
+            const signature = await this.signMultihash(multihash, did)
             if (waitForReplication) {
-                await this.chluIpfs.orbitDb.putDIDAndWaitForReplication(publicDidDocument.id, multihash)
+                await this.chluIpfs.orbitDb.putDIDAndWaitForReplication(publicDidDocument.id, multihash, signature)
             } else {
-                await this.chluIpfs.orbitDb.putDID(publicDidDocument.id, multihash)
+                await this.chluIpfs.orbitDb.putDID(publicDidDocument.id, multihash, signature)
             }
             this.chluIpfs.logger.debug(`Publish DID ${publicDidDocument.id} DONE`)
         } else {

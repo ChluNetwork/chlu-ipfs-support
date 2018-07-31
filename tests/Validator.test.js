@@ -16,7 +16,6 @@ describe('Validator Module', () => {
 
     beforeEach(async () => {
         chluIpfs = new ChluIPFS({
-            type: ChluIPFS.types.service,
             enablePersistence: false,
             cache: { enabled: false },
             logger: logger('Customer')
@@ -41,7 +40,7 @@ describe('Validator Module', () => {
     it('performs all Verified Review validations', async () => {
         const reviewRecord = await getFakeReviewRecord();
         const buffer = chluIpfs.protobuf.ReviewRecord.encode(reviewRecord);
-        const dagNode = await chluIpfs.ipfsUtils.createDAGNode(buffer);
+        const dagNode = await IPFSUtils.createDAGNode(buffer);
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         reviewRecord.multihash = multihash;
         chluIpfs.bitcoin.api.returnMatchingTXForRR(reviewRecord);
@@ -71,7 +70,7 @@ describe('Validator Module', () => {
     it('performs all Unverified Review validations', async () => {
         const reviewRecord = makeUnverified(await getFakeReviewRecord())
         const buffer = chluIpfs.protobuf.ReviewRecord.encode(reviewRecord);
-        const dagNode = await chluIpfs.ipfsUtils.createDAGNode(buffer);
+        const dagNode = await IPFSUtils.createDAGNode(buffer);
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         reviewRecord.multihash = multihash;
         chluIpfs.bitcoin.api.returnMatchingTXForRR(reviewRecord);

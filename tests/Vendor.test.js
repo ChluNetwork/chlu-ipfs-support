@@ -10,7 +10,6 @@ describe('Vendor Module', () => {
 
     beforeEach(async () => {
         chluIpfs = new ChluIPFS({
-            type: ChluIPFS.types.vendor,
             enablePersistence: false,
             cache: { enabled: false },
             logger: logger('Vendor')

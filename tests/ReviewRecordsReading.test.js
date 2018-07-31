@@ -15,7 +15,6 @@ describe('ReviewRecord reading and other functions', () => {
 
     beforeEach(async () => {
         chluIpfs = new ChluIPFS({
-            type: ChluIPFS.types.customer,
             enablePersistence: false,
             cache: { enabled: false },
             logger: logger('Customer')
@@ -57,6 +56,37 @@ describe('ReviewRecord reading and other functions', () => {
         expect(ipfs.object.get.args[0][0]).to.deep.equal(multihashBuffer);
         expect(reviewRecord).to.not.be.undefined;
         expect(reviewRecord.chlu_version).to.not.be.undefined;
+    })
+
+    it('correctly checks if review is editable', async () => {
+        const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
+        function putReview(reviewRecord) {
+            const buffer = chluIpfs.protobuf.ReviewRecord.encode(reviewRecord);
+            const ipfs = {
+                object: {
+                    get: sinon.stub().resolves({ data: buffer })
+                }
+            };
+            chluIpfs.ipfs = ipfs;
+        }
+        // unverified review
+        let review = makeUnverified(await getFakeReviewRecord())
+        review.issuer = chluIpfs.did.didId
+        putReview(review)
+        let reviewRecord = await chluIpfs.readReviewRecord(multihash, { validate: false });
+        expect(reviewRecord.editable).to.be.false;
+        // verified review
+        review = await getFakeReviewRecord()
+        review.issuer = chluIpfs.did.didId
+        putReview(review)
+        reviewRecord = await chluIpfs.readReviewRecord(multihash, { validate: false });
+        expect(reviewRecord.editable).to.be.true
+        // verified review, different issuer
+        review = await getFakeReviewRecord()
+        review.issuer = 'did:chlu:rando'
+        putReview(review)
+        reviewRecord = await chluIpfs.readReviewRecord(multihash, { validate: false });
+        expect(reviewRecord.editable).to.be.false
     })
 
     it('recognizes valid and invalid multihashes', async () => {
