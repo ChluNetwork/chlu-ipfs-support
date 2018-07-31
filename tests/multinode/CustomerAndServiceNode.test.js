@@ -1,7 +1,7 @@
 const expect = require('chai').expect;
 
 const ChluIPFS = require('../../src/ChluIPFS.js');
-const ServiceNode = require('../../src/modules/servicenode')
+const ChluCollector = require('chlu-collector')
 const { getFakeReviewRecord, makeUnverified } = require('../utils/protobuf');
 const utils = require('../utils/ipfs');
 const env = require('../../src/utils/env');
@@ -28,13 +28,13 @@ function strip(obj) {
     delete obj.watching;
 }
 
-describe('Integration with IPFS and Service Node', function() {
+describe('Integration with Chlu Collector, IPFS and OrbitDB', function() {
     let server, testDir, ipfsDir, customerNode, customerIpfs, serviceNode, serviceIpfs;
     let v, vm, m, preparePoPR;
 
     before(async () => {
         if (env.isNode()) {
-            server = await require('../../src/utils/rendezvous').startRendezvousServer(ChluIPFS.rendezvousPorts.test);
+            server = await require('chlu-collector/src/rendezvous').startRendezvousServer(ChluIPFS.rendezvousPorts.test);
         }
 
         ipfsDir = env.isNode() ? '/tmp/chlu-test-ipfs-' + Date.now() + Math.random() + '/' : Date.now() + Math.random();
@@ -55,7 +55,7 @@ describe('Integration with IPFS and Service Node', function() {
             enablePersistence: false,
             bootstrap: false
         });
-        serviceNode.serviceNode = new ServiceNode(serviceNode)
+        serviceNode.collector = new ChluCollector(serviceNode)
         customerNode = new ChluIPFS({
             logger: logger('Customer'),
             directory: customerDir,
@@ -90,7 +90,7 @@ describe('Integration with IPFS and Service Node', function() {
 
         // Start nodes
         await Promise.all([serviceNode.start(), customerNode.start()]);
-        await serviceNode.serviceNode.start()
+        await serviceNode.collector.start()
 
         // Do some DID prework to make sure nodes have everything they need
 
@@ -107,7 +107,7 @@ describe('Integration with IPFS and Service Node', function() {
     });
 
     after(async () => {
-        await serviceNode.serviceNode.stop()
+        await serviceNode.collector.stop()
         await Promise.all([serviceNode.stop(), customerNode.stop()]);
         if (env.isNode()) {
             await server.stop();

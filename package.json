@@ -18,9 +18,6 @@
     "docs": "documentation build src/index.js -f html -o docs",
     "prepublish": "npm run build"
   },
-  "bin": {
-    "chlu-service-node": "bin/chlu-service-node.js"
-  },
   "author": "Enrico Fasoli (fazo96)",
   "license": "MIT",
   "dependencies": {
@@ -34,7 +31,6 @@
     "elliptic": "^6.4.0",
     "ipfs": "~0.28.2",
     "ipfs-api": "^20.0.0",
-    "libp2p-websocket-star-rendezvous": "^0.2.3",
     "lodash": "^4.17.5",
     "lru-cache": "^4.1.2",
     "moment": "^2.22.2",
@@ -47,6 +43,7 @@
   },
   "devDependencies": {
     "chai": "^4.1.2",
+    "chlu-collector": "ChluNetwork/chlu-collector#implementation",
     "clean-webpack-plugin": "^0.1.17",
     "documentation": "^6.1.0",
     "eslint": "^4.12.0",

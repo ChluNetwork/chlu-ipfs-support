@@ -1,4 +1,4 @@
-const { startRendezvousServer } = require('./src/utils/rendezvous');
+const { startRendezvousServer } = require('chlu-collector/src/rendezvous');
 const constants = require('./src/constants');
 const webpack = require('webpack');
 
@@ -38,8 +38,8 @@ module.exports = function (config) {
                 tls: 'empty'
             },
             plugins: [
-                // do not load server code (only needed in tests, sources don't require this)
-                new webpack.IgnorePlugin(/^libp2p-websocket-star-rendezvous$/)
+                // do not load Chlu Collector Rendezvous Server: only needed in node-js
+                new webpack.IgnorePlugin(/^chlu-collector\/src\/rendezvous/)
             ]
         },
         webpackMiddleware: {

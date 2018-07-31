@@ -42,6 +42,8 @@ const env = require('./utils/env');
  */
 class ChluIPFS {
     constructor(options = {}){
+        // Reference used constants from instance
+        this.constants = constants
         // Prepare logger and event emitter
         this.events = new EventEmitter();
         this.logger = options.logger || defaultLogger;
@@ -210,6 +212,17 @@ class ChluIPFS {
     async pin(multihash){
         // TODO: tests for this (it was broken)
         return await this.instance.pinning.pin(multihash);
+    }
+
+    /**
+     * Send message to other Chlu nodes. Listen for responses
+     * by subscribing to the pubsub/message event
+     *
+     * @param {object} message
+     * @memberof ChluIPFS
+     */
+    async broadcast(message) {
+        return await this.instance.room.broadcast(message)
     }
 
     /**

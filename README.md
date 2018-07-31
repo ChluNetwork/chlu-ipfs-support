@@ -33,21 +33,13 @@ Check out the [examples](https://github.com/ChluNetwork/chlu-ipfs-support/blob/m
 This is not supported right now, however everything should work if you follow the browser instructions and only run ChluIPFS in the renderer process of electron.
 Keep in mind that you will run into the same limitations of running ChluIPFS in the browser, and that this is not tested.
 
-### Running a Service Node
+### Running a Collector
 
-You can install this module globally and use `chlu-service-node start` to run a (barebones) Chlu Service Node. The binary will probably be moved in a different repository in the future.
-
-If you want to run it on a custom network, use `chlu-service-node start --network <custom>`, otherwise it runs on the `experimental` network (used in development) by default.
-
-The only other network in use is the `staging` network, used by our official demo at [demo.chlu.io](https://demo.chlu.io)
-
-In the examples folder you can find out how to run a Service Node in a browser tab although this won't be a good idea outside of testing.
+Check out the [Chlu Collector](https://github.com/ChluNetwork/chlu-collector) README.
 
 ### Running Offline
 
-You can start the service node with `chlu-service-node start --offline`. Other apps using chlu-ipfs on the same
-machine should detect the service node in offline mode and enter offline mode as well, making sure all of your Chlu
-apps on your machine will talk to each other even if you are completely disconnected.
+Check out the [Chlu Collector](https://github.com/ChluNetwork/chlu-collector) README.
 
 ## JS API Docs
 
@@ -84,10 +76,10 @@ You can access the event emitter at `chluIpfs.instance.events` and listen to som
 - Validation
   - `validation/error` to keep track of invalid review records
 - Discovery
-  - `discover/dids/vendor` to keep track of vendors encountered. Only emitted if the RR containing it is valid
+  - `discover/did/vendor` to keep track of vendors encountered. Only emitted if the RR containing it is valid
   - `discover/keys/vendor-marketplace` Only emitted if the RR containing it is valid
-  - `discover/dids/marketplace` to keep track of marketplaces encountered. Only emitted if the RR containing it is valid
-  - `discover/dids/customer` only emitted if a customer signed RR containing it is valid
+  - `discover/did/marketplace` to keep track of marketplaces encountered. Only emitted if the RR containing it is valid
+  - `discover/did/customer` only emitted if a customer signed RR containing it is valid
 - PubSub
   - `pubsub/subscribed`
   - `pubsub/unsubscribed`

@@ -35,7 +35,7 @@ describe('ChluIPFS', () => {
     it('starts and stops', async () => {
         let server;
         if (env.isNode()) {
-            server = await require('../src/utils/rendezvous').startRendezvousServer(ChluIPFS.rendezvousPorts.test);
+            server = await require('chlu-collector/src/rendezvous').startRendezvousServer(ChluIPFS.rendezvousPorts.test);
         }
         try {
             const testDir = '/tmp/chlu-test-' + Date.now() + Math.random() + '/startandstop';
