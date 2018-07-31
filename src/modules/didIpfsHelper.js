@@ -2,7 +2,7 @@ const ChluDID = require('chlu-did/src')
 const { getDigestFromMultihash } = require('../utils/ipfs')
 const { isObject, isString, get } = require('lodash')
 
-class ChluIPFSDID {
+class ChluDIDIPFSHelper {
 
     static isDIDID(didId) {
         return typeof didId === 'string' && didId.indexOf('did:') === 0
@@ -212,4 +212,4 @@ class ChluIPFSDID {
     }
 }
 
-module.exports = ChluIPFSDID
+module.exports = ChluDIDIPFSHelper

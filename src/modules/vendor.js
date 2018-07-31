@@ -7,7 +7,7 @@ class Vendor {
     }
 
     async registerToMarketplace(url) {
-        const didId = this.chluIpfs.did.didId
+        const didId = this.chluIpfs.didIpfsHelper.didId
         this.chluIpfs.logger.debug(`Registering as Vendor to ${url} using DID ${didId}`)
         // check Marketplace Chlu Network
         const info = await this.getInfo(url)
@@ -16,7 +16,7 @@ class Vendor {
             throw new Error(`Expected Marketplace to run on Chlu Network ${this.chluIpfs.network}, found ${mktNetwork} instead`)
         }
         // Step 0: Make sure DID is published
-        await this.chluIpfs.did.publish()
+        await this.chluIpfs.didIpfsHelper.publish()
         // Step 1: Register Vendor
         const response = await this.getVendorData(url, didId)
         let vendorData = null
@@ -35,7 +35,7 @@ class Vendor {
         if (!vendorData.vSignature) {
             const vmPubKeyMultihash = vendorData.vmPubKeyMultihash
             this.chluIpfs.logger.debug(`Sending Vendor Signature for ${vmPubKeyMultihash}`)
-            const signature = await this.chluIpfs.did.signMultihash(vmPubKeyMultihash);
+            const signature = await this.chluIpfs.didIpfsHelper.signMultihash(vmPubKeyMultihash);
             await this.sendSignature(url, didId, signature)
         } else {
             this.chluIpfs.logger.debug('Marketplace/Vendor key already signed')

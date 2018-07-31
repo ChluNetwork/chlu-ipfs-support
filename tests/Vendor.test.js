@@ -14,12 +14,12 @@ describe('Vendor Module', () => {
             cache: { enabled: false },
             logger: logger('Vendor')
         });
-        chluIpfs.did.publish = sinon.stub().resolves()
-        chluIpfs.did.signMultihash = sinon.stub().resolves({ signatureValue: 'test' })
+        chluIpfs.didIpfsHelper.publish = sinon.stub().resolves()
+        chluIpfs.didIpfsHelper.signMultihash = sinon.stub().resolves({ signatureValue: 'test' })
         // TODO: test getInfo as well
         chluIpfs.vendor.getInfo = sinon.stub().resolves({ data: { network: 'experimental' } })
-        await chluIpfs.did.start()
-        didId = chluIpfs.did.didId
+        await chluIpfs.didIpfsHelper.start()
+        didId = chluIpfs.didIpfsHelper.didId
     });
 
     afterEach(() => {
@@ -41,7 +41,7 @@ describe('Vendor Module', () => {
         await chluIpfs.vendor.registerToMarketplace(url)
         expect(chluIpfs.vendor.getVendorData.calledWith(url, didId)).to.be.true
         expect(chluIpfs.vendor.signup.calledWith(url, didId)).to.be.true
-        const signature = await chluIpfs.did.signMultihash.returnValues[0]
+        const signature = await chluIpfs.didIpfsHelper.signMultihash.returnValues[0]
         expect(chluIpfs.vendor.sendSignature.calledWith(url, didId, signature)).to.be.true
     });
 
@@ -53,7 +53,7 @@ describe('Vendor Module', () => {
         await chluIpfs.vendor.registerToMarketplace(url)
         expect(chluIpfs.vendor.getVendorData.calledWith(url, didId)).to.be.true
         expect(chluIpfs.vendor.signup.called).to.be.false
-        const signature = await chluIpfs.did.signMultihash.returnValues[0]
+        const signature = await chluIpfs.didIpfsHelper.signMultihash.returnValues[0]
         expect(chluIpfs.vendor.sendSignature.calledWith(url, didId, signature)).to.be.true
     });
 

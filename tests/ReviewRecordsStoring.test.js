@@ -57,12 +57,12 @@ describe('ReviewRecord storing and publishing', () => {
         v = await makeDID();
         m = await makeDID();
         // DID 
-        chluIpfs.did.publish = sinon.stub().resolves()
-        await chluIpfs.did.start()
-        expect(chluIpfs.did.publish.called).to.be.true
-        chluIpfs.did.publish.resetHistory()
-        const didMap = crypto.buildDIDMap([v, m, chluIpfs.did.export() ])
-        chluIpfs.did.getDID = sinon.stub().callsFake(async id => didMap[id])
+        chluIpfs.didIpfsHelper.publish = sinon.stub().resolves()
+        await chluIpfs.didIpfsHelper.start()
+        expect(chluIpfs.didIpfsHelper.publish.called).to.be.true
+        chluIpfs.didIpfsHelper.publish.resetHistory()
+        const didMap = crypto.buildDIDMap([v, m, chluIpfs.didIpfsHelper.export() ])
+        chluIpfs.didIpfsHelper.getDID = sinon.stub().callsFake(async id => didMap[id])
         // Other mocks
         chluIpfs.http = http(() => ({ didId: m.publicDidDocument.id }));
         chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
@@ -73,7 +73,7 @@ describe('ReviewRecord storing and publishing', () => {
         const result = await chluIpfs.storeReviewRecord(reviewRecord)
         expect(isValidMultihash(result)).to.be.true;
         // TODO: test signatures and fields like issuer
-        expect(chluIpfs.did.publish.called).to.be.true
+        expect(chluIpfs.didIpfsHelper.publish.called).to.be.true
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.true;
     })
@@ -86,7 +86,7 @@ describe('ReviewRecord storing and publishing', () => {
             bitcoinTransactionHash: 'test'
         });
         expect(isValidMultihash(result)).to.be.true;
-        expect(chluIpfs.did.publish.called).to.be.true
+        expect(chluIpfs.didIpfsHelper.publish.called).to.be.true
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.true;
     });
@@ -97,7 +97,7 @@ describe('ReviewRecord storing and publishing', () => {
         reviewRecord.popr = await preparePoPR(reviewRecord.popr, vm, v, m);
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
         expect(isValidMultihash(result)).to.be.true;
-        expect(chluIpfs.did.publish.called).to.be.false
+        expect(chluIpfs.didIpfsHelper.publish.called).to.be.false
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.false;
         expect(chluIpfs.ipfsUtils.storeDAGNode.called).to.be.false;
     });
@@ -109,13 +109,13 @@ describe('ReviewRecord storing and publishing', () => {
         const result = await chluIpfs.storeReviewRecord(reviewRecord, { publish: false });
         expect(isValidMultihash(result)).to.be.true;
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.false;
-        expect(chluIpfs.did.publish.called).to.be.false
+        expect(chluIpfs.didIpfsHelper.publish.called).to.be.false
         const newResult = await chluIpfs.storeReviewRecord(reviewRecord, {
             expectedMultihash: result,
             bitcoinTransactionHash: 'test'
         });
         expect(chluIpfs.ipfs.pubsub.publish.called).to.be.true;
-        expect(chluIpfs.did.publish.called).to.be.true
+        expect(chluIpfs.didIpfsHelper.publish.called).to.be.true
         expect(newResult).to.equal(result);
     });
 
@@ -145,15 +145,15 @@ describe('ReviewRecord storing and publishing', () => {
             expect(rr[field].creator).to.equal(didId)
             expect(rr[field].created).to.be.a('number')
             expect(rr[field].signatureValue).to.be.a('string')
-            const valid = await chluIpfs.did.verifyMultihash(didId, rr.hash, rr[field]);
+            const valid = await chluIpfs.didIpfsHelper.verifyMultihash(didId, rr.hash, rr[field]);
             expect(valid).to.be.true;
         }
         const reviewRecord = makeUnverified(await getFakeReviewRecord())
         const multihash = await chluIpfs.storeReviewRecord(reviewRecord);
         const rr = await chluIpfs.readReviewRecord(multihash);
-        expect(rr.issuer).to.equal(chluIpfs.did.didId);
+        expect(rr.issuer).to.equal(chluIpfs.didIpfsHelper.didId);
         expect(rr.customer_siganture).to.be.undefined
-        await verifySignature(rr, chluIpfs.did.didId, 'issuer_signature')
+        await verifySignature(rr, chluIpfs.didIpfsHelper.didId, 'issuer_signature')
     });
 
     it('signs Verified reviews correctly', async () => {
@@ -162,7 +162,7 @@ describe('ReviewRecord storing and publishing', () => {
             expect(rr[field].creator).to.equal(didId)
             expect(rr[field].created).to.be.a('number')
             expect(rr[field].signatureValue).to.be.a('string')
-            const valid = await chluIpfs.did.verifyMultihash(didId, rr.hash, rr[field]);
+            const valid = await chluIpfs.didIpfsHelper.verifyMultihash(didId, rr.hash, rr[field]);
             expect(valid).to.be.true;
         }
         const reviewRecord = await getFakeReviewRecord();
@@ -171,9 +171,9 @@ describe('ReviewRecord storing and publishing', () => {
             bitcoinTransactionHash: 'test'
         });
         const rr = await chluIpfs.readReviewRecord(multihash);
-        expect(rr.issuer).to.equal(chluIpfs.did.didId);
-        await verifySignature(rr, chluIpfs.did.didId, 'issuer_signature')
-        await verifySignature(rr, chluIpfs.did.didId, 'customer_signature')
+        expect(rr.issuer).to.equal(chluIpfs.didIpfsHelper.didId);
+        await verifySignature(rr, chluIpfs.didIpfsHelper.didId, 'issuer_signature')
+        await verifySignature(rr, chluIpfs.didIpfsHelper.didId, 'customer_signature')
     });
 
     it('hashes consistently in weird edge cases', async () => {

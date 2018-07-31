@@ -30,9 +30,9 @@ describe('Validator Module', () => {
             })
         };
         chluIpfs.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
-        chluIpfs.did.publish = sinon.stub().resolves()
+        chluIpfs.didIpfsHelper.publish = sinon.stub().resolves()
         await chluIpfs.bitcoin.start();
-        await chluIpfs.did.start();
+        await chluIpfs.didIpfsHelper.start();
         // TODO: instead of disabling explicitly other validators in tests,
         // make a system to explicity enable only the validator that needs to be tested
     });
@@ -207,7 +207,7 @@ describe('Validator Module', () => {
         const v = await makeDID();
         const m = await makeDID();
         const didMap = buildDIDMap([v, m])
-        chluIpfs.did.getDID = sinon.stub().callsFake(async id => didMap[id])
+        chluIpfs.didIpfsHelper.getDID = sinon.stub().callsFake(async id => didMap[id])
         chluIpfs.http = http(() => ({ didId: m.publicDidDocument.id }));
         // --- Success Case
         const popr = (await getFakeReviewRecord()).popr;
@@ -259,8 +259,8 @@ describe('Validator Module', () => {
         };
         // --- Success Case
         let reviewRecord = await getFakeReviewRecord();
-        reviewRecord = await chluIpfs.did.signReviewRecord(reviewRecord);
-        chluIpfs.did.getDID = sinon.stub().resolves(chluIpfs.did.publicDidDocument)
+        reviewRecord = await chluIpfs.didIpfsHelper.signReviewRecord(reviewRecord);
+        chluIpfs.didIpfsHelper.getDID = sinon.stub().resolves(chluIpfs.didIpfsHelper.publicDidDocument)
         await test(reviewRecord)()
         // --- Failure Cases
         let invalidRR = cloneDeep(reviewRecord);

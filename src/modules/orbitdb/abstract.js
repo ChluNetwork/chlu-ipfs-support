@@ -1,5 +1,5 @@
 const IPFSUtils = require('../../utils/ipfs');
-const DID = require('../did')
+const DIDIPFSHelper = require('../didIpfsHelper')
 
 const version = 0;
 
@@ -39,7 +39,7 @@ class ChluAbstractIndex {
                         });
                     }
                 } else if (item.payload.op === operations.PUT_DID) {
-                    if (DID.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.multihash)) {
+                    if (DIDIPFSHelper.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.multihash)) {
                         // TODO: check signature
                         await this.putDID(item.payload.didId, item.payload.multihash, item.payload.signature)
                     }

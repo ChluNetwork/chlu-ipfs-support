@@ -2,7 +2,7 @@ const IPFSUtils = require('../../utils/ipfs');
 const Store = require('orbit-db-store');
 const ChluAbstractIndex = require('./abstract');
 const ChluInMemoryIndex = require('./inmemory');
-const DID = require('../did')
+const DIDIPFSHelper = require('../didIpfsHelper')
 
 const version = 0;
 
@@ -47,7 +47,7 @@ class ChluStore extends Store {
     }
 
     putDID(didId, multihash, signature) {
-        if (!DID.isDIDID(didId)) throw new Error('DID ID invalid')
+        if (!DIDIPFSHelper.isDIDID(didId)) throw new Error('DID ID invalid')
         return this._addOperation({
             op: ChluAbstractIndex.operations.PUT_DID,
             didId,

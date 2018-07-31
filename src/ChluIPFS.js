@@ -7,7 +7,7 @@ const ReviewRecords = require('./modules/reviewrecords');
 const Validator = require('./modules/validator');
 const DB = require('./modules/orbitdb');
 const Persistence = require('./modules/persistence');
-const DID = require('./modules/did');
+const DIDIPFSHelper = require('./modules/didIpfsHelper');
 const Crypto = require('./modules/crypto');
 const Bitcoin = require('./modules/bitcoin');
 const Vendor = require('./modules/vendor');
@@ -126,7 +126,7 @@ class ChluIPFS {
         this.reviewRecords = new ReviewRecords(this);
         this.validator = new Validator(this);
         this.persistence = new Persistence(this);
-        this.did = new DID(this);
+        this.didIpfsHelper = new DIDIPFSHelper(this);
         this.crypto = new Crypto(this);
         this.bitcoin = new Bitcoin(this, {
             apiKey: options.blockCypherApiKey,
@@ -163,7 +163,7 @@ class ChluIPFS {
         await this.bitcoin.start();
 
         // Note: this action requires IPFS to be already started and persisted data to be loaded
-        await this.did.start()
+        await this.didIpfsHelper.start()
 
         this.ready = true;
         this.starting = false;
@@ -271,7 +271,7 @@ class ChluIPFS {
      */
     async generateNewDID(publish, waitForReplication) {
         await this.waitUntilReady()
-        return await this.did.generate(publish, waitForReplication)
+        return await this.didIpfsHelper.generate(publish, waitForReplication)
     }
 
     /**
@@ -282,7 +282,7 @@ class ChluIPFS {
      */
     async exportDID() {
         await this.waitUntilReady()
-        return await this.did.export()
+        return await this.didIpfsHelper.export()
     }
 
     /**
@@ -298,7 +298,7 @@ class ChluIPFS {
     async publishDID(publicDidDocument, signature, waitForReplication = true) {
         if (!publicDidDocument) throw new Error('publicDidDocument is required')
         if (!signature) throw new Error('signature is required')
-        return await this.did.publish({
+        return await this.didIpfsHelper.publish({
             publicDidDocument,
             signature
         }, waitForReplication)
@@ -316,7 +316,7 @@ class ChluIPFS {
      */
     async importDID(did, publish, waitForReplication) {
         await this.waitUntilReady()
-        return await this.did.import(did, publish, waitForReplication)
+        return await this.didIpfsHelper.import(did, publish, waitForReplication)
     }
 
     async getReviewsWrittenByDID(didId, offset, limit) {
@@ -336,7 +336,7 @@ class ChluIPFS {
 
     async getDID(didId) {
         await this.waitUntilReady()
-        return await this.did.getDID(didId)
+        return await this.didIpfsHelper.getDID(didId)
     }
 
     /**
