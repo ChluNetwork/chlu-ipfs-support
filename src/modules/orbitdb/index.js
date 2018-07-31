@@ -113,7 +113,7 @@ class DB {
             const { multihash, signature } = result
             if (signature) {
                 this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => verifying signature`)
-                valid = await this.chluIpfs.did.verifyMultihashWithDIDDocumentMultihash(multihash, multihash, signature)
+                valid = await this.chluIpfs.didIpfsHelper.verifyMultihashWithDIDDocumentMultihash(multihash, multihash, signature)
                 this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => signature valid: ${valid ? 'yes' : 'no'}`)
             } else {
                 this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => missing signature`)

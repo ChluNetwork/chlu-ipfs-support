@@ -42,25 +42,25 @@ describe('DID Module', () => {
 
 
     it('signs and verifies Review Records', async () => {
-        await chluIpfs.did.start()
+        await chluIpfs.didIpfsHelper.start()
         async function verifyRR(rr) {
             const hashed = await chluIpfs.reviewRecords.hashReviewRecord(rr);
-            const issuer = await chluIpfs.did.verifyMultihash(
+            const issuer = await chluIpfs.didIpfsHelper.verifyMultihash(
                 hashed.issuer,
                 hashed.hash,
                 hashed.issuer_signature
             );
-            const customer = await chluIpfs.did.verifyMultihash(
+            const customer = await chluIpfs.didIpfsHelper.verifyMultihash(
                 hashed.customer_signature.creator,
                 hashed.hash,
                 hashed.customer_signature
             )
-            expect(hashed.issuer).to.equal(chluIpfs.did.didId)
-            expect(hashed.customer_signature.creator).to.equal(chluIpfs.did.didId)
+            expect(hashed.issuer).to.equal(chluIpfs.didIpfsHelper.didId)
+            expect(hashed.customer_signature.creator).to.equal(chluIpfs.didIpfsHelper.didId)
             return issuer && customer
         }
         let reviewRecord = await getFakeReviewRecord();
-        reviewRecord = await chluIpfs.did.signReviewRecord(reviewRecord);
+        reviewRecord = await chluIpfs.didIpfsHelper.signReviewRecord(reviewRecord);
         const verification = await verifyRR(reviewRecord);
         expect(verification).to.be.true;
         // Test failure case: change a field and validate again
@@ -70,54 +70,54 @@ describe('DID Module', () => {
     });
 
     it('retrieves DID by ID', async () => {
-        const did = await chluIpfs.did.getDID(exampleDIDID);
+        const did = await chluIpfs.didIpfsHelper.getDID(exampleDIDID);
         expect(did).to.deep.equal(exampleDID.publicDidDocument);
     });
 
     it('publishes DID Public Document', async () => {
-        await chluIpfs.did.generate()
-        await chluIpfs.did.publish() 
-        expect(chluIpfs.orbitDb.getDID.calledWith(chluIpfs.did.didId)).to.be.true
+        await chluIpfs.didIpfsHelper.generate()
+        await chluIpfs.didIpfsHelper.publish() 
+        expect(chluIpfs.orbitDb.getDID.calledWith(chluIpfs.didIpfsHelper.didId)).to.be.true
         // need to use await here to unpack value from promise, even though the promise
         // is already resolved because it is awaited by the publish() call
         const multihash = await chluIpfs.ipfsUtils.putJSON.returnValues[0]
         const existingMultihash = await chluIpfs.orbitDb.getDID.returnValues[0]
         expect(existingMultihash).to.be.null
         expect(multihash).to.be.a('string')
-        expect(chluIpfs.orbitDb.putDID.calledWith(chluIpfs.did.didId, multihash)).to.be.true
+        expect(chluIpfs.orbitDb.putDID.calledWith(chluIpfs.didIpfsHelper.didId, multihash)).to.be.true
     });
 
     it('generates DID', async () => {
-        expect(chluIpfs.did.didId).to.be.null
-        expect(chluIpfs.did.publicDidDocument).to.be.null
-        expect(chluIpfs.did.privateKeyBase58).to.be.null
-        await chluIpfs.did.start()
-        expect(chluIpfs.did.didId).to.match(/^did:chlu:/)
-        expect(chluIpfs.did.publicDidDocument).to.be.an('object')
-        expect(chluIpfs.did.privateKeyBase58).to.be.a('string')
-        expect(chluIpfs.did.publicDidDocument.id).to.equal(chluIpfs.did.didId)
+        expect(chluIpfs.didIpfsHelper.didId).to.be.null
+        expect(chluIpfs.didIpfsHelper.publicDidDocument).to.be.null
+        expect(chluIpfs.didIpfsHelper.privateKeyBase58).to.be.null
+        await chluIpfs.didIpfsHelper.start()
+        expect(chluIpfs.didIpfsHelper.didId).to.match(/^did:chlu:/)
+        expect(chluIpfs.didIpfsHelper.publicDidDocument).to.be.an('object')
+        expect(chluIpfs.didIpfsHelper.privateKeyBase58).to.be.a('string')
+        expect(chluIpfs.didIpfsHelper.publicDidDocument.id).to.equal(chluIpfs.didIpfsHelper.didId)
     });
 
     it('imports DID', async () => {
-        expect(chluIpfs.did.didId).to.be.null
-        expect(chluIpfs.did.publicDidDocument).to.be.null
-        expect(chluIpfs.did.privateKeyBase58).to.be.null
+        expect(chluIpfs.didIpfsHelper.didId).to.be.null
+        expect(chluIpfs.didIpfsHelper.publicDidDocument).to.be.null
+        expect(chluIpfs.didIpfsHelper.privateKeyBase58).to.be.null
         const did = await makeDID()
-        await chluIpfs.did.import(did)
-        expect(chluIpfs.did.didId).to.match(/^did:chlu:/)
-        expect(chluIpfs.did.publicDidDocument).to.be.an('object')
-        expect(chluIpfs.did.privateKeyBase58).to.be.a('string')
-        expect(chluIpfs.did.publicDidDocument.id).to.equal(chluIpfs.did.didId)
+        await chluIpfs.didIpfsHelper.import(did)
+        expect(chluIpfs.didIpfsHelper.didId).to.match(/^did:chlu:/)
+        expect(chluIpfs.didIpfsHelper.publicDidDocument).to.be.an('object')
+        expect(chluIpfs.didIpfsHelper.privateKeyBase58).to.be.a('string')
+        expect(chluIpfs.didIpfsHelper.publicDidDocument.id).to.equal(chluIpfs.didIpfsHelper.didId)
     });
 
     it('exports DID', async () => {
-        await chluIpfs.did.generate()
-        expect(chluIpfs.did.didId).to.match(/^did:chlu:/)
-        expect(chluIpfs.did.publicDidDocument).to.be.an('object')
-        expect(chluIpfs.did.privateKeyBase58).to.be.a('string')
-        expect(chluIpfs.did.publicDidDocument.id).to.equal(chluIpfs.did.didId)
-        const did = await chluIpfs.did.export()
-        expect(chluIpfs.did.publicDidDocument).to.deep.equal(did.publicDidDocument)
-        expect(chluIpfs.did.privateKeyBase58).to.deep.equal(did.privateKeyBase58)
+        await chluIpfs.didIpfsHelper.generate()
+        expect(chluIpfs.didIpfsHelper.didId).to.match(/^did:chlu:/)
+        expect(chluIpfs.didIpfsHelper.publicDidDocument).to.be.an('object')
+        expect(chluIpfs.didIpfsHelper.privateKeyBase58).to.be.a('string')
+        expect(chluIpfs.didIpfsHelper.publicDidDocument.id).to.equal(chluIpfs.didIpfsHelper.didId)
+        const did = await chluIpfs.didIpfsHelper.export()
+        expect(chluIpfs.didIpfsHelper.publicDidDocument).to.deep.equal(did.publicDidDocument)
+        expect(chluIpfs.didIpfsHelper.privateKeyBase58).to.deep.equal(did.privateKeyBase58)
     });
 });

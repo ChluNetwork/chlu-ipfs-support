@@ -103,7 +103,7 @@ class ReviewRecords {
         }
         if (checkForUpdates) this.watchReviewRecord(m, validate);
         const didId = reviewRecord.issuer
-        reviewRecord.editable = didId === this.chluIpfs.did.didId && this.isVerifiable(reviewRecord);
+        reviewRecord.editable = didId === this.chluIpfs.didIpfsHelper.didId && this.isVerifiable(reviewRecord);
         reviewRecord.requestedMultihash = multihash;
         reviewRecord.watching = Boolean(checkForUpdates);
         reviewRecord.gotLatestVersion = Boolean(getLatestVersion);
@@ -139,8 +139,8 @@ class ReviewRecords {
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
         // Remove hash in case it's wrong (or this is an update). It's going to be calculated by the signing function
         reviewRecord.hash = '';
-        if (signAsIssuer) reviewRecord.issuer = this.chluIpfs.did.didId
-        reviewRecord = await this.chluIpfs.did.signReviewRecord(reviewRecord, signAsIssuer, signAsCustomer && reviewRecord.verifiable);
+        if (signAsIssuer) reviewRecord.issuer = this.chluIpfs.didIpfsHelper.didId
+        reviewRecord = await this.chluIpfs.didIpfsHelper.signReviewRecord(reviewRecord, signAsIssuer, signAsCustomer && reviewRecord.verifiable);
         const dagNode = await this.getReviewRecordDAGNode(reviewRecord);
         reviewRecord.multihash = getDAGNodeMultihash(dagNode);
         if (validate) {
@@ -205,7 +205,7 @@ class ReviewRecords {
     async publishReviewRecord(dagNode, previousVersionMultihash, expectedMultihash, reviewRecord, txId) {
         this.chluIpfs.logger.debug('Publishing review record to Chlu');
         // Make sure DID is published
-        await this.chluIpfs.did.publish(null, false)
+        await this.chluIpfs.didIpfsHelper.publish(null, false)
         // Broadcast request for pin, then wait for response
         const multihash = await this.chluIpfs.ipfsUtils.storeDAGNode(dagNode); // store to IPFS
         if (expectedMultihash && multihash !== expectedMultihash) {

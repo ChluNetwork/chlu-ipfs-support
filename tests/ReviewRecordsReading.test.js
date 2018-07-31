@@ -19,8 +19,8 @@ describe('ReviewRecord reading and other functions', () => {
             logger: logger('Customer')
         });
         chluIpfs.waitUntilReady = sinon.stub().resolves();
-        chluIpfs.did.publish = sinon.stub().resolves()
-        await chluIpfs.did.start() // generate a DID
+        chluIpfs.didIpfsHelper.publish = sinon.stub().resolves()
+        await chluIpfs.didIpfsHelper.start() // generate a DID
     });
 
     it('reads Verified Review from IPFS (no validation)', async () => {
@@ -70,13 +70,13 @@ describe('ReviewRecord reading and other functions', () => {
         }
         // unverified review
         let review = makeUnverified(await getFakeReviewRecord())
-        review.issuer = chluIpfs.did.didId
+        review.issuer = chluIpfs.didIpfsHelper.didId
         putReview(review)
         let reviewRecord = await chluIpfs.readReviewRecord(multihash, { validate: false });
         expect(reviewRecord.editable).to.be.false;
         // verified review
         review = await getFakeReviewRecord()
-        review.issuer = chluIpfs.did.didId
+        review.issuer = chluIpfs.didIpfsHelper.didId
         putReview(review)
         reviewRecord = await chluIpfs.readReviewRecord(multihash, { validate: false });
         expect(reviewRecord.editable).to.be.true

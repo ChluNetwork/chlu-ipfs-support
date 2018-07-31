@@ -15,8 +15,8 @@ module.exports = function cryptoTestUtils(chluIpfs) {
         async preparePoPR(popr, vm, v, m) {
             popr.key_location = '/ipfs/' + vm.pubKeyMultihash;
             popr.vendor_did = v.publicDidDocument.id
-            popr.marketplace_signature = await chluIpfs.did.signMultihash(vm.pubKeyMultihash, m);
-            popr.vendor_signature = await chluIpfs.did.signMultihash(vm.pubKeyMultihash, v);
+            popr.marketplace_signature = await chluIpfs.didIpfsHelper.signMultihash(vm.pubKeyMultihash, m);
+            popr.vendor_signature = await chluIpfs.didIpfsHelper.signMultihash(vm.pubKeyMultihash, v);
             return await chluIpfs.crypto.signPoPR(popr, vm.keyPair);
         },
 
@@ -25,8 +25,8 @@ module.exports = function cryptoTestUtils(chluIpfs) {
             for (const did of dids) {
                 map[did.publicDidDocument.id] = did.publicDidDocument
             }
-            if (chluIpfs.did.didId) {
-                map[chluIpfs.did.didId] = chluIpfs.did.publicDidDocument
+            if (chluIpfs.didIpfsHelper.didId) {
+                map[chluIpfs.didIpfsHelper.didId] = chluIpfs.didIpfsHelper.publicDidDocument
             }
             return map
         }

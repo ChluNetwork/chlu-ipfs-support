@@ -95,10 +95,10 @@ describe('Integration with IPFS and Service Node', function() {
         // Do some DID prework to make sure nodes have everything they need
 
         // Publish Vendor and Marketplace DIDs from service node
-        await serviceNode.did.publish(v, false)
-        await serviceNode.did.publish(m, false)
+        await serviceNode.didIpfsHelper.publish(v, false)
+        await serviceNode.didIpfsHelper.publish(m, false)
         // wait until Customer DID is replicated into Service Node's OrbitDB
-        await serviceNode.orbitDb.getDID(customerNode.did.didId, true)
+        await serviceNode.orbitDb.getDID(customerNode.didIpfsHelper.didId, true)
         // wait for customer node to have DIDs for vendor and marketplace
         await customerNode.orbitDb.getDID(v.publicDidDocument.id, true)
         await customerNode.orbitDb.getDID(m.publicDidDocument.id, true)

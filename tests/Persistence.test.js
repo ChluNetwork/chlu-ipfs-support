@@ -27,10 +27,10 @@ describe('Persistence module', () => {
     });
 
     it('saves DID', async () => {
-        api.did.publish = sinon.stub().resolves()
-        await api.did.generate();
-        const publicDidDocument = api.did.publicDidDocument
-        const privateKeyBase58 = api.did.privateKeyBase58
+        api.didIpfsHelper.publish = sinon.stub().resolves()
+        await api.didIpfsHelper.generate();
+        const publicDidDocument = api.didIpfsHelper.publicDidDocument
+        const privateKeyBase58 = api.didIpfsHelper.privateKeyBase58
         api.storage.save = sinon.stub().resolves();
         await api.persistence.persistData();
         expect(api.storage.save.args[0][1].did).to.deep.equal({ publicDidDocument, privateKeyBase58 });
@@ -68,10 +68,10 @@ describe('Persistence module', () => {
         const did = await DID.generateDID()
         const data = { did };
         api.storage.load = sinon.stub().resolves(data);
-        api.did.import = sinon.stub().resolves()
+        api.didIpfsHelper.import = sinon.stub().resolves()
         await api.persistence.loadPersistedData();
         expect(api.storage.load.calledWith(api.directory)).to.be.true;
-        expect(api.did.import.calledWith(did)).to.be.true;
+        expect(api.didIpfsHelper.import.calledWith(did)).to.be.true;
     });
 
     it('loads customer last review record multihash', async () => {

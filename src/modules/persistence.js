@@ -14,9 +14,9 @@ class Persistence {
                 // multihash of last review record created
                 data.lastReviewRecordMultihash = this.chluIpfs.lastReviewRecordMultihash;
             }
-            if (this.chluIpfs.did.isPresent()) {
+            if (this.chluIpfs.didIpfsHelper.isPresent()) {
                 // save DID
-                data.did = this.chluIpfs.did.export()
+                data.did = this.chluIpfs.didIpfsHelper.export()
             }
             this.chluIpfs.logger.debug('Saving persisted data');
             try {
@@ -40,7 +40,7 @@ class Persistence {
             }
             if (data.did) {
                 // Don't publish. If it's in persisted data, it was published before
-                await this.chluIpfs.did.import(data.did, false);
+                await this.chluIpfs.didIpfsHelper.import(data.did, false);
             }
             if (data.cache) {
                 this.chluIpfs.cache.import(data.cache);

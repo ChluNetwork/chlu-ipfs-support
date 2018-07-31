@@ -77,7 +77,7 @@ class Validator {
     async validateRRCustomerSignature(rr) {
         this.chluIpfs.logger.debug('Validating RR Customer signatures');
         const didId = rr.customer_signature.creator // TODO: should there be a customer_did field? author.did?
-        const valid = await this.chluIpfs.did.verifyMultihash(didId, rr.hash, rr.customer_signature);
+        const valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(didId, rr.hash, rr.customer_signature);
         if (valid) {
             this.chluIpfs.events.emit('discover/did/customer', didId);
         } else {
@@ -89,7 +89,7 @@ class Validator {
     async validateRRIssuerSignature(rr) {
         this.chluIpfs.logger.debug('Validating RR Issuer signature');
         const didId = rr.issuer
-        const valid = await this.chluIpfs.did.verifyMultihash(didId, rr.hash, rr.issuer_signature);
+        const valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(didId, rr.hash, rr.issuer_signature);
         if (valid) {
             this.chluIpfs.events.emit('discover/did/issuer', didId);
         } else {
@@ -135,7 +135,7 @@ class Validator {
             const vmSignature = popr.signature;
             const marketplaceUrl = popr.marketplace_url;
             const marketplaceDIDID = await this.fetchMarketplaceDIDID(marketplaceUrl, useCache);
-            const DID = this.chluIpfs.did;
+            const DID = this.chluIpfs.didIpfsHelper;
             const crypto = this.chluIpfs.crypto
             const validations = await Promise.all([
                 DID.verifyMultihash(vendorDIDID, vmMultihash, vSignature),
