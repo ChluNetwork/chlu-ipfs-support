@@ -17,7 +17,7 @@ class ChluIPFS {
     }
 
     async _wait(ms) {
-        if (this.fakeWait) await time.milliseconds(ms);
+        if (this.fakeWait) await time.waitMilliseconds(ms);
     }
     
     async start(){

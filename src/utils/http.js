@@ -7,8 +7,23 @@ async function get(url) {
     }
     return {
         status: response.status,
-        data: response.data
+        data: response.data,
+        url
     };
 }
 
-module.exports = { get };
+async function post(url, body) {
+    const response = await axios.post(url, body);
+    if (response.status !== 200) {
+        throw new Error('Expected HTTP Status Code 200, got ' + response.status + ' instead');
+    }
+    return {
+        status: response.status,
+        data: response.data,
+        request: body,
+        url
+    };
+
+}
+
+module.exports = { get, post };

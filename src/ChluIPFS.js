@@ -1,4 +1,5 @@
 const IPFSUtils = require('./modules/ipfs');
+const ChluProtobuf = require('./modules/protobuf')
 const Cache = require('./modules/cache');
 const Pinning = require('./modules/pinning');
 const Room = require('./modules/room');
@@ -10,6 +11,7 @@ const ServiceNode = require('./modules/servicenode');
 const DID = require('./modules/did');
 const Crypto = require('./modules/crypto');
 const Bitcoin = require('./modules/bitcoin');
+const Vendor = require('./modules/vendor');
 const storageUtils = require('./utils/storage');
 const EventEmitter = require('events');
 const constants = require('./constants');
@@ -97,6 +99,7 @@ class ChluIPFS {
             throw new Error('Invalid type');
         }
         // Load Modules
+        this.protobuf = new ChluProtobuf()
         this.cache = new Cache(this, options.cache);
         this.http = http;
         this.ipfsUtils = new IPFSUtils(this);
@@ -113,6 +116,7 @@ class ChluIPFS {
             apiKey: options.blockCypherApiKey,
             network: options.bitcoinNetwork
         });
+        this.vendor = new Vendor(this)
         this.ready = false;
         this.starting = false;
     }
@@ -201,27 +205,44 @@ class ChluIPFS {
         return await this.reviewRecords.storeReviewRecord(reviewRecord, options);
     }
 
-    async exportData() {
-        const exported = {};
-        if (this.type === constants.types.customer) {
-            exported.customerDbKeys = {
-                pub: await this.db.keystore.exportPublicKey(),
-                priv: await this.db.keystore.exportPrivateKey()
-            };
-        }
-        return exported;
+    async importUnverifiedReviews(reviews) {
+        await this.waitUntilReady()
+        return await this.reviewRecords.importUnverifiedReviews(reviews)
     }
 
-    async importData() {
-        throw new Error('not implemented');
+    async generateNewDID(publish, waitForReplication) {
+        await this.waitUntilReady()
+        return await this.did.generate(publish, waitForReplication)
     }
 
-    async getVendorKeys() {
-        throw new Error('not implemented');
+    async exportDID() {
+        await this.waitUntilReady()
+        return await this.did.export()
     }
-    
-    async publishKeys() {
-        throw new Error('not implemented');
+
+    async importDID(did, publish, waitForReplication) {
+        await this.waitUntilReady()
+        return await this.did.import(did, publish, waitForReplication)
+    }
+
+    async getReviewsByDID(didId, offset, limit) {
+        await this.waitUntilReady()
+        return await this.orbitDb.getReviewsByDID(didId, offset, limit)
+    }
+
+    async getReviewList(offset, limit) {
+        await this.waitUntilReady()
+        return await this.orbitDb.getReviewRecordList(offset, limit)
+    }
+
+    async getDID(didId) {
+        await this.waitUntilReady()
+        return await this.did.getDID(didId)
+    }
+
+    async registerToMarketplace(url) {
+        await this.waitUntilReady()
+        return await this.vendor.registerToMarketplace(url)
     }
 
 }

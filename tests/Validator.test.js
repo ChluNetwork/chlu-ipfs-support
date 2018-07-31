@@ -3,13 +3,11 @@ const sinon = require('sinon');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const logger = require('./utils/logger');
-const { getFakeReviewRecord } = require('./utils/protobuf');
+const { getFakeReviewRecord, makeUnverified } = require('./utils/protobuf');
 const { cloneDeep } = require('lodash');
 const cryptoTestUtils = require('./utils/crypto');
 const http = require('./utils/http');
 const ipfsUtilsStub = require('./utils/ipfsUtilsStub');
-const protons = require('protons');
-const protobuf = protons(require('../src/utils/protobuf'));
 const IPFSUtils = require('../src/utils/ipfs');
 const btcUtils = require('./utils/bitcoin');
 
@@ -40,15 +38,16 @@ describe('Validator Module', () => {
         // make a system to explicity enable only the validator that needs to be tested
     });
 
-    it('performs all ReviewRecord validations', async () => {
+    it('performs all Verified Review validations', async () => {
         const reviewRecord = await getFakeReviewRecord();
-        const buffer = protobuf.ReviewRecord.encode(reviewRecord);
+        const buffer = chluIpfs.protobuf.ReviewRecord.encode(reviewRecord);
         const dagNode = await chluIpfs.ipfsUtils.createDAGNode(buffer);
         const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
         reviewRecord.multihash = multihash;
         chluIpfs.bitcoin.api.returnMatchingTXForRR(reviewRecord);
         chluIpfs.validator.validateVersion = sinon.stub().resolves();
-        chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
+        chluIpfs.validator.validateRRIssuerSignature = sinon.stub().resolves();
+        chluIpfs.validator.validateRRCustomerSignature = sinon.stub().resolves();
         chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
         chluIpfs.validator.validateMultihash = sinon.stub().resolves();
         chluIpfs.validator.validateHistory = sinon.stub().resolves();
@@ -58,7 +57,8 @@ describe('Validator Module', () => {
         expect(chluIpfs.validator.validateHistory.called).to.be.true;
         expect(chluIpfs.validator.validateVersion.called).to.be.true;
         expect(chluIpfs.validator.validatePoPRSignaturesAndKeys.called).to.be.true;
-        expect(chluIpfs.validator.validateRRSignature.called).to.be.true;
+        expect(chluIpfs.validator.validateRRIssuerSignature.called).to.be.true;
+        expect(chluIpfs.validator.validateRRCustomerSignature.called).to.be.true;
         expect(chluIpfs.validator.validateBitcoinTransaction.called).to.be.true;
         // --- Cache behavior
         expect(chluIpfs.cache.cacheValidity.calledWith(multihash)).to.be.true;
@@ -67,6 +67,36 @@ describe('Validator Module', () => {
         await chluIpfs.validator.validateReviewRecord(reviewRecord, { useCache: false });
         expect(chluIpfs.cache.cacheValidity.calledWith(multihash)).to.be.false;
     });
+
+    it('performs all Unverified Review validations', async () => {
+        const reviewRecord = makeUnverified(await getFakeReviewRecord())
+        const buffer = chluIpfs.protobuf.ReviewRecord.encode(reviewRecord);
+        const dagNode = await chluIpfs.ipfsUtils.createDAGNode(buffer);
+        const multihash = IPFSUtils.getDAGNodeMultihash(dagNode);
+        reviewRecord.multihash = multihash;
+        chluIpfs.bitcoin.api.returnMatchingTXForRR(reviewRecord);
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validateRRIssuerSignature = sinon.stub().resolves();
+        chluIpfs.validator.validateRRCustomerSignature = sinon.stub().resolves();
+        chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
+        chluIpfs.validator.validateMultihash = sinon.stub().resolves();
+        chluIpfs.validator.validateHistory = sinon.stub().resolves();
+        chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
+        await chluIpfs.validator.validateReviewRecord(reviewRecord);
+        expect(chluIpfs.validator.validateMultihash.called).to.be.true;
+        expect(chluIpfs.validator.validateHistory.called).to.be.true;
+        expect(chluIpfs.validator.validateVersion.called).to.be.true;
+        expect(chluIpfs.validator.validatePoPRSignaturesAndKeys.called).to.be.false;
+        expect(chluIpfs.validator.validateRRIssuerSignature.called).to.be.true;
+        expect(chluIpfs.validator.validateRRCustomerSignature.called).to.be.false;
+        expect(chluIpfs.validator.validateBitcoinTransaction.called).to.be.false;
+        // --- Cache behavior
+        expect(chluIpfs.cache.cacheValidity.calledWith(multihash)).to.be.true;
+        chluIpfs.cache.cacheValidity.resetHistory();
+        expect(chluIpfs.cache.cacheValidity.called).to.be.false;
+        await chluIpfs.validator.validateReviewRecord(reviewRecord, { useCache: false });
+        expect(chluIpfs.cache.cacheValidity.calledWith(multihash)).to.be.false;
+    })
 
     it('is called by default but can be disabled', async () => {
         chluIpfs.validator.validateReviewRecord = sinon.stub().resolves();
@@ -89,7 +119,8 @@ describe('Validator Module', () => {
 
     it('validates the internal multihash correctly', async () => {
         chluIpfs.validator.validateVersion = sinon.stub().resolves();
-        chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
+        chluIpfs.validator.validateRRCustomerSignature = sinon.stub().resolves();
+        chluIpfs.validator.validateRRIssuerSignature = sinon.stub().resolves();
         chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
         chluIpfs.validator.validateHistory = sinon.stub().resolves();
         chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
@@ -110,7 +141,7 @@ describe('Validator Module', () => {
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
     });
 
-    it('validates ancestors', async () => {
+    it('validates Verified Review ancestors', async () => {
         // Prepare data
         const reviewRecord = await getFakeReviewRecord();
         reviewRecord.rating = 1;
@@ -133,7 +164,8 @@ describe('Validator Module', () => {
         });
         // Disable other validators
         chluIpfs.validator.validateVersion = sinon.stub().resolves();
-        chluIpfs.validator.validateRRSignature = sinon.stub().resolves();
+        chluIpfs.validator.validateRRCustomerSignature = sinon.stub().resolves();
+        chluIpfs.validator.validateRRIssuerSignature = sinon.stub().resolves();
         chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
         chluIpfs.validator.validateMultihash = sinon.stub().resolves();
         // Spy
@@ -200,17 +232,17 @@ describe('Validator Module', () => {
         invalidPopr.hash = 'lol not the real hash';
         expect(test(invalidPopr)).to.throw;
         invalidPopr = cloneDeep(popr);
-        invalidPopr.signature = invalidPopr.vendor_signature;
+        invalidPopr.signature = invalidPopr.vendor_sig;
         expect(test(invalidPopr)).to.throw;
         invalidPopr = cloneDeep(popr);
-        invalidPopr.marketplace_signature = invalidPopr.vendor_signature;
+        invalidPopr.marketplace_sig = invalidPopr.vendor_sig;
         expect(test(invalidPopr)).to.throw;
         invalidPopr = cloneDeep(popr);
-        invalidPopr.vendor_signature = invalidPopr.marketplace_signature;
+        invalidPopr.vendor_sig = invalidPopr.marketplace_sig;
         expect(test(invalidPopr)).to.throw;
     });
 
-    it('validates Review Record signature', async () => {
+    it('validates Review signatures by Issuer and Customer', async () => {
         // Disable other validators
         chluIpfs.validator.validateVersion = sinon.stub().resolves();
         chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
@@ -220,24 +252,23 @@ describe('Validator Module', () => {
         const fakeStore = {};
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
         chluIpfs.crypto.generateKeyPair();
+        const test = rr => {
+            return async () => {
+                await chluIpfs.validator.validateRRIssuerSignature(rr);
+                await chluIpfs.validator.validateRRCustomerSignature(rr);
+            };
+        };
         // --- Success Case
         let reviewRecord = await getFakeReviewRecord();
         reviewRecord = await chluIpfs.did.signReviewRecord(reviewRecord);
-        reviewRecord.customer_did_id = chluIpfs.did.didId;
         chluIpfs.did.getDID = sinon.stub().resolves(chluIpfs.did.publicDidDocument)
-        let valid = await chluIpfs.validator.validateRRSignature(reviewRecord);
-        expect(valid).to.be.true;
+        await test(reviewRecord)()
         // --- Failure Cases
-        const test = rr => {
-            return () => {
-                chluIpfs.validator.validateRRSignature(rr);
-            };
-        };
         let invalidRR = cloneDeep(reviewRecord);
         invalidRR.hash = 'lol not the real hash';
         expect(test(invalidRR)).to.throw;
         invalidRR = cloneDeep(reviewRecord);
-        invalidRR.key_location = 'wrong';
+        invalidRR.issuer = 'wrong';
         expect(test(invalidRR)).to.throw;
         invalidRR = cloneDeep(reviewRecord);
         invalidRR.review_text = 'wrong again';

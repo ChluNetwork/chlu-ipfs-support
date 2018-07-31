@@ -1,41 +1,55 @@
 const { cloneDeep, isEqual } = require('lodash');
-const IPFSUtils = require('../utils/ipfs');
 
 class Validator {
 
     constructor(chluIpfs) {
         this.chluIpfs = chluIpfs;
-        this.defaultValidationSettings = {
+        this.defaultVerifiedReviewValidationSettings = {
             useCache: true,
             throwErrors: true,
             validateVersion: true,
             validateMultihash: true,
             validateHistory: true,
             validateSignatures: true,
-            expectedRRPublicKey: null,
-            expectedPoPRPublicKey: null,
             bitcoinTransactionHash: null,
             forceTransactionValidation: true
+        };
+        this.defaultUnverifiedReviewValidationSettings = {
+            useCache: true,
+            throwErrors: true,
+            validateVersion: true,
+            validateMultihash: true,
+            validateHistory: true,
+            validateSignatures: true,
+            bitcoinTransactionHash: null,
+            forceTransactionValidation: false
         };
     }
 
     async validateReviewRecord(reviewRecord, validations = {}) {
         this.chluIpfs.logger.debug('Validating review record');
         const rr = cloneDeep(reviewRecord);
-        const v = Object.assign(this.getDefaultValidationSettings(), validations);
+        const v = Object.assign(this.getDefaultValidationSettings(rr.verifiable), validations);
         try {
             if (v.validateVersion) this.validateVersion(rr);
             if (!rr.multihash || !v.useCache || !this.chluIpfs.cache.isValidityCached(rr.multihash)) {
                 if (v.validateMultihash) await this.validateMultihash(rr, rr.hash.slice(0));
-                if (v.validateSignatures){
-                    await Promise.all([
-                        this.validateRRSignature(rr, v.expectedRRPublicKey),
-                        this.validatePoPRSignaturesAndKeys(rr.popr, v.expectedPoPRPublicKey, v.useCache)
-                    ]);
+                if (v.validateSignatures) {
+                    let signatureValidations = [
+                        this.validateRRIssuerSignature(rr)
+                    ]
+                    if (rr.verifiable) {
+                        signatureValidations = [
+                            ...signatureValidations,
+                            this.validateRRCustomerSignature(rr),
+                            this.validatePoPRSignaturesAndKeys(rr.popr, v.useCache)
+                        ]
+                    }
+                    await Promise.all(signatureValidations);
                 }
                 if (v.validateHistory) await this.validateHistory(rr, v);
                 const isUpdate = this.chluIpfs.reviewRecords.isReviewRecordUpdate(rr);
-                if (!isUpdate && (v.forceTransactionValidation || v.bitcoinTransactionHash)) {
+                if (rr.verifiable && !isUpdate && (v.forceTransactionValidation || v.bitcoinTransactionHash)) {
                     await this.validateBitcoinTransaction(rr, v.bitcoinTransactionHash, v.useCache);
                 }
                 if (rr.multihash && v.useCache) this.chluIpfs.cache.cacheValidity(rr.multihash);
@@ -60,18 +74,26 @@ class Validator {
         }
     }
 
-    async validateRRSignature(rr, expectedRRPublicKey = null) {
-        this.chluIpfs.logger.debug('Validating RR signature');
-        const didId = rr.customer_did_id
-        const isExpectedKey = expectedRRPublicKey === null || expectedRRPublicKey === didId;
-        if (!isExpectedKey) {
-            throw new Error('Expected Review Record to be signed by ' + expectedRRPublicKey + ' but found ' + didId);
-        }
-        const valid = await this.chluIpfs.did.verifyMultihash(didId, rr.hash, rr.signature);
+    async validateRRCustomerSignature(rr) {
+        this.chluIpfs.logger.debug('Validating RR Customer signatures');
+        const didId = rr.customer_signature.creator // TODO: should there be a customer_did field? author.did?
+        const valid = await this.chluIpfs.did.verifyMultihash(didId, rr.hash, rr.customer_signature);
         if (valid) {
             this.chluIpfs.events.emit('discover/did/customer', didId);
         } else {
-            throw new Error('The ReviewRecord signature is invalid');
+            throw new Error('The ReviewRecord Customer signature is invalid');
+        }
+        return valid;
+    }
+
+    async validateRRIssuerSignature(rr) {
+        this.chluIpfs.logger.debug('Validating RR Issuer signature');
+        const didId = rr.issuer
+        const valid = await this.chluIpfs.did.verifyMultihash(didId, rr.hash, rr.issuer_signature);
+        if (valid) {
+            this.chluIpfs.events.emit('discover/did/issuer', didId);
+        } else {
+            throw new Error('The ReviewRecord Issuer signature is invalid');
         }
         return valid;
     }
@@ -96,7 +118,7 @@ class Validator {
         }
     }
 
-    async validatePoPRSignaturesAndKeys(popr, expectedPoPRPublicKey = null, useCache = true) {
+    async validatePoPRSignaturesAndKeys(popr, useCache = true) {
         this.chluIpfs.logger.debug('Validating PoPR Signatures and keys');
         if (!popr.hash) {
             popr = await this.chluIpfs.reviewRecords.hashPoPR(popr);
@@ -104,13 +126,9 @@ class Validator {
         const hash = popr.hash;
         if (!useCache || !this.chluIpfs.cache.isValidityCached(hash)) {
             const vmMultihash = this.keyLocationToKeyMultihash(popr.key_location);
-            const isExpectedKey = expectedPoPRPublicKey === null || expectedPoPRPublicKey === vmMultihash;
-            if (!isExpectedKey) {
-                throw new Error('Expected PoPR to be signed by ' + expectedPoPRPublicKey + ' but found ' + vmMultihash);
-            }
             const mSignature = popr.marketplace_signature;
             const vSignature = popr.vendor_signature;
-            const vendorDIDID = popr.vendor_did_id
+            const vendorDIDID = popr.vendor_did
             const vmSignature = popr.signature;
             const marketplaceUrl = popr.marketplace_url;
             const marketplaceDIDID = await this.fetchMarketplaceDIDID(marketplaceUrl, useCache);
@@ -146,7 +164,7 @@ class Validator {
         if (!transactionHash) {
             // retrieve it from DB
             this.chluIpfs.logger.debug('Searching OrbitDB for TX for ' + rr.multihash);
-            const metadata = this.chluIpfs.orbitDb.getReviewRecordMetadata(rr.multihash);
+            const metadata = await this.chluIpfs.orbitDb.getReviewRecordMetadata(rr.multihash);
             transactionHash = metadata ? metadata.bitcoinTransactionHash : null;
         }
         if (transactionHash) {
@@ -218,7 +236,7 @@ class Validator {
             'currency_symbol',
             'customer_address',
             'vendor_address',
-            'customer_did_id'
+            'issuer'
         ]);
     }
 
@@ -228,8 +246,12 @@ class Validator {
         }
     }
 
-    getDefaultValidationSettings() {
-        return cloneDeep(this.defaultValidationSettings);
+    getDefaultValidationSettings(verifiable) {
+        if (verifiable) {
+            return cloneDeep(this.defaultVerifiedReviewValidationSettings)
+        } else {
+            return cloneDeep(this.defaultUnverifiedReviewValidationSettings)
+        }
     }
 
 }
