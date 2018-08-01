@@ -1,6 +1,7 @@
 const constants = require('../../constants');
 const OrbitDB = require('orbit-db');
 const DefaultChluStore = require('./store');
+const { get } = require('lodash')
 
 class DB {
 
@@ -106,7 +107,7 @@ class DB {
         // TODO: move sig checking to orbit-db updateIndex
         let result = null, valid = false, firstTry = true
         this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => ...`)
-        while(!result && (firstTry || waitUntilPresent)) {
+        while(!get(result, 'multihash') && (firstTry || waitUntilPresent)) {
             firstTry = false
             result = await this.db.getDID(didId)
             valid = false
