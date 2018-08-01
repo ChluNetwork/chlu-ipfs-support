@@ -347,9 +347,9 @@ class ChluIPFS {
         return await this.orbitDb.getReviewRecordList(offset, limit)
     }
 
-    async getDID(didId) {
+    async getDID(didId, waitUntilPresent = false) {
         await this.waitUntilReady()
-        return await this.didIpfsHelper.getDID(didId)
+        return await this.didIpfsHelper.getDID(didId, waitUntilPresent)
     }
 
     /**
