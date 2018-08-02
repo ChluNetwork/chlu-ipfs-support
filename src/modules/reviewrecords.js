@@ -132,9 +132,7 @@ class ReviewRecords {
         )
     }
 
-    async prepareReviewRecord(reviewRecord, bitcoinTransactionHash = null, validate = true, signAsCustomer = true) {
-        // TODO: review this
-        const signAsIssuer = true 
+    async prepareReviewRecord(reviewRecord, bitcoinTransactionHash = null, validate = true, signAsCustomer = true, signAsIssuer = true) {
         reviewRecord.verifiable = this.isVerifiable(reviewRecord)
         reviewRecord = this.setPointerToLastReviewRecord(reviewRecord);
         // Remove hash in case it's wrong (or this is an update). It's going to be calculated by the signing function
@@ -170,6 +168,7 @@ class ReviewRecords {
         const {
             publish = true,
             signAsCustomer = true,
+            signAsIssuer = true,
             bitcoinTransactionHash = null,
             expectedMultihash = null
         } = options;
@@ -188,7 +187,7 @@ class ReviewRecords {
             previous_version_multihash: previousVersionMultihash || ''
         });
         this.chluIpfs.logger.debug('Preparing review record');
-        const prepared = await this.prepareReviewRecord(rr, verified ? bitcoinTransactionHash : null, validate, signAsCustomer);
+        const prepared = await this.prepareReviewRecord(rr, verified ? bitcoinTransactionHash : null, validate, signAsCustomer, signAsIssuer);
         rr = prepared.reviewRecord;
         const dagNode = prepared.dagNode;
         const multihash = getDAGNodeMultihash(dagNode);
