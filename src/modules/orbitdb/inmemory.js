@@ -25,6 +25,7 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         const list = this._index.reviews.list
         const data = this._index.reviews.data
         if (list.indexOf(obj.multihash) < 0) {
+            // TODO: don't trust the first bitcoinTransactionHash submitted but keep all of them in the index
             list.splice(0, 0, obj.multihash);
             data[obj.multihash] = {
                 multihash: obj.multihash,
