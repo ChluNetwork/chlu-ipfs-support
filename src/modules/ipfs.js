@@ -130,7 +130,9 @@ class IPFS {
     }
 
     async storeDAGNode(dagNode) {
-        const newDagNode = await this.chluIpfs.ipfs.object.put(dagNode);
+        // TODO: before (IPFS 0.28.2), we were doing object.put(dagNode). This breaks with a 'links is immutable' error (IPFS 0.31.0)
+        // doing object.put(dagNode.toJSON().data) is the same thing, but I wonder why the old way does not work anymore
+        const newDagNode = await this.chluIpfs.ipfs.object.put(dagNode.toJSON().data);
         if (newDagNode.toJSON().multihash !== dagNode.toJSON().multihash) {
             throw new Error('Multihash mismatch');
         }
