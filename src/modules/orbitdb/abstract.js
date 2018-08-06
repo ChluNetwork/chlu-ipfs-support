@@ -1,6 +1,4 @@
 const IPFSUtils = require('../../utils/ipfs');
-const DIDIPFSHelper = require('../didIpfsHelper')
-
 const version = 0;
 
 class ChluAbstractIndex {
@@ -9,6 +7,27 @@ class ChluAbstractIndex {
         this._version = indexVersion;
         if (this._version !== version) {
             throw new Error('Incompatible version');
+        }
+    }
+
+    async getAndValidateReviewRecordContent(multihash, bitcoinTransactionHash) {
+        const reviewRecord = await this.chluIpfs.reviewRecords.readReviewRecord(multihash, {
+            getLatestVersion: false,
+            readTimeout: 1000,
+            validate: {
+                throwErrors: false
+            },
+            bitcoinTransactionHash
+        })
+        return reviewRecord
+    }
+
+    async getAndValidatePublicDIDDocument(multihash, signature) {
+        const validSignature = await this.chluIpfs.didIpfsHelper.verifyMultihashWithDIDDocumentMultihash(multihash, multihash, signature)
+        if (validSignature) {
+            return await this.chluIpfs.didIpfsHelper.readPublicDIDDocument(multihash)
+        } else {
+            throw new Error('Invalid DID Document')
         }
     }
 
@@ -21,27 +40,26 @@ class ChluAbstractIndex {
             // TODO: handle errors
             if (item.payload.version === this._version) {
                 // TODO: check update validity, RR validity if possible
-                if (item.payload.op === operations.ADD_REVIEW_RECORD && IPFSUtils.isValidMultihash(item.payload.multihash)) {
-                    await this.addOriginalReviewRecord({
-                        multihash: item.payload.multihash,
-                        subjectDidId: item.payload.subjectDidId || item.payload.didId, // Retrocompatibility
-                        authorDidId: item.payload.authorDidId,
-                        bitcoinTransactionHash: item.payload.bitcoinTransactionHash
-                    });
-                } else if (item.payload.op === operations.UPDATE_REVIEW_RECORD) {
-                    if (IPFSUtils.isValidMultihash(item.payload.multihash) && IPFSUtils.isValidMultihash(item.payload.previousVersionMultihash)) {
-                        // TODO: check that whatever is being updated is in the DB
-                        // the multihash to be updated might already be an update. Be careful!
-                        const from = await this.getLatestReviewRecordUpdate(item.payload.previousVersionMultihash);
-                        await this.addReviewRecordUpdate({
-                            fromMultihash: from,
-                            toMultihash: item.payload.multihash
+                if (item.payload.op === operations.ADD_REVIEW_RECORD) {
+                    try {
+                        const reviewRecord = await this.getAndValidateReviewRecordContent(item.payload.multihash)
+                        // TODO retry if validation failed 
+                        await this.addReviewRecord({
+                            multihash: item.payload.multihash,
+                            reviewRecord,
+                            bitcoinTransactionHash: item.payload.bitcoinTransactionHash || null
                         });
+                    } catch (error) {
+                        this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
+                        console.log(error)
                     }
                 } else if (item.payload.op === operations.PUT_DID) {
-                    if (DIDIPFSHelper.isDIDID(item.payload.didId) && IPFSUtils.isValidMultihash(item.payload.multihash)) {
-                        // TODO: check signature
-                        await this.putDID(item.payload.didId, item.payload.multihash, item.payload.signature)
+                    try {
+                        const publicDidDocument = await this.getAndValidatePublicDIDDocument(item.payload.multihash, item.payload.signature)
+                        await this.putDID(publicDidDocument, item.payload.multihash)
+                    } catch (error) {
+                        this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
+                        console.log(error)
                     }
                 }
             }
@@ -50,15 +68,8 @@ class ChluAbstractIndex {
     
     // Review records
 
-    async addOriginalReviewRecord(obj) {
-        IPFSUtils.validateMultihash(obj.multihash);
-        return await this._addOriginalReviewRecord(obj);
-    }
-
-    async addReviewRecordUpdate(obj) {
-        IPFSUtils.validateMultihash(obj.fromMultihash);
-        IPFSUtils.validateMultihash(obj.toMultihash);
-        return await this._addReviewRecordUpdate(obj);
+    async addReviewRecord(options) {
+        return await this._addReviewRecord(options);
     }
 
     async getLatestReviewRecordUpdate(multihash) {
@@ -84,11 +95,7 @@ class ChluAbstractIndex {
         return await this._getReviewRecordCount();
     }
 
-    async _addOriginalReviewRecord() {
-        notImplemented();
-    }
-
-    async _addReviewRecordUpdate() {
+    async _addReviewRecord() {
         notImplemented();
     }
 
@@ -120,8 +127,8 @@ class ChluAbstractIndex {
         return await this._getDID(didId)
     }
 
-    async putDID(didId, didDocumentMultihash, signature) {
-        return await this._putDID(didId, didDocumentMultihash, signature)
+    async putDID(publicDidDocument, didDocumentMultihash) {
+        return await this._putDID(publicDidDocument, didDocumentMultihash)
     }
 
     async _putDID() {
@@ -158,7 +165,6 @@ function notImplemented() {
 
 const operations = {
     ADD_REVIEW_RECORD: 'ADD_REVIEW_RECORD',
-    UPDATE_REVIEW_RECORD: 'UPDATE_REVIEW_RECORD',
     PUT_DID: 'PUT_DID'
 };
 

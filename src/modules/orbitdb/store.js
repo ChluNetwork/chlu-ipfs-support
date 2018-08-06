@@ -12,6 +12,7 @@ class ChluStore extends Store {
         if (!options) options = {};
         if (!options.Index) Object.assign(options, { Index: ChluInMemoryIndex });
         super(ipfs, id, dbname, options);
+        this._index.chluIpfs = options.chluIpfs
         if (this._index._version !== version) {
             throw new Error('Incompatible Index version');
         }

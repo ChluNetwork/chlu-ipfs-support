@@ -149,7 +149,8 @@ class DB {
         this.db = await this.orbitDb.open(this.dbName, {
             type: this.ChluStore.type,
             create: true,
-            write: ['*']
+            write: ['*'],
+            chluIpfs: this.chluIpfs
         });
         this.listenToDBEvents(this.db);
         this.chluIpfs.logger.debug('Loading Chlu OrbitDB cache');
