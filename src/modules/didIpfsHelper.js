@@ -1,6 +1,6 @@
 const ChluDID = require('chlu-did/src')
 const { getDigestFromMultihash } = require('../utils/ipfs')
-const { isObject, isString, get } = require('lodash')
+const { isObject, isString, get, pick } = require('lodash')
 
 class ChluDIDIPFSHelper {
 
@@ -151,7 +151,7 @@ class ChluDIDIPFSHelper {
             privateKeyBase58 = this.privateKeyBase58
         }
         this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}, waitForReplication: ${waitForReplication ? 'yes' : 'no'}`)
-        const multihash = await this.chluIpfs.ipfsUtils.putJSON(publicDidDocument)
+        const multihash = await this.storePublicDIDDocument(publicDidDocument)
         if (!signature) {
             this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}: missing signature, signing...`)
             if (privateKeyBase58) {
@@ -201,10 +201,26 @@ class ChluDIDIPFSHelper {
             this.chluIpfs.logger.debug(`GetDID ${didId} not found`)
             return null
         }
-        // TODO: maybe this should return the multihash too
-        const data = await this.chluIpfs.ipfsUtils.getJSON(multihash)
+        const data = await this.readPublicDIDDocument(multihash)
         this.chluIpfs.logger.debug(`GetDID ${didId} => ${multihash} => ${JSON.stringify(data)}`)
+        // TODO: maybe this should return the multihash too
         return data
+    }
+
+    async readPublicDIDDocument(multihash) {
+        return await this.chluIpfs.ipfsUtils.getJSON(multihash)
+    }
+
+    async storePublicDIDDocument(publicDidDocument) {
+        // Make sure only relevant fields are stored
+        const prepared = pick(publicDidDocument, [
+            '@context',
+            'id',
+            'publicKey',
+            'authentication'
+        ])
+        const multihash = await this.chluIpfs.ipfsUtils.putJSON(prepared)
+        return multihash
     }
 
     getWellKnownDID(didId) {
