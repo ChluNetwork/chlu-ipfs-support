@@ -1,6 +1,11 @@
 # Chlu IPFS Changelog
 
-## v0.1.1
+## v0.2.0 (WIP)
+
+- properly validate DID submissions and Reviews coming out of OrbitDB
+- ... more to come!
+
+## v0.1.1 (Latest Release)
 
 - fixed Chlu dependencies versions from git branches to git tags
 
