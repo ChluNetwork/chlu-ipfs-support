@@ -1,7 +1,7 @@
 {
   "name": "chlu-ipfs-support",
-  "version": "0.2.0",
-  "description": "Libraries providing IPFS integration for Chlu",
+  "version": "0.1.0",
+  "description": "library providing IPFS integration for Chlu",
   "main": "src/index.js",
   "engines": {
     "node": ">=8.0.0",
@@ -18,8 +18,17 @@
     "docs": "documentation build src/index.js -f html -o docs",
     "prepublish": "npm run build"
   },
-  "author": "Enrico Fasoli (fazo96)",
+  "author": {
+    "name": "Chlu",
+    "email": "info@chlu.io",
+    "url": "https://chlu.io"
+  },
   "license": "MIT",
+  "repository": "https://github.com/ChluNetwork/chlu-ipfs-support.git",
+  "bugs": {
+    "url": "https://github.com/ChluNetwork/chlu-ipfs-support/issues"
+  },
+  "homepage": "https://github.com/ChluNetwork/chlu-ipfs-support/blob/master/README.md",
   "dependencies": {
     "axios": "^0.18.0",
     "blockcypher": "ChluNetwork/node-client",
@@ -39,7 +48,7 @@
   },
   "devDependencies": {
     "chai": "^4.1.2",
-    "chlu-collector": "ChluNetwork/chlu-collector#implementation",
+    "chlu-collector": "ChluNetwork/chlu-collector",
     "clean-webpack-plugin": "^0.1.17",
     "documentation": "^6.1.0",
     "eslint": "^4.12.0",

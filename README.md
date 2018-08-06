@@ -43,7 +43,7 @@ Check out the [Chlu Collector](https://github.com/ChluNetwork/chlu-collector) RE
 
 ## JS API Docs
 
-https://ipfs.io/ipfs/QmTHQog37CpVHrdwWt1EpS8feymig8N2RpoTBY66P9D8cE
+https://ipfs.io/ipfs/QmZ2QNSTNwt61jrMQccZYd3uc5V626nafg6Fz2khDhQmNp
 
 ### Events
 
