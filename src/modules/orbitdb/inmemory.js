@@ -21,47 +21,55 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         super(_index, version);
     }
 
-    _addOriginalReviewRecord(obj) {
+    _addReviewRecord({ multihash, reviewRecord: obj, bitcoinTransactionHash }) {
         const list = this._index.reviews.list
         const data = this._index.reviews.data
-        if (list.indexOf(obj.multihash) < 0) {
-            // TODO: don't trust the first bitcoinTransactionHash submitted but keep all of them in the index
-            list.splice(0, 0, obj.multihash);
-            data[obj.multihash] = {
-                multihash: obj.multihash,
-                addedAt: getUnixTimestamp(),
-                bitcoinTransactionHash: obj.bitcoinTransactionHash || null
-            };
-            const authorDidId = obj.authorDidId
-            const subjectDidId = obj.subjectDidId
-            if (subjectDidId) {
-                if (!this._index.did.reviewsAboutDid[subjectDidId]) {
-                    this._index.did.reviewsAboutDid[subjectDidId] = [obj.multihash]
-                } else if (this._index.did.reviewsAboutDid[subjectDidId].indexOf(obj.multihash) < 0) {
-                    this._index.did.reviewsAboutDid[subjectDidId].splice(0, 0, obj.multihash)
+        const isUpdate = this.chluIpfs.reviewRecords.isReviewRecordUpdate(obj)
+        // Step 1: Add review record info to db
+        const isNew = !data[multihash]
+        if (isNew) data[multihash] = {
+            addedAt: getUnixTimestamp(),
+            bitcoinTransactionHash: []
+        }
+        const rrData = data[multihash]
+        if (bitcoinTransactionHash && rrData.bitcoinTransactionHash.indexOf(bitcoinTransactionHash) < 0) {
+            rrData.bitcoinTransactionHash.push(bitcoinTransactionHash)
+        }
+        if (isNew) {
+            // Add non-update specific info
+            if (!isUpdate && isNew) {
+                // TODO: don't trust the first bitcoinTransactionHash submitted but keep all of them in the index
+                list.splice(0, 0, multihash);
+                const subjectDidId = get(obj, 'popr.vendor_did', get(obj, 'subject.did', null)) || null // force empty string to null
+                const authorDidId = get(obj, 'customer_signature.creator', null)
+                if (subjectDidId) {
+                    if (!this._index.did.reviewsAboutDid[subjectDidId]) {
+                        this._index.did.reviewsAboutDid[subjectDidId] = [multihash]
+                    } else if (this._index.did.reviewsAboutDid[subjectDidId].indexOf(multihash) < 0) {
+                        this._index.did.reviewsAboutDid[subjectDidId].splice(0, 0, multihash)
+                    }
+                }
+                if (authorDidId) {
+                    if (!this._index.did.reviewsWrittenByDid[authorDidId]) {
+                        this._index.did.reviewsWrittenByDid[authorDidId] = [obj.multihash]
+                    } else if (this._index.did.reviewsWrittenByDid[authorDidId].indexOf(obj.multihash) < 0) {
+                        this._index.did.reviewsWrittenByDid[authorDidId].splice(0, 0, obj.multihash)
+                    }
                 }
             }
-            if (authorDidId) {
-                if (!this._index.did.reviewsWrittenByDid[authorDidId]) {
-                    this._index.did.reviewsWrittenByDid[authorDidId] = [obj.multihash]
-                } else if (this._index.did.reviewsWrittenByDid[authorDidId].indexOf(obj.multihash) < 0) {
-                    this._index.did.reviewsWrittenByDid[authorDidId].splice(0, 0, obj.multihash)
-                }
+            // Add update specific info
+            if (isUpdate) {
+                const previousVersion = this._getLatestReviewRecordUpdate(obj.previous_version_multihash)
+                const existing = data[previousVersion] || {}
+                existing.nextVersion = multihash
+                const nextVersionData = data[multihash] || {};
+                if (nextVersionData.addedAt) nextVersionData.addedAt = getUnixTimestamp()
+                nextVersionData.multihash = multihash;
+                nextVersionData.previousVersion = obj.previous_version_multihash;
+                data[previousVersion] = existing;
+                data[multihash] = nextVersionData;
             }
         }
-    }
-
-    _addReviewRecordUpdate(obj) {
-        const data = this._index.reviews.data
-        const existing = data[obj.fromMultihash];
-        existing.nextVersion = obj.toMultihash;
-        const nextVersionData = {
-            addedAt: getUnixTimestamp()
-        };
-        nextVersionData.multihash = obj.toMultihash;
-        nextVersionData.previousVersion = obj.fromMultihash;
-        data[obj.fromMultihash] = existing;
-        data[obj.toMultihash] = nextVersionData;
     }
 
     _getLatestReviewRecordUpdate(multihash) {
@@ -98,17 +106,17 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         return this._index.reviews.list.length;
     }
 
-    _putDID(didId, didDocumentMultihash, signature) {
+    _putDID(publicDidDocument, didDocumentMultihash) {
+        const didId = get(publicDidDocument, 'id')
         if (!this._index.did.data[didId]) {
-            this._index.did.data[didId] = { multihash: didDocumentMultihash, signature }
+            this._index.did.data[didId] = { multihash: didDocumentMultihash }
         } else {
             this._index.did.data[didId].multihash = didDocumentMultihash
-            this._index.did.data[didId].signature = signature 
         }
     }
 
     _getDID(didId) {
-        return get(this._index, `did.data[${didId}]`, { multihash: null, signature: null })
+        return get(this._index, `did.data[${didId}]`, { multihash: null })
     }
 
     _getReviewsAboutDID(didId, offset, limit) {
