@@ -1,16 +1,14 @@
 const IPFSUtils = require('../../utils/ipfs');
 const Store = require('orbit-db-store');
-const ChluAbstractIndex = require('./abstract');
-const ChluInMemoryIndex = require('./inmemory');
+const ChluAbstractIndex = require('./indexes/abstract');
 const DIDIPFSHelper = require('../didIpfsHelper')
 
-const version = 0;
+const version = 1;
 
 class ChluStore extends Store {
 
     constructor(ipfs, id, dbname, options) {
         if (!options) options = {};
-        if (!options.Index) Object.assign(options, { Index: ChluInMemoryIndex });
         super(ipfs, id, dbname, options);
         this._index.chluIpfs = options.chluIpfs
         if (this._index._version !== version) {

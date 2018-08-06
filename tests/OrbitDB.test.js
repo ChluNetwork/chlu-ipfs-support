@@ -3,8 +3,8 @@ const logger = require('./utils/logger');
 const sinon = require('sinon')
 
 const ChluIPFS = require('../src/ChluIPFS');
-const ChluInMemoryIndex = require('../src/modules/orbitdb/inmemory');
-const ChluAbstractIndex = require('../src/modules/orbitdb/abstract');
+const ChluInMemoryIndex = require('../src/modules/orbitdb/indexes/inmemory');
+const ChluAbstractIndex = require('../src/modules/orbitdb/indexes/abstract');
 const { genMultihash } = require('./utils/ipfs');
 const { getFakeReviewRecord } = require('./utils/protobuf');
 
