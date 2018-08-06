@@ -8,6 +8,7 @@ const constants = require('../constants');
 class IPFS {
     constructor(chluIpfs) {
         this.chluIpfs = chluIpfs;
+        this.defaultTimeout = 10000
     }
 
     async start() {
@@ -109,13 +110,21 @@ class IPFS {
         return (await this.chluIpfs.ipfs.id()).id;
     }
 
-    async get(multihash) {
-        const dagNode = await this.chluIpfs.ipfs.object.get(utils.multihashToBuffer(multihash));
+    async get(multihash, timeout = this.defaultTimeout) {
+        let done = false, timeoutId = null
+        const dagNode = await new Promise((resolve, reject) => {
+            if (timeout > 0) timeoutId = setTimeout(() => {
+                if (!done) reject(new Error(`IPFS Read timed out (${timeout} ms)`))
+            }, timeout)
+            this.chluIpfs.ipfs.object.get(utils.multihashToBuffer(multihash)).then(resolve)
+        })
+        if (timeoutId) clearTimeout(timeoutId)
+        done = true
         return dagNode.data;
     }
 
-    async getJSON(multihash) {
-        let data = await this.get(multihash)
+    async getJSON(multihash, timeout = this.defaultTimeout) {
+        let data = await this.get(multihash, timeout)
         if (Buffer.isBuffer(data)) {
             data = data.toString()
         }
