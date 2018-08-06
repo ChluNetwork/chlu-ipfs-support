@@ -1872,6 +1872,15 @@ chlu-did@ChluNetwork/chlu-did:
     elliptic "^6.4.0"
     js-sha3 "^0.7.0"
 
+"chlu-did@ChluNetwork/chlu-did#semver:~0.1.0":
+  version "0.1.0"
+  resolved "https://codeload.github.com/ChluNetwork/chlu-did/tar.gz/65a4a24edb93d89e86a3efb93a78aeff89ff39d4"
+  dependencies:
+    brorand "^1.1.0"
+    bs58 "4.0.1"
+    elliptic "^6.4.0"
+    js-sha3 "^0.7.0"
+
 chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#misc-features:
   version "0.2.0"
   resolved "https://codeload.github.com/ChluNetwork/chlu-ipfs-support/tar.gz/da1eebe9f49c851583aa5747ccd5a2a0b49b958b"
@@ -1899,6 +1908,19 @@ chlu-wallet-support-js@ChluNetwork/chlu-wallet-support-js:
     bip39 "^2.4.0"
     bitcoinjs-lib "^3.1.1"
     blockcypher ChluNetwork/node-client#fixes
+    coinselect "^3.1.11"
+    dotenv "4.0.0"
+    es6-promisify "^5.0.0"
+    jest-cli "^21.2.1"
+    nock "^9.0.18"
+
+"chlu-wallet-support-js@ChluNetwork/chlu-wallet-support-js#semver:~0.1.1":
+  version "0.1.1"
+  resolved "https://codeload.github.com/ChluNetwork/chlu-wallet-support-js/tar.gz/56e13ba8c2c4f0f66acb6c2b72cc738ad0d1a258"
+  dependencies:
+    bip39 "^2.4.0"
+    bitcoinjs-lib "^3.1.1"
+    blockcypher ChluNetwork/node-client
     coinselect "^3.1.11"
     dotenv "4.0.0"
     es6-promisify "^5.0.0"
