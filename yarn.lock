@@ -1854,9 +1854,9 @@ check-error@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/check-error/-/check-error-1.0.2.tgz#574d312edd88bb5dd8912e9286dd6c0aed4aac82"
 
-chlu-collector@ChluNetwork/chlu-collector#implementation:
+chlu-collector@ChluNetwork/chlu-collector:
   version "0.1.0"
-  resolved "https://codeload.github.com/ChluNetwork/chlu-collector/tar.gz/e82a90262b2c6a77b1609d58da4325716440852c"
+  resolved "https://codeload.github.com/ChluNetwork/chlu-collector/tar.gz/e195b0757fe4d97b6485d3c4d957deebf0c84823"
   dependencies:
     chlu-ipfs-support ChluNetwork/chlu-ipfs-support#misc-features
     commander "^2.15.1"
