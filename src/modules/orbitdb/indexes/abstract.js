@@ -1,5 +1,5 @@
-const IPFSUtils = require('../../utils/ipfs');
-const version = 0;
+const IPFSUtils = require('../../../utils/ipfs');
+const version = 1;
 
 class ChluAbstractIndex {
     constructor(index, indexVersion){
@@ -64,6 +64,10 @@ class ChluAbstractIndex {
                 }
             }
         }
+    }
+
+    async start() {
+        this.chluIpfs.logger.warn('ChluDB Abstract Index started. This Index will throw on any operation!')
     }
     
     // Review records

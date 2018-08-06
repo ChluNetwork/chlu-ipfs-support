@@ -1,9 +1,9 @@
-const IPFSUtils = require('../../utils/ipfs');
+const IPFSUtils = require('../../../utils/ipfs');
 const ChluAbstractIndex = require('./abstract');
-const { getUnixTimestamp } = require('../../utils/timing')
+const { getUnixTimestamp } = require('../../../utils/timing')
 const { get } = require('lodash')
 
-const version = 0;
+const version = 1;
 
 class ChluInMemoryIndex extends ChluAbstractIndex {
     constructor(){
@@ -19,6 +19,10 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
             }
         };
         super(_index, version);
+    }
+
+    async start() {
+        this.chluIpfs.logger.debug('ChluDB InMemory Index ready')
     }
 
     _addReviewRecord({ multihash, reviewRecord: obj, bitcoinTransactionHash }) {

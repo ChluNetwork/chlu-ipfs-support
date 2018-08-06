@@ -2,11 +2,20 @@ const constants = require('../../constants');
 const OrbitDB = require('orbit-db');
 const DefaultChluStore = require('./store');
 const { get } = require('lodash')
+const ChluInMemoryIndex = require('./indexes/inmemory')
+const ChluNOOPIndex = require('./indexes/noop')
+
+const Indexes = {
+    'InMemory': ChluInMemoryIndex,
+    'NOOP': ChluNOOPIndex
+}
 
 class DB {
 
-    constructor(chluIpfs){
+    constructor(chluIpfs, Index = 'InMemory'){
         this.chluIpfs = chluIpfs;
+        this.Index = typeof Index === 'string' ? Indexes[Index] : Index
+        if (!this.Index) throw new Error('Invalid OrbitDB Index')
         this.orbitDb = null;
         this.ChluStore = DefaultChluStore; // So that it can be overridden
         this.db = null;
@@ -33,7 +42,7 @@ class DB {
             this.orbitDb = new OrbitDB(this.chluIpfs.ipfs, this.chluIpfs.orbitDbDirectory);
             this.chluIpfs.logger.debug('Initialized OrbitDB with directory ' + this.chluIpfs.orbitDbDirectory);
         }
-        if (!this.db)  await this.open();
+        if (!this.db) await this.open();
     }
 
     getAddress() {
@@ -150,6 +159,7 @@ class DB {
             type: this.ChluStore.type,
             create: true,
             write: ['*'],
+            Index: this.Index,
             chluIpfs: this.chluIpfs
         });
         this.listenToDBEvents(this.db);
@@ -184,4 +194,4 @@ class DB {
 
 }
 
-module.exports = DB;
+module.exports = Object.assign(DB, { Indexes });
