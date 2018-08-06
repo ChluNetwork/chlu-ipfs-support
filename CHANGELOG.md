@@ -1,5 +1,9 @@
 # Chlu IPFS Changelog
 
+## v0.1.1
+
+- fixed Chlu dependencies versions from git branches to git tags
+
 ## v0.1.0
 
 - unverified reviews are no longer editable
