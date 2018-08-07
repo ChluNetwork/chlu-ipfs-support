@@ -17,6 +17,9 @@ class Crypto {
     async getPublicKey(multihash) {
         this.chluIpfs.logger.debug('Fetching Public Key at ' + multihash);
         const value = await this.chluIpfs.ipfsUtils.get(multihash);
+        if (!value) {
+            throw new Error(`Public Key at ${multihash} not found`)
+        }
         this.chluIpfs.logger.debug('Fetched Public Key at ' + multihash + ': ' + value.toString('hex'));
         return value;
     }
@@ -35,7 +38,7 @@ class Crypto {
         }
     }
 
-    async verifyMultihash(pubKeyMultihash, multihash, signature) {
+    async verifyMultihash(pubKeyMultihash, multihash, signature, pubKeyValue = null) {
         if (signature.type !== 'crypto') {
             throw new Error('Unhandled signature type')
         }
@@ -43,7 +46,7 @@ class Crypto {
             throw new Error(`Expected data to be signed by ${pubKeyMultihash}, found ${signature.creator} instead`)
         }
         this.chluIpfs.logger.debug(`Verifying signature by ${signature.creator} on ${multihash}: ${signature.signatureValue}`);
-        const buffer = await this.getPublicKey(signature.creator);
+        const buffer = pubKeyValue || await this.getPublicKey(signature.creator);
         const keyPair = this.ec.keyFromPublic(buffer.toString('hex'))
         const data = getDigestFromMultihash(multihash).toString('hex')
         const result = keyPair.verify(data, signature.signatureValue);

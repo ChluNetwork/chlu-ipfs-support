@@ -26,7 +26,7 @@ module.exports = function (fakeStore) {
     const putJSON = sinon.stub().callsFake(async data => {
         let arg = data
         if (typeof arg !== 'string') arg = JSON.stringify(arg)
-        return putRaw(arg)
+        return await putRaw(arg)
     })
     return {
         id: sinon.stub().resolves('myId'),

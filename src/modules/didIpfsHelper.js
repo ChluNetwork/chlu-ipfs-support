@@ -65,11 +65,15 @@ class ChluDIDIPFSHelper {
         return this.chluDID.sign(privateKeyBase58 || this.privateKeyBase58, data)
     }
 
-    async verify(didId, data, signature, waitUntilPresent = false) {
-        if (!didId) throw new Error('Missing DID ID')
-        const didDocument = await this.getDID(didId, waitUntilPresent)
-        if (!didDocument) {
-            throw new Error(`Cannot verify signature by ${didId}: DID Document not found`)
+    async verify(did, data, signature, waitUntilPresent = false) {
+        let didDocument
+        if (typeof did === 'string') {
+            didDocument = await this.getDID(did, waitUntilPresent)
+            if (!didDocument) {
+                throw new Error(`Cannot verify signature by ${did}: DID Document not found`)
+            }
+        } else if (typeof did === 'object') {
+            didDocument = did
         }
         return await this.chluDID.verify(didDocument, data, signature)
     }
@@ -91,7 +95,9 @@ class ChluDIDIPFSHelper {
         }
     }
 
-    async verifyMultihash(didId, multihash, signature, waitUntilPresent) {
+    async verifyMultihash(did, multihash, signature, waitUntilPresent) {
+        const didId = typeof did === 'string' ? did : get(did, 'id')
+        if (!didId) throw new Error('Missing DID ID')
         this.chluIpfs.logger.debug(`Verifying signature by ${didId} on ${multihash}: ${signature.signatureValue}`);
         if (signature.type !== 'did:chlu') {
             throw new Error('Unhandled signature type')
@@ -100,7 +106,7 @@ class ChluDIDIPFSHelper {
             throw new Error(`Expected data to be signed by ${didId}, found ${signature.creator} instead`)
         }
         const data = getDigestFromMultihash(multihash)
-        const result = await this.verify(signature.creator, data, signature.signatureValue, waitUntilPresent) 
+        const result = await this.verify(did, data, signature.signatureValue, waitUntilPresent) 
         this.chluIpfs.logger.debug(`Verified signature by ${signature.creator} on ${multihash}: ${signature.signatureValue} => ${result}`);
         return result
     }
