@@ -7,7 +7,7 @@ const ChluNOOPIndex = require('./indexes/noop')
 
 const Indexes = {
     'InMemory': ChluInMemoryIndex,
-    'NOOP': ChluNOOPIndex
+    'NOOP': ChluNOOPIndex,
 }
 
 class DB {

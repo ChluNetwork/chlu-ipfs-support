@@ -39,7 +39,9 @@ module.exports = function (config) {
             },
             plugins: [
                 // do not load Chlu Collector Rendezvous Server: only needed in node-js
-                new webpack.IgnorePlugin(/^chlu-collector\/src\/rendezvous/)
+                new webpack.IgnorePlugin(/^chlu-collector\/src\/rendezvous/),
+                // ignore SQL index
+                new webpack.IgnorePlugin(/\/indexes\/sql/)
             ]
         },
         webpackMiddleware: {
