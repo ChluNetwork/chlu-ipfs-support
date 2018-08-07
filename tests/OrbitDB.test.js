@@ -5,10 +5,10 @@ const path = require('path')
 const os = require('os')
 const rimraf = require('rimraf')
 const mkdirp = require('mkdirp')
+const env = require('../src/utils/env');
 
 const ChluIPFS = require('../src/ChluIPFS');
 const ChluInMemoryIndex = require('../src/modules/orbitdb/indexes/inmemory');
-const ChluSQLIndex = require('../src/modules/orbitdb/indexes/sql');
 const ChluAbstractIndex = require('../src/modules/orbitdb/indexes/abstract');
 const { genMultihash } = require('./utils/ipfs');
 const { getFakeReviewRecord, makeResolved } = require('./utils/protobuf');
@@ -25,11 +25,14 @@ async function applyOperation(idx, op) {
 
 describe('OrbitDB Module', () => {
     let chluIpfs, reviewOverride = null, didOverride = null;
-    const directory = path.join(os.tmpdir(), 'chlu-orbitdb-test')
+    let directory = 'chlu-orbitdb-test'
+    if (env.isNode()) directory = path.join(os.tmpdir(), 'chlu-orbitdb-test')
 
     beforeEach(() => {
-        rimraf.sync(directory)
-        mkdirp.sync(directory)
+        if (env.isNode()) {
+            rimraf.sync(directory)
+            mkdirp.sync(directory)
+        }
         chluIpfs = new ChluIPFS({
             logger: logger('Service'),
             cache: { enabled: false },
@@ -60,11 +63,16 @@ describe('OrbitDB Module', () => {
                 name: 'InMemory',
                 Index: ChluInMemoryIndex,
             },
-            {
-                name: 'SQL (SQLite)',
-                Index: ChluSQLIndex,
-            }
         ]
+
+        if (env.isNode()) {
+            Indexes.push(
+                {
+                    name: 'SQL (SQLite)',
+                    Index: require('../src/modules/orbitdb/indexes/sql')
+                }
+            )
+        }
 
         Indexes.forEach(item => {
             const name = item.name
@@ -84,7 +92,7 @@ describe('OrbitDB Module', () => {
 
                 afterEach(async () => {
                     await idx.stop()
-                    rimraf.sync(path.join(directory, 'db.sqlite'))
+                    if (env.isNode()) rimraf.sync(path.join(directory, 'db.sqlite'))
                 })
 
                 it('keeps the new review list in order', async () => {
