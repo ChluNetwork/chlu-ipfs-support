@@ -122,7 +122,7 @@ class ChluIPFS {
         this.cache = new Cache(this, options.cache);
         this.http = http;
         this.ipfsUtils = new IPFSUtils(this);
-        this.orbitDb = new DB(this, options.OrbitDBIndex || options.OrbitDBIndexName);
+        this.orbitDb = new DB(this, options.OrbitDBIndex || options.OrbitDBIndexName, options.OrbitDBIndexOptions);
         this.pinning = new Pinning(this);
         this.room = new Room(this);
         this.reviewRecords = new ReviewRecords(this);

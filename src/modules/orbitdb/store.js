@@ -11,6 +11,7 @@ class ChluStore extends Store {
         if (!options) options = {};
         super(ipfs, id, dbname, options);
         this._index.chluIpfs = options.chluIpfs
+        this._index.options = options.indexOptions
         if (this._index._version !== version) {
             throw new Error('Incompatible Index version');
         }

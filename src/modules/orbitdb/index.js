@@ -12,10 +12,11 @@ const Indexes = {
 
 class DB {
 
-    constructor(chluIpfs, Index = 'InMemory'){
+    constructor(chluIpfs, Index = 'InMemory', indexOptions = {}){
         this.chluIpfs = chluIpfs;
         this.Index = typeof Index === 'string' ? Indexes[Index] : Index
         if (!this.Index) throw new Error('Invalid OrbitDB Index')
+        this.indexOptions = indexOptions
         this.orbitDb = null;
         this.ChluStore = DefaultChluStore; // So that it can be overridden
         this.db = null;
@@ -51,7 +52,11 @@ class DB {
 
     async stop() {
         this.chluIpfs.logger.debug('Stopping OrbitDB Module');
-        if (this.db) await this.db.close();
+        if (this.db) {
+            const dbIndex = this.db._index
+            await this.db.close();
+            if (typeof dbIndex.stop === 'function') await dbIndex.stop()
+        }
         if (this.orbitDb) await this.orbitDb.stop();
         this.chluIpfs.logger.debug('Stopped OrbitDB Module');
     }
@@ -160,7 +165,8 @@ class DB {
             create: true,
             write: ['*'],
             Index: this.Index,
-            chluIpfs: this.chluIpfs
+            chluIpfs: this.chluIpfs,
+            indexOptions: this.indexOptions
         });
         this.listenToDBEvents(this.db);
         this.chluIpfs.logger.debug('Starting Chlu OrbitDB Index');

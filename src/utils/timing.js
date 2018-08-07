@@ -9,7 +9,12 @@ function getUnixTimestamp() {
     return time
 }
 
+function getDateTime() {
+    return new Date()
+}
+
 module.exports = {
     waitMilliseconds,
-    getUnixTimestamp
+    getUnixTimestamp,
+    getDateTime
 };
