@@ -163,6 +163,8 @@ class DB {
             chluIpfs: this.chluIpfs
         });
         this.listenToDBEvents(this.db);
+        this.chluIpfs.logger.debug('Starting Chlu OrbitDB Index');
+        if (typeof this.db._index.start === 'function') await this.db._index.start()
         this.chluIpfs.logger.debug('Loading Chlu OrbitDB cache');
         await this.db.load();
         this.chluIpfs.logger.debug('Chlu OrbitDB fully ready');

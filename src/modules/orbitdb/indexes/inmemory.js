@@ -1,7 +1,7 @@
 const IPFSUtils = require('../../../utils/ipfs');
 const ChluAbstractIndex = require('./abstract');
 const { getUnixTimestamp } = require('../../../utils/timing')
-const { get } = require('lodash')
+const { get, isEmpty } = require('lodash')
 
 const version = 1;
 
@@ -33,7 +33,8 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         const isNew = !data[multihash]
         if (isNew) data[multihash] = {
             addedAt: getUnixTimestamp(),
-            bitcoinTransactionHash: []
+            bitcoinTransactionHash: [],
+            valid: isEmpty(obj.errors)
         }
         const rrData = data[multihash]
         if (bitcoinTransactionHash && rrData.bitcoinTransactionHash.indexOf(bitcoinTransactionHash) < 0) {
