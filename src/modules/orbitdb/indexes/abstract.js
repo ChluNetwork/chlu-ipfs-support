@@ -1,9 +1,10 @@
 const IPFSUtils = require('../../../utils/ipfs');
+const { get } = require('lodash')
+
 const version = 1;
 
 class ChluAbstractIndex {
-    constructor(index, indexVersion){
-        this._index = index;
+    constructor(indexVersion){
         this._version = indexVersion;
         if (this._version !== version) {
             throw new Error('Incompatible version');
@@ -44,10 +45,14 @@ class ChluAbstractIndex {
                     try {
                         const reviewRecord = await this.getAndValidateReviewRecordContent(item.payload.multihash)
                         // TODO retry if validation failed 
+                        const subjectDidId = get(reviewRecord, 'popr.vendor_did', get(reviewRecord, 'subject.did', null)) || null // force empty string to null
+                        const authorDidId = get(reviewRecord, 'customer_signature.creator', null)
                         await this.addReviewRecord({
                             multihash: item.payload.multihash,
                             reviewRecord,
-                            bitcoinTransactionHash: item.payload.bitcoinTransactionHash || null
+                            bitcoinTransactionHash: item.payload.bitcoinTransactionHash || null,
+                            authorDidId,
+                            subjectDidId
                         });
                     } catch (error) {
                         this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
@@ -68,6 +73,9 @@ class ChluAbstractIndex {
 
     async start() {
         this.chluIpfs.logger.warn('ChluDB Abstract Index started. This Index will throw on any operation!')
+    }
+
+    async stop() {
     }
     
     // Review records

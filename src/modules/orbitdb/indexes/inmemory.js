@@ -7,7 +7,8 @@ const version = 1;
 
 class ChluInMemoryIndex extends ChluAbstractIndex {
     constructor(){
-        const _index = {
+        super(version);
+        this._index = {
             reviews: {
                 list: [],
                 data: {}
@@ -18,14 +19,13 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
                 reviewsAboutDid: {}
             }
         };
-        super(_index, version);
     }
 
     async start() {
         this.chluIpfs.logger.debug('ChluDB InMemory Index ready')
     }
 
-    _addReviewRecord({ multihash, reviewRecord: obj, bitcoinTransactionHash }) {
+    _addReviewRecord({ multihash, reviewRecord: obj, bitcoinTransactionHash, authorDidId, subjectDidId }) {
         const list = this._index.reviews.list
         const data = this._index.reviews.data
         const isUpdate = this.chluIpfs.reviewRecords.isReviewRecordUpdate(obj)
@@ -45,8 +45,6 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
             if (!isUpdate && isNew) {
                 // TODO: don't trust the first bitcoinTransactionHash submitted but keep all of them in the index
                 list.splice(0, 0, multihash);
-                const subjectDidId = get(obj, 'popr.vendor_did', get(obj, 'subject.did', null)) || null // force empty string to null
-                const authorDidId = get(obj, 'customer_signature.creator', null)
                 if (subjectDidId) {
                     if (!this._index.did.reviewsAboutDid[subjectDidId]) {
                         this._index.did.reviewsAboutDid[subjectDidId] = [multihash]

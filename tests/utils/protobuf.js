@@ -107,6 +107,7 @@ function makeResolved(reviewRecord) {
     if (reviewRecord.popr) {
         reviewRecord.popr.resolved = true
     }
+    if (!Array.isArray(reviewRecord.history)) reviewRecord.history = []
     reviewRecord.resolved = true
     return reviewRecord
 }

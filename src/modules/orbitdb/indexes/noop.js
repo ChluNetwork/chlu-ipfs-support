@@ -4,7 +4,7 @@ const version = 1
 class ChluNOOPIndex extends ChluAbstractIndex {
 
     constructor() {
-        super(null, version)
+        super(version)
     }
 
     async start() {

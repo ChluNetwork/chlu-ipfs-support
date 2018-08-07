@@ -42,8 +42,7 @@ class ReviewRecords {
     }
 
     async getHistory(reviewRecord, history = []) {
-        // TODO: maybe we should involve orbit-db here
-        const prev = reviewRecord.previous_version_multihash;
+        const prev = reviewRecord.previous_version_multihash
         if (prev) {
             if (history.map(o => o.multihash).indexOf(prev) >= 0) {
                 throw new Error('Recursive history detected');

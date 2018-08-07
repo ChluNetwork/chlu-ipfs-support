@@ -1,12 +1,17 @@
 const expect = require('chai').expect;
 const logger = require('./utils/logger');
 const sinon = require('sinon')
+const path = require('path')
+const os = require('os')
+const rimraf = require('rimraf')
+const mkdirp = require('mkdirp')
 
 const ChluIPFS = require('../src/ChluIPFS');
 const ChluInMemoryIndex = require('../src/modules/orbitdb/indexes/inmemory');
+const ChluSQLIndex = require('../src/modules/orbitdb/indexes/sql');
 const ChluAbstractIndex = require('../src/modules/orbitdb/indexes/abstract');
 const { genMultihash } = require('./utils/ipfs');
-const { getFakeReviewRecord } = require('./utils/protobuf');
+const { getFakeReviewRecord, makeResolved } = require('./utils/protobuf');
 
 async function applyOperation(idx, op) {
     return await idx.updateIndex({
@@ -20,15 +25,19 @@ async function applyOperation(idx, op) {
 
 describe('OrbitDB Module', () => {
     let chluIpfs, reviewOverride = null, didOverride = null;
+    const directory = path.join(os.tmpdir(), 'chlu-orbitdb-test')
 
     beforeEach(() => {
+        rimraf.sync(directory)
+        mkdirp.sync(directory)
         chluIpfs = new ChluIPFS({
             logger: logger('Service'),
             cache: { enabled: false },
-            enablePersistence: false
+            enablePersistence: false,
+            directory
         });
         chluIpfs.reviewRecords.readReviewRecord = sinon.stub()
-            .callsFake(async multihash => Object.assign({ multihash }, await getFakeReviewRecord(), reviewOverride || {}))
+            .callsFake(async multihash => Object.assign({ multihash }, makeResolved(await getFakeReviewRecord()), reviewOverride || {}))
         chluIpfs.didIpfsHelper.readPublicDIDDocument = sinon.stub()
             .callsFake(async () => Object.assign({
                 id: 'did:chlu:random'
@@ -49,23 +58,34 @@ describe('OrbitDB Module', () => {
         const Indexes = [
             {
                 name: 'InMemory',
-                Index: ChluInMemoryIndex
+                Index: ChluInMemoryIndex,
+            },
+            {
+                name: 'SQL (SQLite)',
+                Index: ChluSQLIndex,
             }
         ]
 
         Indexes.forEach(item => {
             const name = item.name
             const Index = item.Index
+            const d = item.only ? describe.only : (item.skip ? describe.skip : describe)
 
-            describe(`Chlu Store ${name} Index`, () => {
+            d(`Chlu Store ${name} Index`, () => {
                 let idx;
 
-                beforeEach(() => {
+                beforeEach(async () => {
                     idx = new Index();
                     idx.chluIpfs = chluIpfs
+                    await idx.start()
                     reviewOverride = null
                     didOverride = null
                 });
+
+                afterEach(async () => {
+                    await idx.stop()
+                    rimraf.sync(path.join(directory, 'db.sqlite'))
+                })
 
                 it('keeps the new review list in order', async () => {
                     await applyOperation(idx, {
@@ -99,7 +119,9 @@ describe('OrbitDB Module', () => {
                         op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                         multihash: genMultihash(1)
                     });
-                    reviewOverride = { previous_version_multihash: genMultihash(1) }
+                    reviewOverride = { previous_version_multihash: genMultihash(1), history: [
+                        { multihash: genMultihash(1) }
+                    ] }
                     await applyOperation(idx, {
                         op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                         multihash: genMultihash(2)
@@ -110,7 +132,10 @@ describe('OrbitDB Module', () => {
                     expect(await idx.getLatestReviewRecordUpdate(genMultihash(1)))
                         .to.deep.equal(genMultihash(2));
                     // Next case: submit another update
-                    reviewOverride = { previous_version_multihash: genMultihash(2) }
+                    reviewOverride = { previous_version_multihash: genMultihash(2), history: [
+                        { multihash: genMultihash(1) },
+                        { multihash: genMultihash(2) }
+                    ] }
                     await applyOperation(idx, {
                         op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                         multihash: genMultihash(3)
@@ -121,7 +146,11 @@ describe('OrbitDB Module', () => {
                     expect(await idx.getLatestReviewRecordUpdate(genMultihash(1)))
                         .to.deep.equal(genMultihash(3));
                     // Next case: submit another update from original hash
-                    reviewOverride = { previous_version_multihash: genMultihash(1) }
+                    reviewOverride = { previous_version_multihash: genMultihash(1), history: [
+                        { multihash: genMultihash(3) },
+                        { multihash: genMultihash(2) },
+                        { multihash: genMultihash(1) },
+                    ] }
                     await applyOperation(idx, {
                         op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                         multihash: genMultihash(4)
