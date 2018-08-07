@@ -76,13 +76,16 @@ class ReviewRecords {
             checkForUpdates = false,
             getLatestVersion = false,
             validate = true,
-            bitcoinTransactionHash = null
+            bitcoinTransactionHash = null,
+            useCache = true,
+            resolve = true
         } = options;
         let m = multihash;
         if (getLatestVersion) {
             m = await this.chluIpfs.orbitDb.getLatestReviewRecordUpdate(multihash);
         }
-        const reviewRecord = await this.getReviewRecord(m);
+        let reviewRecord = await this.getReviewRecord(m);
+        if (resolve || validate) reviewRecord = await this.resolveReviewRecord(reviewRecord, useCache)
         reviewRecord.errors = [];
         reviewRecord.multihash = m;
         if (validate) {
@@ -115,6 +118,54 @@ class ReviewRecords {
         return reviewRecord;
     }
 
+    async resolveReviewRecord(reviewRecord, useCache = true) {
+        const multihash = reviewRecord.multihash
+        this.chluIpfs.logger.debug(`Resolving review record ${multihash || '(Unknown Multihash)'}`)
+        const customerDid = get(reviewRecord, 'customer_signature.creator')
+        if (customerDid) {
+            reviewRecord.customerPublicDidDocument = await this.chluIpfs.didIpfsHelper.getDID(customerDid)
+        }
+        const issuerDid = get(reviewRecord, 'issuer_signature.creator')
+        if (issuerDid) {
+            reviewRecord.issuerPublicDidDocument = await this.chluIpfs.didIpfsHelper.getDID(issuerDid)
+        }
+        if (multihash) {
+            reviewRecord.metadata = await this.chluIpfs.orbitDb.getReviewRecordMetadata(multihash)
+        }
+        reviewRecord.history = await this.getHistory(reviewRecord)
+        reviewRecord.history = await Promise.all(
+            reviewRecord.history.map(async rr => await this.resolveReviewRecord(rr, useCache))
+        )
+        if (reviewRecord.popr) {
+            reviewRecord.popr = await this.resolvePoPR(reviewRecord.popr, useCache)
+        }
+        reviewRecord.resolved = true
+        this.chluIpfs.logger.debug(`Resolved review record ${multihash || '(Unknown Multihash)'}`)
+        return reviewRecord
+    }
+
+    async resolvePoPR(popr, useCache = true) {
+        const hash = get(popr, 'hash', null)
+        this.chluIpfs.logger.debug(`Resolving PoPR ${hash || '(Unknown hash)'}`)
+        const keyLocation = get(popr, 'key_location')
+        if (keyLocation) {
+            const keyMultihash = this.chluIpfs.validator.keyLocationToKeyMultihash(keyLocation)
+            popr.vmPublicKey = await this.chluIpfs.crypto.getPublicKey(keyMultihash)
+        }
+        const vendorDid = get(popr, 'vendor_did')
+        if (vendorDid) {
+            popr.vendorPublicDidDocument = await this.chluIpfs.didIpfsHelper.getDID(vendorDid)
+        }
+        const marketplaceUrl = popr.marketplace_url
+        if (marketplaceUrl) {
+            popr.marketplaceDid = await this.chluIpfs.validator.fetchMarketplaceDIDID(marketplaceUrl, useCache)
+            popr.marketplacePublicDidDocument = await this.chluIpfs.didIpfsHelper.getDID(popr.marketplaceDid)
+        }
+        popr.resolved = true
+        this.chluIpfs.logger.debug(`Resolved PoPR ${hash || '(Unknown hash)'}`)
+        return popr
+    }
+
     async getReviewRecordDAGNode(reviewRecord) {
         this.chluIpfs.logger.debug('Encoding (protobuf) review record');
         const buffer = this.chluIpfs.protobuf.ReviewRecord.encode(reviewRecord);
@@ -144,7 +195,7 @@ class ReviewRecords {
         if (validate) {
             const customValidationSettings = typeof validate === 'object' ? validate : {};
             const validationSettings = Object.assign({
-                bitcoinTransactionHash: reviewRecord.verifiable ? bitcoinTransactionHash : null
+                bitcoinTransactionHash: reviewRecord.verifiable ? bitcoinTransactionHash : null,
             }, customValidationSettings)
             await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validationSettings);
         }
@@ -175,6 +226,8 @@ class ReviewRecords {
         const validate = options.validate === false ? false : Object.assign({
             // Disable cache when storing
             useCache: false,
+            // Tell validator to resolve, necessary when storing
+            resolve: true,
             forceTransactionValidation: Boolean(publish)
         }, options.validate)
         const isUpdate = this.isReviewRecordUpdate(reviewRecord)

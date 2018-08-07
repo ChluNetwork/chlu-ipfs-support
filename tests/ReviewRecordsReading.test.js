@@ -23,7 +23,8 @@ describe('ReviewRecord reading and other functions', () => {
         await chluIpfs.didIpfsHelper.start() // generate a DID
     });
 
-    it('reads Verified Review from IPFS (no validation)', async () => {
+    it('reads Verified Review from IPFS (no validation or resolution)', async () => {
+        chluIpfs.reviewRecords.resolveReviewRecord = sinon.stub().callsFake(async x => x)
         const fakeReviewRecord = await getFakeReviewRecord();
         const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
         const multihashBuffer = multihashes.fromB58String(multihash);
@@ -40,7 +41,8 @@ describe('ReviewRecord reading and other functions', () => {
         expect(reviewRecord.chlu_version).to.not.be.undefined;
     });
 
-    it('reads Unverified Reviews from IPFS (no validation)', async () => {
+    it('reads Unverified Reviews from IPFS (no validation or resolution)', async () => {
+        chluIpfs.reviewRecords.resolveReviewRecord = sinon.stub().callsFake(async x => x)
         const fakeReviewRecord = makeUnverified(await getFakeReviewRecord())
         const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
         const multihashBuffer = multihashes.fromB58String(multihash);
@@ -58,6 +60,7 @@ describe('ReviewRecord reading and other functions', () => {
     })
 
     it('correctly checks if review is editable', async () => {
+        chluIpfs.reviewRecords.resolveReviewRecord = sinon.stub().callsFake(async x => x)
         const multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPQ'; // not the real multihash
         function putReview(reviewRecord) {
             const buffer = chluIpfs.protobuf.ReviewRecord.encode(reviewRecord);
@@ -158,5 +161,8 @@ describe('ReviewRecord reading and other functions', () => {
         }
         expect(error).to.not.be.undefined;
     });
+
+    it('resolves review records')
+    it('resolves PoPRs')
 
 });

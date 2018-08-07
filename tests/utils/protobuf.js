@@ -103,6 +103,14 @@ function getFakeReviewRecord() {
     };
 }
 
+function makeResolved(reviewRecord) {
+    if (reviewRecord.popr) {
+        reviewRecord.popr.resolved = true
+    }
+    reviewRecord.resolved = true
+    return reviewRecord
+}
+
 function makeUnverified(reviewRecord) {
     // Remove payment info
     reviewRecord.amount = 0
@@ -118,4 +126,4 @@ function makeUnverified(reviewRecord) {
     return reviewRecord
 }
 
-module.exports = { getFakeReviewRecord, makeUnverified };
+module.exports = { getFakeReviewRecord, makeUnverified, makeResolved };

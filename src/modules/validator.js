@@ -1,4 +1,4 @@
-const { cloneDeep, isEqual } = require('lodash');
+const { cloneDeep, isEqual, get } = require('lodash');
 
 class Validator {
 
@@ -6,6 +6,7 @@ class Validator {
         this.chluIpfs = chluIpfs;
         this.defaultVerifiedReviewValidationSettings = {
             useCache: true,
+            resolve: false,
             throwErrors: true,
             validateVersion: true,
             validateMultihash: true,
@@ -16,6 +17,7 @@ class Validator {
         };
         this.defaultUnverifiedReviewValidationSettings = {
             useCache: true,
+            resolve: false,
             throwErrors: true,
             validateVersion: true,
             validateMultihash: true,
@@ -26,10 +28,18 @@ class Validator {
         };
     }
 
-    async validateReviewRecord(reviewRecord, validations = {}) {
-        this.chluIpfs.logger.debug('Validating review record');
-        const rr = cloneDeep(reviewRecord);
-        const v = Object.assign(this.getDefaultValidationSettings(rr.verifiable), validations);
+    async validateReviewRecord(reviewRecord, validations = null) {
+        let rr = cloneDeep(reviewRecord);
+        const multihash = rr.multihash
+        this.chluIpfs.logger.debug(`Validating review record ${multihash || '(?)'} => ...`);
+        const v = Object.assign(this.getDefaultValidationSettings(rr.verifiable), validations || {});
+        if (!rr.resolved) {
+            if (v.resolve) {
+                rr = await this.chluIpfs.reviewRecords.resolveReviewRecord(rr, v.useCache)
+            } else {
+                throw new Error('Cannot validate unresolved Review Record')
+            }
+        }
         try {
             if (v.validateVersion) this.validateVersion(rr);
             if (!rr.multihash || !v.useCache || !this.chluIpfs.cache.isValidityCached(rr.multihash)) {
@@ -49,14 +59,15 @@ class Validator {
                 }
                 if (v.validateHistory) await this.validateHistory(rr, v);
                 const isUpdate = this.chluIpfs.reviewRecords.isReviewRecordUpdate(rr);
-                if (rr.verifiable && !isUpdate && (v.forceTransactionValidation || v.bitcoinTransactionHash)) {
-                    await this.validateBitcoinTransaction(rr, v.bitcoinTransactionHash, v.useCache);
+                const bitcoinTransactionHash = v.bitcoinTransactionHash || get(reviewRecord, 'metadata.bitcoinTransactionHash')
+                if (rr.verifiable && !isUpdate && (v.forceTransactionValidation || bitcoinTransactionHash)) {
+                    await this.validateBitcoinTransaction(rr, bitcoinTransactionHash, v.useCache);
                 }
                 if (rr.multihash && v.useCache) this.chluIpfs.cache.cacheValidity(rr.multihash);
             }
-            this.chluIpfs.logger.debug('Validated review record (was valid)');
+            this.chluIpfs.logger.debug(`Validated review record ${multihash || '(?)'} => OK`);
         } catch (error) {
-            this.chluIpfs.logger.debug('Validated review record (was NOT valid)');
+            this.chluIpfs.logger.debug(`Validated review record ${multihash || '(?)'} => ERROR ${error.message}`);
             if (v.throwErrors) {
                 throw error;
             } else {
@@ -68,18 +79,18 @@ class Validator {
 
     async validateMultihash(obj, expected) {
         this.chluIpfs.logger.debug('Validating multihash');
-        const hashedObj = await this.chluIpfs.reviewRecords.hashReviewRecord(obj);
-        if (expected !== hashedObj.hash) {
-            throw new Error('Mismatching hash: got ' + hashedObj.hash + ' instead of ' + expected);
+        const hash = (await this.chluIpfs.reviewRecords.hashReviewRecord(cloneDeep(obj))).hash;
+        if (expected !== hash) {
+            throw new Error('Mismatching hash: got ' + hash + ' instead of ' + expected);
         }
     }
 
     async validateRRCustomerSignature(rr) {
         this.chluIpfs.logger.debug('Validating RR Customer signatures');
-        const didId = rr.customer_signature.creator // TODO: should there be a customer_did field? author.did?
-        const valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(didId, rr.hash, rr.customer_signature);
+        const did = rr.customerPublicDidDocument
+        const valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(did, rr.hash, rr.customer_signature);
         if (valid) {
-            this.chluIpfs.events.emit('discover/did/customer', didId);
+            this.chluIpfs.events.emit('discover/did/customer', did.id);
         } else {
             throw new Error('The ReviewRecord Customer signature is invalid');
         }
@@ -88,10 +99,10 @@ class Validator {
 
     async validateRRIssuerSignature(rr) {
         this.chluIpfs.logger.debug('Validating RR Issuer signature');
-        const didId = rr.issuer
-        const valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(didId, rr.hash, rr.issuer_signature);
+        const did = rr.issuerPublicDidDocument
+        const valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(did, rr.hash, rr.issuer_signature);
         if (valid) {
-            this.chluIpfs.events.emit('discover/did/issuer', didId);
+            this.chluIpfs.events.emit('discover/did/issuer', did.id);
         } else {
             throw new Error('The ReviewRecord Issuer signature is invalid');
         }
@@ -103,16 +114,16 @@ class Validator {
         const v = Object.assign({}, this.defaultValidationSettings, validations, {
             validateHistory: false
         });
-        const history = await this.chluIpfs.reviewRecords.getHistory(reviewRecord);
+        const history = reviewRecord.history || []
         if (history.length > 0) {
-            const reviewRecords = [{ reviewRecord }].concat(history);
-            const validations = reviewRecords.map(async (item, i) => {
-                if (!this.chluIpfs.reviewRecords.isVerifiable(item.reviewRecord)) {
+            const reviewRecords = [reviewRecord].concat(history);
+            const validations = reviewRecords.map(async (reviewRecord, i) => {
+                if (!this.chluIpfs.reviewRecords.isVerifiable(reviewRecord)) {
                     throw new Error('Cannot update an unverified review')
                 }
-                await this.validateReviewRecord(item.reviewRecord, v);
+                await this.validateReviewRecord(reviewRecord, v);
                 if (i !== reviewRecords.length-1) {
-                    this.validatePrevious(item.reviewRecord, reviewRecords[i+1].reviewRecord);
+                    this.validatePrevious(reviewRecord, reviewRecords[i+1]);
                 }
             });
             await Promise.all(validations);
@@ -123,33 +134,30 @@ class Validator {
 
     async validatePoPRSignaturesAndKeys(popr, useCache = true) {
         this.chluIpfs.logger.debug('Validating PoPR Signatures and keys');
-        if (!popr.hash) {
-            popr = await this.chluIpfs.reviewRecords.hashPoPR(popr);
+        let hash = popr.hash
+        if (!hash) {
+            hash = (await this.chluIpfs.reviewRecords.hashPoPR(cloneDeep(popr))).hash
         }
-        const hash = popr.hash;
         if (!useCache || !this.chluIpfs.cache.isValidityCached(hash)) {
             const vmMultihash = this.keyLocationToKeyMultihash(popr.key_location);
             const mSignature = popr.marketplace_signature;
             const vSignature = popr.vendor_signature;
-            const vendorDIDID = popr.vendor_did
             const vmSignature = popr.signature;
-            const marketplaceUrl = popr.marketplace_url;
-            const marketplaceDIDID = await this.fetchMarketplaceDIDID(marketplaceUrl, useCache);
             const DID = this.chluIpfs.didIpfsHelper;
             const crypto = this.chluIpfs.crypto
             const validations = await Promise.all([
-                DID.verifyMultihash(vendorDIDID, vmMultihash, vSignature),
-                DID.verifyMultihash(marketplaceDIDID, vmMultihash, mSignature),
-                crypto.verifyMultihash(vmMultihash, hash, vmSignature)
+                DID.verifyMultihash(popr.vendorPublicDidDocument, vmMultihash, vSignature),
+                DID.verifyMultihash(popr.marketplacePublicDidDocument, vmMultihash, mSignature),
+                crypto.verifyMultihash(vmMultihash, hash, vmSignature, popr.vmPublicKey)
             ]);
             // false if any validation is false
             const valid = validations.reduce((acc, v) => acc && v);
             if (valid) {
                 if (useCache) this.chluIpfs.cache.cacheValidity(hash);
                 // Emit events about keys discovered
-                this.chluIpfs.events.emit('discover/did/vendor', vendorDIDID);
+                this.chluIpfs.events.emit('discover/did/vendor', popr.vendorPublicDidDocument.id);
                 this.chluIpfs.events.emit('discover/keys/vendor-marketplace', vmMultihash);
-                this.chluIpfs.events.emit('discover/did/marketplace', marketplaceDIDID);
+                this.chluIpfs.events.emit('discover/did/marketplace', popr.marketplacePublicDidDocument.id);
             } else {
                 throw new Error('The PoPR is not correctly signed');
             }

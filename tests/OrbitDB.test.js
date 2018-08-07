@@ -82,7 +82,7 @@ describe('OrbitDB Module', () => {
             expect(await idx.getReviewRecordList()).to.deep.equal([genMultihash(1)]);
         });
 
-        it('handles review updates', async () => {
+        it('handles reviews and review updates', async () => {
             await applyOperation(idx, {
                 op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                 multihash: genMultihash(1)
