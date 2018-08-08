@@ -18,7 +18,7 @@ services:
   - postgresql
 
 before_script:
-  - psql -c 'create database chlu_test;' -U postgres
+  - psql -c "ALTER USER travis WITH PASSWORD 'travis';"
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
 
@@ -32,5 +32,7 @@ addons:
 
 env:
   global:
-    - CHLU_POSTGRESQL_USER=postgres
+    - CHLU_POSTGRESQL_USER=travis
+    - CHLU_POSTGRESQL_DB=travis
+    - CHLU_POSTGRESQL_PASSWORD=travis
     - PGPORT=5433

@@ -78,7 +78,7 @@ describe('OrbitDB Module', () => {
                         dialect: 'postgres',
                         username: process.env.CHLU_POSTGRESQL_USER,
                         password: process.env.CHLU_POSTGRESQL_PASSWORD || '',
-                        database: 'chlu_test'
+                        database: process.env.CHLU_POSTGRESQL_DB || 'chlu_test'
                     },
                     skip: !process.env.CHLU_POSTGRESQL_USER
                 }
