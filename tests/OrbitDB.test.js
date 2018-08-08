@@ -49,14 +49,6 @@ describe('OrbitDB Module', () => {
         // TODO: test that the three functions above are called with right parameters
     });
 
-    it('exposes method to get the list of review records', () => {
-        expect(chluIpfs.orbitDb.getReviewRecordList).to.be.a('function');
-    });
-
-    it('exposes method to get the latest version of a RR by multihash', () => {
-        expect(chluIpfs.orbitDb.getLatestReviewRecordUpdate).to.be.a('function');
-    });
-
     describe('Chlu Store Indexes', () => {
         const Indexes = [
             {
@@ -116,7 +108,7 @@ describe('OrbitDB Module', () => {
                         op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                         multihash: genMultihash(2)
                     });
-                    await expect(await idx.getReviewRecordList()).to.deep.equal([
+                    await expect((await idx.getReviewRecordList()).map(x => x.multihash)).to.deep.equal([
                         genMultihash(2),
                         genMultihash(1)
                     ]);
@@ -131,7 +123,7 @@ describe('OrbitDB Module', () => {
                         op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                         multihash: genMultihash(1)
                     });
-                    expect(await idx.getReviewRecordList()).to.deep.equal([genMultihash(1)]);
+                    expect((await idx.getReviewRecordList()).map(x => x.multihash)).to.deep.equal([genMultihash(1)]);
                 });
 
                 it('handles reviews and review updates', async () => {
@@ -147,23 +139,23 @@ describe('OrbitDB Module', () => {
                         multihash: genMultihash(2)
                     });
                     reviewOverride = null
-                    expect(await idx.getReviewRecordList()).to.deep.equal([genMultihash(1)]);
+                    expect((await idx.getReviewRecordList()).map(x => x.multihash)).to.deep.equal([genMultihash(1)]);
                     // Base case
-                    expect(await idx.getLatestReviewRecordUpdate(genMultihash(1)))
+                    expect((await idx.getLatestReviewRecordUpdate(genMultihash(1))).multihash)
                         .to.deep.equal(genMultihash(2));
                     // Next case: submit another update
                     reviewOverride = { previous_version_multihash: genMultihash(2), history: [
-                        { multihash: genMultihash(1) },
-                        { multihash: genMultihash(2) }
+                        { multihash: genMultihash(2) },
+                        { multihash: genMultihash(1) }
                     ] }
                     await applyOperation(idx, {
                         op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
                         multihash: genMultihash(3)
                     });
                     reviewOverride = null
-                    expect(await idx.getLatestReviewRecordUpdate(genMultihash(2)))
+                    expect((await idx.getLatestReviewRecordUpdate(genMultihash(2))).multihash)
                         .to.deep.equal(genMultihash(3));
-                    expect(await idx.getLatestReviewRecordUpdate(genMultihash(1)))
+                    expect((await idx.getLatestReviewRecordUpdate(genMultihash(1))).multihash)
                         .to.deep.equal(genMultihash(3));
                     // Next case: submit another update from original hash
                     reviewOverride = { previous_version_multihash: genMultihash(1), history: [
@@ -176,12 +168,19 @@ describe('OrbitDB Module', () => {
                         multihash: genMultihash(4)
                     });
                     reviewOverride = null
-                    expect(await idx.getLatestReviewRecordUpdate(genMultihash(1)))
+                    // Check resolutions of latest version and original version
+                    expect((await idx.getLatestReviewRecordUpdate(genMultihash(1))).multihash)
                         .to.deep.equal(genMultihash(4));
-                    expect(await idx.getLatestReviewRecordUpdate(genMultihash(2)))
+                    expect((await idx.getLatestReviewRecordUpdate(genMultihash(2))).multihash)
                         .to.deep.equal(genMultihash(4));
-                    expect(await idx.getLatestReviewRecordUpdate(genMultihash(3)))
+                    expect((await idx.getLatestReviewRecordUpdate(genMultihash(2))).multihash)
                         .to.deep.equal(genMultihash(4));
+                    expect((await idx.getOriginalReviewRecord(genMultihash(2))).multihash)
+                        .to.deep.equal(genMultihash(1));
+                    expect((await idx.getOriginalReviewRecord(genMultihash(3))).multihash)
+                        .to.deep.equal(genMultihash(1));
+                    expect((await idx.getOriginalReviewRecord(genMultihash(4))).multihash)
+                        .to.deep.equal(genMultihash(1));
                 });
 
                 it('handles DIDs', async () => {
@@ -214,7 +213,7 @@ describe('OrbitDB Module', () => {
                         subjectDidId: didId,
                         multihash: genMultihash(2)
                     })
-                    expect(await idx.getReviewsAboutDID(didId)).to.deep.equal([
+                    expect((await idx.getReviewsAboutDID(didId)).map(x => x.multihash)).to.deep.equal([
                         genMultihash(2),
                         genMultihash(1)
                     ])
@@ -234,7 +233,7 @@ describe('OrbitDB Module', () => {
                         authorDidId: didId,
                         multihash: genMultihash(2)
                     })
-                    expect(await idx.getReviewsWrittenByDID(didId)).to.deep.equal([
+                    expect((await idx.getReviewsWrittenByDID(didId)).map(x => x.multihash)).to.deep.equal([
                         genMultihash(2),
                         genMultihash(1)
                     ])
