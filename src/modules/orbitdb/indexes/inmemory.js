@@ -8,6 +8,14 @@ const version = 1;
 class ChluInMemoryIndex extends ChluAbstractIndex {
     constructor(){
         super(version);
+        this.clear()
+    }
+
+    async start() {
+        this.chluIpfs.logger.debug('ChluDB InMemory Index ready')
+    }
+
+    clear() {
         this._index = {
             reviews: {
                 list: [],
@@ -19,10 +27,6 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
                 reviewsAboutDid: {}
             }
         };
-    }
-
-    async start() {
-        this.chluIpfs.logger.debug('ChluDB InMemory Index ready')
     }
 
     _addReviewRecord({ multihash, reviewRecord: obj, bitcoinTransactionHash, authorDidId, subjectDidId }) {

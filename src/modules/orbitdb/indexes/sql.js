@@ -11,8 +11,12 @@ class ChluSQLIndex extends ChluAbstractIndex {
     }
 
     async start() {
+        this.chluIpfs.logger.debug('ChluDB SQL Index: starting ...')
         const options = defaults(this.options || {}, {
             host: 'localhost',
+            port: null, // dialect default
+            logging: false, // TODO: set up logger to use chluIpfs logger
+            database: 'chlu',
             username: 'chlu',
             password: 'chlu',
             storage: path.join(this.chluIpfs.directory, 'db.sqlite'),
@@ -24,12 +28,15 @@ class ChluSQLIndex extends ChluAbstractIndex {
                 idle: 10000
             },
         })
-        this.chluIpfs.logger.debug('ChluDB SQL Index: setting up DB ...')
-        this.chluIpfs.logger.warn(`ChluDB SQL Index: using SQLite at ${options.storage}`)
         this.sequelize = new Sequelize(Object.assign({}, options, {
             operatorsAliases: false
         }))
-        // TODO: network namespace!
+        const destination = options.dialect === 'sqlite' ? options.storage : options.host
+        this.chluIpfs.logger.debug(`ChluDB SQL Index: connection to ${options.dialect} at ${destination} => ...`)
+        await this.sequelize.authenticate()
+        this.chluIpfs.logger.debug(`ChluDB SQL Index: connection to ${options.dialect} at ${destination} => OK`)
+        this.chluIpfs.logger.debug('ChluDB SQL Index: setting up DB ...')
+        // TODO: Chlu network namespace!
         this.ReviewRecord = this.sequelize.define('reviewrecord', {
             data: Sequelize.JSONB,
             latestVersion: Sequelize.STRING,
@@ -44,9 +51,24 @@ class ChluSQLIndex extends ChluAbstractIndex {
         this.chluIpfs.logger.debug('ChluDB SQL Index: Ready')
     }
 
+    async clear() {
+        this.chluIpfs.logger.debug('ChluDB SQL Index: Clearing')
+        const rrsDeleted = await this.ReviewRecord.destroy({ truncate: true })
+        this.chluIpfs.logger.debug(`ChluDB SQL Index: Deleted ${rrsDeleted} RR rows`)
+        const didsDeleted = await this.DID.destroy({ truncate: true })
+        this.chluIpfs.logger.debug(`ChluDB SQL Index: Deleted ${didsDeleted} DID rows`)
+        this.chluIpfs.logger.debug('ChluDB SQL Index: Cleared')
+    }
+
     async stop() {
         this.chluIpfs.logger.debug('ChluDB SQL Index: Closing ...')
-        await this.sequelize.close()
+        if (this.options.deleteOnClose) {
+            this.chluIpfs.logger.debug('ChluDB SQL Index: Deleting all data (delete on close: true)')
+            await this.clear()
+        }
+        if (this.sequelize) {
+            await this.sequelize.close()
+        }
         this.chluIpfs.logger.debug('ChluDB SQL Index: Closed')
     }
 

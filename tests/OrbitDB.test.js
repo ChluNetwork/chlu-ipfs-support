@@ -70,6 +70,16 @@ describe('OrbitDB Module', () => {
                 {
                     name: 'SQL (SQLite)',
                     Index: require('../src/modules/orbitdb/indexes/sql')
+                },
+                {
+                    name: 'SQL (PostgreSQL)',
+                    Index: require('../src/modules/orbitdb/indexes/sql'),
+                    options: {
+                        dialect: 'postgres',
+                        username: 'postgres',
+                        password: 'postgres',
+                        database: 'chlu_test'
+                    }
                 }
             )
         }
@@ -84,6 +94,7 @@ describe('OrbitDB Module', () => {
 
                 beforeEach(async () => {
                     idx = new Index();
+                    idx.options = item.options || {}
                     idx.chluIpfs = chluIpfs
                     await idx.start()
                     reviewOverride = null
@@ -91,8 +102,8 @@ describe('OrbitDB Module', () => {
                 });
 
                 afterEach(async () => {
+                    await idx.clear()
                     await idx.stop()
-                    if (env.isNode()) rimraf.sync(path.join(directory, 'db.sqlite'))
                 })
 
                 it('keeps the new review list in order', async () => {
