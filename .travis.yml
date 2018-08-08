@@ -12,7 +12,7 @@ before_install:
 cache:
   yarn: true
 
-script: npm run test
+script: yarn test
 
 services:
   - postgresql
@@ -23,5 +23,14 @@ before_script:
   - sh -e /etc/init.d/xvfb start
 
 addons:
-  postgresql: '10.4'
+  postgresql: '10'
+  apt:
+    packages:
+    - postgresql-10
+    - postgresql-client-10
   firefox: 'latest'
+
+env:
+  global:
+    - CHLU_POSTGRESQL_USER=postgres
+    - PGPORT=5433

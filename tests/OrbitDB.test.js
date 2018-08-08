@@ -76,10 +76,11 @@ describe('OrbitDB Module', () => {
                     Index: require('../src/modules/orbitdb/indexes/sql'),
                     options: {
                         dialect: 'postgres',
-                        username: 'postgres',
-                        password: 'postgres',
+                        username: process.env.CHLU_POSTGRESQL_USER,
+                        password: process.env.CHLU_POSTGRESQL_PASSWORD || '',
                         database: 'chlu_test'
-                    }
+                    },
+                    skip: !process.env.CHLU_POSTGRESQL_USER
                 }
             )
         }
