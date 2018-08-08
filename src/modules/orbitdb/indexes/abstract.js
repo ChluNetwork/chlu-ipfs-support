@@ -77,6 +77,9 @@ class ChluAbstractIndex {
 
     async stop() {
     }
+
+    async clear() {
+    }
     
     // Review records
 
