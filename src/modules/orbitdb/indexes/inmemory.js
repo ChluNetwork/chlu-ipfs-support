@@ -66,7 +66,7 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
             }
             // Add update specific info
             if (isUpdate) {
-                const previousVersion = this._getLatestReviewRecordUpdate(obj.previous_version_multihash)
+                const previousVersion = this._getLatestReviewRecordUpdate(obj.previous_version_multihash).multihash
                 const existing = data[previousVersion] || {}
                 existing.nextVersion = multihash
                 const nextVersionData = data[multihash] || {};
@@ -80,11 +80,13 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
     }
 
     _getLatestReviewRecordUpdate(multihash) {
-        return this.followPointerAcyclic(multihash, this._index.reviews.data, 'nextVersion', undefined, IPFSUtils.isValidMultihash);
+        const updatedMultihash = this.followPointerAcyclic(multihash, this._index.reviews.data, 'nextVersion', undefined, IPFSUtils.isValidMultihash);
+        return { multihash: updatedMultihash }
     }
 
     _getOriginalReviewRecord(multihash) {
-        return this.followPointerAcyclic(multihash, this._index.reviews.data, 'previousVersion', undefined, IPFSUtils.isValidMultihash);
+        const originalMultihash = this.followPointerAcyclic(multihash, this._index.reviews.data, 'previousVersion', undefined, IPFSUtils.isValidMultihash);
+        return { multihash: originalMultihash }
     }
 
     followPointerAcyclic(value, kvstore, pointerName, stack = [value], validate = null) {
@@ -106,7 +108,8 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
     }
 
     _getReviewRecordList(offset, limit) {
-        return slice(this._index.reviews.list, offset, limit);
+        return slice(this._index.reviews.list, offset, limit)
+            .map(multihash => ({ multihash }))
     }
 
     _getReviewRecordCount() {
@@ -128,10 +131,12 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
 
     _getReviewsAboutDID(didId, offset, limit) {
         return slice(this._index.did.reviewsAboutDid[didId], offset, limit)
+            .map(multihash => ({ multihash }))
     }
 
     _getReviewsWrittenByDID(didId, offset, limit) {
         return slice(this._index.did.reviewsWrittenByDid[didId], offset, limit)
+            .map(multihash => ({ multihash }))
     }
 
 }

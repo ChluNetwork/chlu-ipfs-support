@@ -81,8 +81,8 @@ class ChluSQLIndex extends ChluAbstractIndex {
             // Fix history by setting last review record
             for (const item of data.history) {
                 if (get(item, 'multihash', null)) {
-                    if (item.multihash === data.previous_version_multihash) previousFixed = true
                     await this._updateLatestVersion(item.multihash, multihash)
+                    if (item.multihash === data.previous_version_multihash) previousFixed = true
                 } else {
                     this.chluIpfs.logger.warn(`OrbitDB SQL Index: Malformed History for ${multihash}`)
                 }
@@ -107,7 +107,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
             })
         } else {
             entity.data = data
-            entity.latestVersion = await this.getLatestReviewRecordUpdate(latestVersion)
+            entity.latestVersion = (await this.getLatestReviewRecordUpdate(latestVersion)).multihash
             if (!entity.bitcoinTransactionHash) {
                 // Prevent attack by not overwriting it if it was already set
                 // the first one has to be the right one
@@ -146,15 +146,15 @@ class ChluSQLIndex extends ChluAbstractIndex {
 
     async _getLatestReviewRecordUpdate(multihash) {
         const entity = await this._readReviewRecord(multihash)
-        return entity ? entity.latestVersion : multihash
+        return { multihash: entity ? entity.latestVersion : multihash }
     }
 
     async _getOriginalReviewRecord(multihash) {
         const entity = await this._readReviewRecord(multihash)
         if (get(entity, 'data.history.length', 0) > 0) {
-            return entity.data.history[entity.data.history.length-1].multihash
+            return { multihash: entity.data.history[entity.data.history.length-1].multihash }
         }
-        return multihash
+        return { multihash }
     }
 
     async _getReviewRecordMetadata(multihash) {
@@ -178,17 +178,15 @@ class ChluSQLIndex extends ChluAbstractIndex {
                 }
             }
         }) 
-        return array.map(v => v.data.multihash)
+        return array.map(v => ({ multihash: v.data.multihash, reviewRecord: v.data }))
     }
 
     async _getReviewRecordCount() {
         // TODO: implementation
         return await this.ReviewRecord.count({
             where: {
-                data: {
-                    history: {
-                        [Sequelize.Op.eq]: []
-                    }
+                'data.previous_version_multihash': {
+                    [Sequelize.Op.eq]: null
                 }
             }
         })
@@ -219,12 +217,14 @@ class ChluSQLIndex extends ChluAbstractIndex {
         if (entity) {
             return {
                 publicDidDocument: entity.publicDidDocument,
-                multihash: entity.didDocumentMultihash
+                multihash: entity.didDocumentMultihash,
+                previousVersions: entity.previousVersions
             }
         } else {
             return {
                 publicDidDocument: null,
-                multihash: null
+                multihash: null,
+                previousVersions: []
             }
         }
     }
@@ -261,7 +261,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
                 ]
             }
         }) 
-        return array.map(v => v.data.multihash)
+        return array.map(v => ({ multihash: v.data.multihash, reviewRecord: v.data }))
     }
 
     async _getReviewsWrittenByDID(didId, offset, limit) {
@@ -284,7 +284,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
                 ]
             }
         }) 
-        return array.map(v => v.data.multihash)
+        return array.map(v => ({ multihash: v.data.multihash, reviewRecord: v.data }))
     }
 
 }
