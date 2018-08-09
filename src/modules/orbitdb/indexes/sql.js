@@ -172,11 +172,15 @@ class ChluSQLIndex extends ChluAbstractIndex {
     async _getReviewRecordMetadata(multihash) {
         const entity = await this._readReviewRecord(multihash)
         if (entity) {
-            return Object.assign({
+            const metadata = Object.assign({
                 bitcoinTransactionHash: entity.bitcoinTransactionHash
             }, entity.data.metadata)
+            return formatReviewRecords([entity]).map(x => {
+                x.metadata = metadata
+                return x
+            })
         }
-        return null
+        return { metadata: null, multihash } 
     }
 
     async _getReviewRecordList(offset = 0, limit = 0) {

@@ -176,7 +176,7 @@ class Validator {
             // retrieve it from DB
             this.chluIpfs.logger.debug('Searching OrbitDB for TX for ' + rr.multihash);
             const metadata = await this.chluIpfs.orbitDb.getReviewRecordMetadata(rr.multihash);
-            transactionHash = metadata ? metadata.bitcoinTransactionHash : null;
+            transactionHash = get(metadata, 'metadata.bitcoinTransactionHash', null)
         }
         if (transactionHash) {
             this.chluIpfs.logger.debug('Found TX ' + transactionHash + ' for ' + rr.multihash);

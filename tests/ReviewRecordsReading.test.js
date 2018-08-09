@@ -18,6 +18,7 @@ describe('ReviewRecord reading and other functions', () => {
             cache: { enabled: false },
             logger: logger('Customer')
         });
+        chluIpfs.orbitDb.getReviewRecordMetadata = sinon.stub().resolves(null)
         chluIpfs.waitUntilReady = sinon.stub().resolves();
         chluIpfs.didIpfsHelper.publish = sinon.stub().resolves()
         await chluIpfs.didIpfsHelper.start() // generate a DID
