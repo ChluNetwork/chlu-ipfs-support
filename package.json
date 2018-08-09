@@ -14,7 +14,7 @@
     "test-browser": "karma start --single-run",
     "test-watch": "mocha --opts tests/mocha.opts --watch",
     "test-coverage": "nyc mocha --opts tests/mocha.opts",
-    "lint": "eslint src tests bin",
+    "lint": "eslint src tests",
     "docs": "documentation build src/index.js -f html -o docs",
     "prepublish": "npm run build"
   },

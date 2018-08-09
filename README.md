@@ -33,6 +33,10 @@ Check out the [examples](https://github.com/ChluNetwork/chlu-ipfs-support/blob/m
 This is not supported right now, however everything should work if you follow the browser instructions and only run ChluIPFS in the renderer process of electron.
 Keep in mind that you will run into the same limitations of running ChluIPFS in the browser, and that this is not tested.
 
+### Hacking on the code
+
+Check out [CONTRIBUTING](https://github.com/ChluNetwork/chlu-ipfs-support/blob/master/CONTRIBUTING.md)
+
 ### Running a Collector
 
 Check out the [Chlu Collector](https://github.com/ChluNetwork/chlu-collector) README.
@@ -98,11 +102,16 @@ const chluIpfs = new ChluIPFS()
 await chluIpfs.start() // this operation is async. Wait for the promise to resolve before doing anything else
 // ChluIPFS logs to console in debug level by default. Pass a custom logger object to the constructor to
 // change this behavior. The methods that the logger should contain are error, warn, info and debug
+// Check out the JS API Docs above for more
 ```
 
 Also check out the [browser examples](https://github.com/ChluNetwork/chlu-ipfs-support/blob/master/examples)
 
+__Note:__ browser examples are severely outdated and need refactoring
+
 ## Undocumented differences from the protocol
+
+__Note:__ This section is severely outdated and needs reviewing.
 
 This is a collection of features and design choices not compatible with the Chlu Protocol. They exist to allow this to work before the protocol is finalized.
 
