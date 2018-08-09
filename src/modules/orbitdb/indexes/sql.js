@@ -15,13 +15,14 @@ class ChluSQLIndex extends ChluAbstractIndex {
         const options = defaults(this.options || {}, {
             host: 'localhost',
             port: null, // dialect default
-            logging: false, // TODO: set up logger to use chluIpfs logger
+            logging: (...args) => this.chluIpfs.logger.debug(`[SQL] ${args.join(' ')}`),
             database: 'chlu',
             username: 'chlu',
             password: 'chlu',
             storage: path.join(this.chluIpfs.directory, 'db.sqlite'),
             dialect: 'sqlite',
             pool: {
+                // TODO: review these settings, choose appropriate defaults.
                 max: 5,
                 min: 0,
                 acquire: 30000,
@@ -29,33 +30,43 @@ class ChluSQLIndex extends ChluAbstractIndex {
             },
         })
         this.sequelize = new Sequelize(Object.assign({}, options, {
-            operatorsAliases: false
+            operatorsAliases: false // important security setting
         }))
         const destination = options.dialect === 'sqlite' ? options.storage : options.host
         this.chluIpfs.logger.debug(`ChluDB SQL Index: connection to ${options.dialect} at ${destination} => ...`)
-        await this.sequelize.authenticate()
+        await this.sequelize.authenticate() // this tests the connection
         this.chluIpfs.logger.debug(`ChluDB SQL Index: connection to ${options.dialect} at ${destination} => OK`)
-        this.chluIpfs.logger.debug('ChluDB SQL Index: setting up DB ...')
-        // TODO: Chlu network namespace!
+        this.chluIpfs.logger.debug('ChluDB SQL Index: Defining Models')
         this.ReviewRecord = this.sequelize.define('reviewrecord', {
             data: Sequelize.JSONB,
             latestVersion: Sequelize.STRING,
-            bitcoinTransactionHash: Sequelize.STRING
+            bitcoinTransactionHash: Sequelize.STRING,
+            chluNetwork: Sequelize.STRING
         })
         this.DID = this.sequelize.define('did', {
             publicDidDocument: Sequelize.JSONB,
             didDocumentMultihash: Sequelize.STRING,
-            previousVersions: Sequelize.JSONB
+            previousVersions: Sequelize.JSONB,
+            chluNetwork: Sequelize.STRING
         })
+        this.chluIpfs.logger.debug('ChluDB SQL Index: Syncing => ...')
         await this.sequelize.sync()
-        this.chluIpfs.logger.debug('ChluDB SQL Index: Ready')
+        this.chluIpfs.logger.debug('ChluDB SQL Index: Syncing => OK, READY')
     }
 
     async clear() {
         this.chluIpfs.logger.debug('ChluDB SQL Index: Clearing')
-        const rrsDeleted = await this.ReviewRecord.destroy({ truncate: true })
+        const rrsDeleted = await this.ReviewRecord.destroy({
+            where: {
+                chluNetwork: this.chluIpfs.network
+            }
+        })
         this.chluIpfs.logger.debug(`ChluDB SQL Index: Deleted ${rrsDeleted} RR rows`)
-        const didsDeleted = await this.DID.destroy({ truncate: true })
+        const didsDeleted = await this.DID.destroy({
+            where: {
+                chluNetwork: this.chluIpfs.network
+            }
+        })
         this.chluIpfs.logger.debug(`ChluDB SQL Index: Deleted ${didsDeleted} DID rows`)
         this.chluIpfs.logger.debug('ChluDB SQL Index: Cleared')
     }
@@ -101,6 +112,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
             // TODO: workaround so I can query for RRs with a null previous_version_multihash
             if (isEmpty(data.previous_version_multihash)) data.previous_version_multihash = null
             entity = await this.ReviewRecord.create({
+                chluNetwork: this.chluIpfs.network,
                 data,
                 latestVersion,
                 bitcoinTransactionHash,
@@ -122,6 +134,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
         let entity = await this._readReviewRecord(multihash)
         if (!entity) {
             entity = await this.ReviewRecord.create({
+                chluNetwork: this.chluIpfs.network,
                 data: { multihash },
                 latestVersion,
                 bitcoinTransactionHash: null
@@ -135,6 +148,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
     async _readReviewRecord(multihash) {
         return await this.ReviewRecord.findOne({
             where: {
+                chluNetwork: this.chluIpfs.network,
                 data: {
                     multihash: {
                         [Sequelize.Op.eq]: multihash
@@ -173,6 +187,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
             limit: limit > 0 ? limit : undefined,
             order: [ ['createdAt', 'DESC'] ],
             where: {
+                chluNetwork: this.chluIpfs.network,
                 'data.previous_version_multihash': {
                     [Sequelize.Op.eq]: null
                 }
@@ -185,6 +200,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
         // TODO: implementation
         return await this.ReviewRecord.count({
             where: {
+                chluNetwork: this.chluIpfs.network,
                 'data.previous_version_multihash': {
                     [Sequelize.Op.eq]: null
                 }
@@ -196,6 +212,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
         let entity = await this._readDID(publicDidDocument.id)
         if (!entity) {
             entity = await this.DID.create({
+                chluNetwork: this.chluIpfs.network,
                 publicDidDocument,
                 didDocumentMultihash,
                 previousVersions: []
@@ -232,9 +249,8 @@ class ChluSQLIndex extends ChluAbstractIndex {
     async _readDID(didId) {
         const entity = await this.DID.findOne({
             where: {
-                'publicDidDocument.id': {
-                    [Sequelize.Op.eq]: didId
-                }
+                chluNetwork: this.chluIpfs.network,
+                'publicDidDocument.id': didId
             }
         })
         return entity
@@ -246,18 +262,11 @@ class ChluSQLIndex extends ChluAbstractIndex {
             limit: limit > 0 ? limit : undefined,
             order: [ ['createdAt', 'DESC'] ],
             where: {
-                [Sequelize.Op.and]: [
-                    {
-                        'data.previous_version_multihash': {
-                            [Sequelize.Op.eq]: null
-                        }
-                    },
-                    { 
-                        [Sequelize.Op.or]: [
-                            { 'data.popr.vendor_did': { [Sequelize.Op.eq]: didId } },
-                            { 'data.subject.did': { [Sequelize.Op.eq]: didId } },
-                        ]
-                    }
+                chluNetwork: this.chluIpfs.network,
+                'data.previous_version_multihash': null,
+                [Sequelize.Op.or]: [
+                    { 'data.popr.vendor_did': didId },
+                    { 'data.subject.did': didId },
                 ]
             }
         }) 
@@ -270,18 +279,9 @@ class ChluSQLIndex extends ChluAbstractIndex {
             limit: limit > 0 ? limit : undefined,
             order: [ ['createdAt', 'DESC'] ],
             where: {
-                [Sequelize.Op.and]: [
-                    {
-                        'data.previous_version_multihash': {
-                            [Sequelize.Op.eq]: null
-                        }
-                    },
-                    { 
-                        [Sequelize.Op.or]: [
-                            { 'data.customer_signature.creator': { [Sequelize.Op.eq]: didId } }
-                        ]
-                    }
-                ]
+                chluNetwork: this.chluIpfs.network,
+                'data.previous_version_multihash': null,
+                'data.customer_signature.creator': didId
             }
         }) 
         return array.map(v => ({ multihash: v.data.multihash, reviewRecord: v.data }))
