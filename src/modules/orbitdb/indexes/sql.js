@@ -86,7 +86,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
     async _addReviewRecord({ multihash, reviewRecord: data, bitcoinTransactionHash }) {
         // TODO: implementation
         if (multihash !== data.multihash) throw new Error('Multihash mismatch')
-        const { alreadyExisting } = await this._saveReviewRecord(data, multihash, bitcoinTransactionHash)
+        const { alreadyExisting } = await this._saveReviewRecord(data, bitcoinTransactionHash)
         if (!alreadyExisting) {
             let previousFixed = false
             // Fix history by setting last review record
@@ -104,7 +104,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
         }
     }
 
-    async _saveReviewRecord(data, latestVersion, bitcoinTransactionHash) {
+    async _saveReviewRecord(data, bitcoinTransactionHash) {
         let alreadyExisting = true
         let entity = await this._readReviewRecord(data.multihash)
         if (!entity) {
@@ -114,18 +114,9 @@ class ChluSQLIndex extends ChluAbstractIndex {
             entity = await this.ReviewRecord.create({
                 chluNetwork: this.chluIpfs.network,
                 data,
-                latestVersion,
+                latestVersionData: null,
                 bitcoinTransactionHash,
             })
-        } else {
-            entity.data = data
-            entity.latestVersion = (await this.getLatestReviewRecordUpdate(latestVersion)).multihash
-            if (!entity.bitcoinTransactionHash) {
-                // Prevent attack by not overwriting it if it was already set
-                // the first one has to be the right one
-                entity.bitcoinTransactionHash = bitcoinTransactionHash 
-            }
-            await entity.save()
         }
         return { entity, alreadyExisting }
     }
@@ -189,7 +180,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
     }
 
     async _getReviewRecordList(offset = 0, limit = 0) {
-        const array = await this.ReviewRecord.findAll({
+        const list = await this.ReviewRecord.findAll({
             offset: offset > 0 ? offset : undefined,
             limit: limit > 0 ? limit : undefined,
             order: [ ['createdAt', 'DESC'] ],
@@ -200,7 +191,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
                 }
             }
         }) 
-        return array.map(v => ({ multihash: v.data.multihash, reviewRecord: v.data }))
+        return formatReviewRecords(list)
     }
 
     async _getReviewRecordCount() {
@@ -264,7 +255,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
     }
 
     async _getReviewsAboutDID(didId, offset, limit) {
-        const array = await this.ReviewRecord.findAll({
+        const list = await this.ReviewRecord.findAll({
             offset: offset > 0 ? offset : undefined,
             limit: limit > 0 ? limit : undefined,
             order: [ ['createdAt', 'DESC'] ],
@@ -277,11 +268,11 @@ class ChluSQLIndex extends ChluAbstractIndex {
                 ]
             }
         }) 
-        return array.map(v => ({ multihash: v.data.multihash, reviewRecord: v.data }))
+        return formatReviewRecords(list)
     }
 
     async _getReviewsWrittenByDID(didId, offset, limit) {
-        const array = await this.ReviewRecord.findAll({
+        const list = await this.ReviewRecord.findAll({
             offset: offset > 0 ? offset : undefined,
             limit: limit > 0 ? limit : undefined,
             order: [ ['createdAt', 'DESC'] ],
@@ -291,9 +282,17 @@ class ChluSQLIndex extends ChluAbstractIndex {
                 'data.customer_signature.creator': didId
             }
         }) 
-        return array.map(v => ({ multihash: v.data.multihash, reviewRecord: v.data }))
+        return formatReviewRecords(list)
     }
 
+}
+
+function formatReviewRecords(list) {
+    return list.map(v => ({
+        multihash: get(v, 'data.multihash', null),
+        reviewRecord: get(v, 'latestVersionData', get(v, 'data', null)),
+        reviewRecordOriginal: get(v, 'data', null)
+    }))
 }
 
 module.exports = ChluSQLIndex;
