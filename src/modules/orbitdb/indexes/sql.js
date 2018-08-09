@@ -39,7 +39,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
         this.chluIpfs.logger.debug('ChluDB SQL Index: Defining Models')
         this.ReviewRecord = this.sequelize.define('reviewrecord', {
             data: Sequelize.JSONB,
-            latestVersion: Sequelize.STRING,
+            latestVersionData: Sequelize.JSONB,
             bitcoinTransactionHash: Sequelize.STRING,
             chluNetwork: Sequelize.STRING
         })
@@ -92,14 +92,14 @@ class ChluSQLIndex extends ChluAbstractIndex {
             // Fix history by setting last review record
             for (const item of data.history) {
                 if (get(item, 'multihash', null)) {
-                    await this._updateLatestVersion(item.multihash, multihash)
+                    await this._updateLatestVersion(item.multihash, data)
                     if (item.multihash === data.previous_version_multihash) previousFixed = true
                 } else {
                     this.chluIpfs.logger.warn(`OrbitDB SQL Index: Malformed History for ${multihash}`)
                 }
             }
             if (!previousFixed && data.previous_version_multihash) {
-                await this._updateLatestVersion(data.previous_version_multihash, multihash)
+                await this._updateLatestVersion(data.previous_version_multihash, data)
             }
         }
     }
@@ -130,17 +130,17 @@ class ChluSQLIndex extends ChluAbstractIndex {
         return { entity, alreadyExisting }
     }
 
-    async _updateLatestVersion(multihash, latestVersion) {
+    async _updateLatestVersion(multihash, latestVersionData) {
         let entity = await this._readReviewRecord(multihash)
         if (!entity) {
             entity = await this.ReviewRecord.create({
                 chluNetwork: this.chluIpfs.network,
                 data: { multihash },
-                latestVersion,
+                latestVersionData,
                 bitcoinTransactionHash: null
             })
         } else {
-            entity.latestVersion = latestVersion
+            entity.latestVersionData = latestVersionData
             await entity.save()
         }
     }
@@ -160,13 +160,20 @@ class ChluSQLIndex extends ChluAbstractIndex {
 
     async _getLatestReviewRecordUpdate(multihash) {
         const entity = await this._readReviewRecord(multihash)
-        return { multihash: entity ? entity.latestVersion : multihash }
+        return {
+            multihash: get(entity, 'latestVersionData.multihash', multihash),
+            reviewRecord: get(entity, 'latestVersionData', get(entity, 'data', null))
+        }
     }
 
     async _getOriginalReviewRecord(multihash) {
         const entity = await this._readReviewRecord(multihash)
         if (get(entity, 'data.history.length', 0) > 0) {
-            return { multihash: entity.data.history[entity.data.history.length-1].multihash }
+            const item = entity.data.history[entity.data.history.length-1]
+            return {
+                multihash: get(item, 'multihash', null),
+                reviewRecord: get(item, 'data', null)
+            }
         }
         return { multihash }
     }
