@@ -29,25 +29,19 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         };
     }
 
-    _addReviewRecord({ multihash, reviewRecord: obj, bitcoinTransactionHash, authorDidId, subjectDidId }) {
+    _addReviewRecord({ multihash, reviewRecord: obj, bitcoinTransactionHash = null, authorDidId, subjectDidId }) {
         const list = this._index.reviews.list
         const data = this._index.reviews.data
         const isUpdate = this.chluIpfs.reviewRecords.isReviewRecordUpdate(obj)
         // Step 1: Add review record info to db
         const isNew = !data[multihash]
-        if (isNew) data[multihash] = {
-            addedAt: getUnixTimestamp(),
-            bitcoinTransactionHash: [],
-            valid: isEmpty(obj.errors)
-        }
-        const rrData = data[multihash]
-        if (bitcoinTransactionHash && rrData.bitcoinTransactionHash.indexOf(bitcoinTransactionHash) < 0) {
-            rrData.bitcoinTransactionHash.push(bitcoinTransactionHash)
-        }
         if (isNew) {
+            data[multihash] = {
+                addedAt: getUnixTimestamp(),
+                bitcoinTransactionHash
+            }
             // Add non-update specific info
             if (!isUpdate && isNew) {
-                // TODO: don't trust the first bitcoinTransactionHash submitted but keep all of them in the index
                 list.splice(0, 0, multihash);
                 if (subjectDidId) {
                     if (!this._index.did.reviewsAboutDid[subjectDidId]) {
