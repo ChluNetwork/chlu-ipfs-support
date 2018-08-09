@@ -29,7 +29,7 @@ describe('DID Module', () => {
         }
         // stubs
         chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore)
-        chluIpfs.orbitDb.getDID = sinon.stub().callsFake(async id => didStore[id] ? 'Qmabc' : null)
+        chluIpfs.orbitDb.getDID = sinon.stub().callsFake(async id => ({ multihash: didStore[id] ? 'Qmabc' : null }))
         chluIpfs.orbitDb.putDID = sinon.stub().callsFake(did => {
             didStore[did.id] = did
         })
@@ -82,9 +82,9 @@ describe('DID Module', () => {
         // is already resolved because it is awaited by the publish() call
         const multihash = await chluIpfs.ipfsUtils.putJSON.returnValues[0]
         const existingMultihash = await chluIpfs.orbitDb.getDID.returnValues[0]
-        expect(existingMultihash).to.be.null
+        expect(existingMultihash.multihash).to.be.null
         expect(multihash).to.be.a('string')
-        expect(chluIpfs.orbitDb.putDID.calledWith(chluIpfs.didIpfsHelper.didId, multihash)).to.be.true
+        expect(chluIpfs.orbitDb.putDID.calledWith(multihash)).to.be.true
     });
 
     it('generates DID', async () => {

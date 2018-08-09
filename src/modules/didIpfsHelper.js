@@ -180,9 +180,9 @@ class ChluDIDIPFSHelper {
         if (!existingMultihash || existingMultihash !== multihash) {
             this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}: publish required, writing to OrbitDB...`)
             if (waitForReplication) {
-                await this.chluIpfs.orbitDb.putDIDAndWaitForReplication(publicDidDocument.id, multihash, signature)
+                await this.chluIpfs.orbitDb.putDIDAndWaitForReplication(multihash, signature)
             } else {
-                await this.chluIpfs.orbitDb.putDID(publicDidDocument.id, multihash, signature)
+                await this.chluIpfs.orbitDb.putDID(multihash, signature)
             }
             this.chluIpfs.logger.debug(`Publish DID ${publicDidDocument.id} DONE`)
         } else {
@@ -202,15 +202,23 @@ class ChluDIDIPFSHelper {
             return wellKnown
         }
         this.chluIpfs.logger.debug(`GetDID ${didId}: calling OrbitDB ${waitUntilPresent ? ', Waiting until present' : ''}`)
-        const multihash = await this.chluIpfs.orbitDb.getDID(didId, waitUntilPresent)
-        if (!multihash) {
+        const didData = await this.chluIpfs.orbitDb.getDID(didId, waitUntilPresent)
+        if (!get(didData, 'multihash')) {
             this.chluIpfs.logger.debug(`GetDID ${didId} not found`)
             return null
         }
-        const data = await this.readPublicDIDDocument(multihash)
-        this.chluIpfs.logger.debug(`GetDID ${didId} => ${multihash} => ${JSON.stringify(data)}`)
-        // TODO: maybe this should return the multihash too
-        return data
+        const multihash = didData.multihash
+        // TODO: maybe return multihash too?
+        if (get(didData, 'publicDidDocument')) {
+            const publicDidDocument = didData.publicDidDocument
+            this.chluIpfs.logger.debug(`GetDID ${didId} => ${multihash} => ${JSON.stringify(publicDidDocument)}`)
+            return publicDidDocument
+        } else {
+            this.chluIpfs.logger.debug(`GetDID ${didId} => ${multihash} => reading from IPFS ...`)
+            const data = await this.readPublicDIDDocument(multihash)
+            this.chluIpfs.logger.debug(`GetDID ${didId} => ${multihash} => ${JSON.stringify(data)}`)
+            return data
+        }
     }
 
     async readPublicDIDDocument(multihash) {

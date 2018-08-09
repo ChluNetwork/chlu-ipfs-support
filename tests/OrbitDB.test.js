@@ -82,6 +82,8 @@ describe('OrbitDB Module', () => {
             const Index = item.Index
             const d = item.only ? describe.only : (item.skip ? describe.skip : describe)
 
+            // TODO: in these tests, do writes through the OrbitDB module functions instead of skipping those
+
             d(`Chlu Store ${name} Index`, () => {
                 let idx;
 

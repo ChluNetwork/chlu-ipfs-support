@@ -84,14 +84,9 @@ class DB {
         return await this.db.getLatestReviewRecordUpdate(multihash) || multihash;
     }
 
-    async putReviewRecord(multihash, authorDidId, subjectDidId, previousVersionMultihash = null, txId = null, bitcoinNetwork = null) {
-        if (previousVersionMultihash) {
-            this.chluIpfs.logger.debug('Writing to OrbitDB: Review Update from ' + multihash + ' to ' + previousVersionMultihash);
-            await this.db.updateReviewRecord(multihash, previousVersionMultihash);
-        } else {
-            this.chluIpfs.logger.debug('Writing to OrbitDB: Review Record ' + multihash + (txId ? (' with txId ' + txId) : ''));
-            await this.db.addReviewRecord(multihash, authorDidId, subjectDidId, txId, bitcoinNetwork);
-        }
+    async putReviewRecord(multihash, txId = null, bitcoinNetwork = null) {
+        this.chluIpfs.logger.debug('Writing to OrbitDB: Review Record ' + multihash + (txId ? (' with txId ' + txId) : ''));
+        await this.db.addReviewRecord(multihash, txId, bitcoinNetwork);
     }
 
     async putReviewRecordAndWaitForReplication(...args) {
@@ -103,9 +98,10 @@ class DB {
         this.chluIpfs.logger.debug('Remote replication event received: OrbitDB Write operation Done');
     }
 
-    async putDID(didId, didDocumentMultihash, signature) {
-        this.chluIpfs.logger.debug(`Writing DID to OrbitDB: ${didId} => ${didDocumentMultihash}`)
-        return await this.db.putDID(didId, didDocumentMultihash, signature)
+    async putDID(didDocumentMultihash, signature) {
+        this.chluIpfs.logger.debug(`Writing DID to OrbitDB: ${didDocumentMultihash}`)
+        // TODO: verify signature here?
+        return await this.db.putDID( didDocumentMultihash, signature)
     }
 
     async putDIDAndWaitForReplication(...args) {
@@ -119,22 +115,14 @@ class DB {
 
     async getDID(didId, waitUntilPresent = false) {
         // TODO: move sig checking to orbit-db updateIndex
-        let result = null, valid = false, firstTry = true
+        let result = null, firstTry = true
         this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => ...`)
         while(!get(result, 'multihash') && (firstTry || waitUntilPresent)) {
             firstTry = false
             result = await this.db.getDID(didId)
-            valid = false
-            const { multihash, signature } = result
-            if (signature) {
-                this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => verifying signature`)
-                valid = await this.chluIpfs.didIpfsHelper.verifyMultihashWithDIDDocumentMultihash(multihash, multihash, signature)
-                this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => signature valid: ${valid ? 'yes' : 'no'}`)
-            } else {
-                this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => missing signature`)
-            }
-            if ((!multihash || !valid) && waitUntilPresent) {
-                this.chluIpfs.logger.info(`getDID ${didId} waiting (not in OrbitDB or not valid)...`)
+            const multihash = get(result, 'multihash')
+            if (!multihash && waitUntilPresent) {
+                this.chluIpfs.logger.info(`getDID ${didId} waiting (not in OrbitDB)...`)
                 // wait for replication/write then try again
                 await new Promise(resolve => {
                     this.chluIpfs.events.once('db/replicated', address => {
@@ -147,13 +135,8 @@ class DB {
                 this.chluIpfs.logger.info(`getDID ${didId} OrbitDB has been updated, trying again...`)
             }
         }
-        if (valid) {
-            this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => ${result.multihash}`)
-            return result.multihash
-        } else {
-            this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => failed`)
-            return null
-        }
+        this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => ${result.multihash}`)
+        return result
     }
 
     async open() {

@@ -1,7 +1,6 @@
 const IPFSUtils = require('../../utils/ipfs');
 const Store = require('orbit-db-store');
 const ChluAbstractIndex = require('./indexes/abstract');
-const DIDIPFSHelper = require('../didIpfsHelper')
 
 const version = 1;
 
@@ -17,13 +16,11 @@ class ChluStore extends Store {
         }
     }
 
-    addReviewRecord(multihash, authorDidId, subjectDidId, bitcoinTransactionHash, bitcoinNetwork) {
+    addReviewRecord(multihash, bitcoinTransactionHash, bitcoinNetwork) {
         IPFSUtils.validateMultihash(multihash);
         const operation = {
             op: ChluAbstractIndex.operations.ADD_REVIEW_RECORD,
             multihash,
-            authorDidId,
-            subjectDidId,
             version
         };
         if (bitcoinTransactionHash) {
@@ -34,23 +31,9 @@ class ChluStore extends Store {
         return this._addOperation(operation);
     }
 
-    updateReviewRecord(multihash, previousVersionMultihash) {
-        IPFSUtils.validateMultihash(multihash);
-        IPFSUtils.validateMultihash(previousVersionMultihash);
-        // TODO: more checks
-        return this._addOperation({
-            op: ChluAbstractIndex.operations.UPDATE_REVIEW_RECORD,
-            multihash,
-            previousVersionMultihash,
-            version
-        });
-    }
-
-    putDID(didId, multihash, signature) {
-        if (!DIDIPFSHelper.isDIDID(didId)) throw new Error('DID ID invalid')
+    putDID(multihash, signature) {
         return this._addOperation({
             op: ChluAbstractIndex.operations.PUT_DID,
-            didId,
             multihash,
             signature,
             version

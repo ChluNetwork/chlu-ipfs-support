@@ -280,14 +280,12 @@ class ReviewRecords {
         }
         this.chluIpfs.logger.debug('Stored review record ' + multihash + ' in IPFS');
         this.chluIpfs.logger.debug('Running Publish tasks for ' + multihash);
-        const subjectDidId = get(reviewRecord, 'popr.vendor_did', get(reviewRecord, 'subject.did', null)) || null // force empty string to null
-        const authorDidId = get(reviewRecord, 'customer_signature.creator', null)
         // TODO: what if didId ends up null?
         await Promise.all([
             // Wait for it to be remotely pinned
             this.waitForRemotePin(multihash, txId),
             // Write to OrbitDB and wait for replication
-            this.writeToOrbitDB(multihash, authorDidId, subjectDidId, previousVersionMultihash, txId)
+            this.writeToOrbitDB(multihash, txId)
         ]);
         // Operation succeeded: set this as the last review record published
         this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: executing post-publish tasks');
@@ -307,12 +305,9 @@ class ReviewRecords {
         }, constants.eventTypes.pinned + '_' + multihash);
     }
 
-    async writeToOrbitDB(multihash, authorDidId, subjectDidId, previousVersionMultihash = null, txId = null) {
+    async writeToOrbitDB(multihash, txId = null) {
         await this.chluIpfs.orbitDb.putReviewRecordAndWaitForReplication(
             multihash,
-            authorDidId,
-            subjectDidId,
-            previousVersionMultihash,
             txId,
             txId ? this.chluIpfs.bitcoin.getNetwork() : null
         );
