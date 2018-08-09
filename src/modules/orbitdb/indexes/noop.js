@@ -7,6 +7,10 @@ class ChluNOOPIndex extends ChluAbstractIndex {
         super(version)
     }
 
+    async updateIndex(){
+        // Do nothing
+    }
+
     async start() {
         this.chluIpfs.logger.warn('ChluDB NOOP Index started. This Index will silently do nothing!')
     }
