@@ -96,7 +96,7 @@ class ReviewRecords {
         if (!reviewRecord || !isEmpty(reviewRecord.errors)) {
             this.chluIpfs.logger.debug(`Reading Review Record ${m} from metadata insufficient: reading from IPFS`)
             if (getLatestVersion) {
-                m = await this.chluIpfs.orbitDb.getLatestReviewRecordUpdate(m);
+                m = (await this.chluIpfs.orbitDb.getLatestReviewRecordUpdate(m)).multihash
             }
             reviewRecord = await this.getReviewRecord(m);
             if (resolve || validate) reviewRecord = await this.resolveReviewRecord(reviewRecord, useCache)
