@@ -79,28 +79,44 @@ class ReviewRecords {
             useCache = true,
             resolve = true
         } = options;
-        let m = multihash;
-        if (getLatestVersion) {
-            m = await this.chluIpfs.orbitDb.getLatestReviewRecordUpdate(multihash);
+        let reviewRecord = null
+        let m = multihash
+        this.chluIpfs.logger.debug(`Reading Review Record ${m}, getLatestVersion ${getLatestVersion}`)
+        this.chluIpfs.logger.debug(`Reading Review Record ${m}, checking metadata => ...`)
+        const metadata = await this.chluIpfs.orbitDb.getReviewRecordMetadata(m)
+        this.chluIpfs.logger.debug(`Reading Review Record ${m}, checking metadata => OK`)
+        if (getLatestVersion && get(metadata, reviewRecord)) {
+            this.chluIpfs.logger.debug(`Reading Review Record ${m} from metadata`)
+            reviewRecord = metadata.reviewRecord
         }
-        let reviewRecord = await this.getReviewRecord(m);
-        if (resolve || validate) reviewRecord = await this.resolveReviewRecord(reviewRecord, useCache)
-        reviewRecord.errors = [];
-        reviewRecord.multihash = m;
-        if (validate) {
-            const validateOptions = typeof validate === 'object' ? validate : {};
-            if (!validateOptions.bitcoinTransactionHash) {
-                validateOptions.bitcoinTransactionHash = bitcoinTransactionHash;
+        if (!getLatestVersion && get(metadata, 'reviewRecordOriginal')) {
+            this.chluIpfs.logger.debug(`Reading Review Record ${m} from metadata`)
+            reviewRecord = metadata.reviewRecordOriginal
+        }
+        if (!reviewRecord || !isEmpty(reviewRecord.errors)) {
+            this.chluIpfs.logger.debug(`Reading Review Record ${m} from metadata insufficient: reading from IPFS`)
+            if (getLatestVersion) {
+                m = await this.chluIpfs.orbitDb.getLatestReviewRecordUpdate(m);
             }
-            try {
-                const error = await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
-                // errors array needs to stay JSON encodable
-                if (error) reviewRecord.errors = reviewRecord.errors.concat({
-                    message: error.message || error
-                });
-            } catch (error) {
-                this.chluIpfs.events.emit('validation/error', error, m);
-                throw error;
+            reviewRecord = await this.getReviewRecord(m);
+            if (resolve || validate) reviewRecord = await this.resolveReviewRecord(reviewRecord, useCache)
+            reviewRecord.errors = [];
+            reviewRecord.multihash = m;
+            if (validate) {
+                const validateOptions = typeof validate === 'object' ? validate : {};
+                if (!validateOptions.bitcoinTransactionHash) {
+                    validateOptions.bitcoinTransactionHash = bitcoinTransactionHash || get(metadata, 'metadata.bitcoinTransactionHash', null);
+                }
+                try {
+                    const error = await this.chluIpfs.validator.validateReviewRecord(reviewRecord, validateOptions);
+                    // errors array needs to stay JSON encodable
+                    if (error) reviewRecord.errors = reviewRecord.errors.concat({
+                        message: error.message || error
+                    });
+                } catch (error) {
+                    this.chluIpfs.events.emit('validation/error', error, m);
+                    throw error;
+                }
             }
         }
         if (checkForUpdates) this.watchReviewRecord(m, validate);

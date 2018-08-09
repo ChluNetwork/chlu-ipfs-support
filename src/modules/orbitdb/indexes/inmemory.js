@@ -104,7 +104,7 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
     }
 
     _getReviewRecordMetadata(multihash) {
-        return this._index.reviews.data[multihash] || null;
+        return { multihash, metadata: this._index.reviews.data[multihash] || null }
     }
 
     _getReviewRecordList(offset, limit) {

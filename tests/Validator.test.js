@@ -26,7 +26,9 @@ describe('Validator Module', () => {
         // so that when the validator checks the DB for the tx info it gets some data
         chluIpfs.orbitDb.db = {
             getReviewRecordMetadata: sinon.stub().returns({
-                bitcoinTransactionHash: 'fake'
+                metadata: {
+                    bitcoinTransactionHash: 'fake'
+                }
             })
         };
         chluIpfs.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
@@ -140,7 +142,7 @@ describe('Validator Module', () => {
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
     });
 
-    it('validates Verified Review ancestors', async () => {
+    it('validates Verified Review ancestors and fetches payment information from DB', async () => {
         // Prepare data
         const reviewRecord = makeResolved(await getFakeReviewRecord())
         reviewRecord.rating = 1;
