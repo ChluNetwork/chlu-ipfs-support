@@ -318,7 +318,10 @@ class ReviewRecords {
     }
 
     setPointerToLastReviewRecord(reviewRecord) {
-        reviewRecord.last_reviewrecord_multihash = this.chluIpfs.lastReviewRecordMultihash || '';
+        // reviewRecord.last_reviewrecord_multihash = this.chluIpfs.lastReviewRecordMultihash || '';
+        // Disable this due to issues with the Publisher API Server.
+        // This will be reenabled when we actually start to use it
+        reviewRecord.last_reviewrecord_multihash = '';
         return reviewRecord;
     }
 
