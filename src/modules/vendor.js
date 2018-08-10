@@ -1,12 +1,13 @@
 const { get } = require('lodash')
 const { get: httpGET, post: httpPOST } = require('../utils/http')
+const { createDAGNode, getDAGNodeMultihash } = require('../utils/ipfs')
 
 class Vendor {
     constructor(chluIpfs) {
         this.chluIpfs = chluIpfs
     }
 
-    async registerToMarketplace(url) {
+    async registerToMarketplace(url, profile = null) {
         const didId = this.chluIpfs.didIpfsHelper.didId
         this.chluIpfs.logger.debug(`Registering as Vendor to ${url} using DID ${didId}`)
         // check Marketplace Chlu Network
@@ -34,13 +35,28 @@ class Vendor {
         // Step 2: Submit signature
         if (!vendorData.vSignature) {
             const vmPubKeyMultihash = vendorData.vmPubKeyMultihash
-            this.chluIpfs.logger.debug(`Sending Vendor Signature for ${vmPubKeyMultihash}`)
+            this.chluIpfs.logger.debug(`Sending Vendor Signature for ${vmPubKeyMultihash}, profile: ${JSON.stringify(profile)}`)
             const signature = await this.chluIpfs.didIpfsHelper.signMultihash(vmPubKeyMultihash);
-            await this.sendSignature(url, didId, signature)
+            await this.sendSignature(url, didId, signature, profile)
         } else {
             this.chluIpfs.logger.debug('Marketplace/Vendor key already signed')
         }
+        // Step 3: (Optional) Submit Profile
+        if(profile) await this.updateProfile(url, profile)
         this.chluIpfs.logger.debug('Vendor Signup complete')
+    }
+
+    async updateProfile(url, profile = null) {
+        const didId = this.chluIpfs.didIpfsHelper.didId
+        this.chluIpfs.logger.debug(`Updating Vendor Profile for Marketplace ${url} using DID ${didId}`)
+        const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
+        const signature = await this.chluIpfs.didIpfsHelper.signMultihash(multihash);
+        await this.sendProfile(url, didId, profile, signature)
+        this.chluIpfs.logger.debug(`Updating Vendor Profile for Marketplace ${url} using DID ${didId} updated`)
+    }
+
+    async sendProfile(url, didId, profile, signature) {
+        return await httpPOST(`${url}/vendors/${didId}/profile`, { profile, signature })
     }
 
     async getInfo(url) {
@@ -59,8 +75,9 @@ class Vendor {
         return await httpPOST(`${url}/vendors`, { didId });
     }
 
-    async sendSignature(url, didId, signature) {
-        return await httpPOST(`${url}/vendors/${didId}/signature`, { signature });
+    async sendSignature(url, didId, signature, profile = null) {
+        const body = profile ? { signature, profile } : { signature }
+        return await httpPOST(`${url}/vendors/${didId}/signature`, body);
     }
 }
 

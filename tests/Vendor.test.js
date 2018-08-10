@@ -67,4 +67,13 @@ describe('Vendor Module', () => {
         expect(chluIpfs.vendor.signup.called).to.be.false
         expect(chluIpfs.vendor.sendSignature.called).to.be.false
     });
+
+    it('updates the vendor profile', async () => {
+        chluIpfs.vendor.sendProfile = sinon.stub().resolves()
+        const url = 'http://localhost:12345'
+        const profile = { name: 'Developer' }
+        await chluIpfs.vendor.updateProfile(url, profile)
+        const signature = await chluIpfs.didIpfsHelper.signMultihash.returnValues[0]
+        expect(chluIpfs.vendor.sendProfile.calledWith(url, didId, profile, signature)).to.be.true
+    })
 });
