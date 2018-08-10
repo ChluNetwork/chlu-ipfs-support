@@ -12,6 +12,7 @@ const ChluInMemoryIndex = require('../src/modules/orbitdb/indexes/inmemory');
 const ChluAbstractIndex = require('../src/modules/orbitdb/indexes/abstract');
 const { genMultihash } = require('./utils/ipfs');
 const { getFakeReviewRecord, makeResolved } = require('./utils/protobuf');
+const { cloneDeep } = require('lodash')
 
 async function applyOperation(idx, op) {
     return await idx.updateIndex({
@@ -40,7 +41,7 @@ describe('OrbitDB Module', () => {
             directory
         });
         chluIpfs.reviewRecords.readReviewRecord = sinon.stub()
-            .callsFake(async multihash => Object.assign({ multihash }, makeResolved(await getFakeReviewRecord()), reviewOverride || {}))
+            .callsFake(async multihash => Object.assign({ multihash }, cloneDeep(makeResolved(await getFakeReviewRecord()), reviewOverride || {})))
         chluIpfs.didIpfsHelper.readPublicDIDDocument = sinon.stub()
             .callsFake(async () => Object.assign({
                 id: 'did:chlu:random'
@@ -207,12 +208,10 @@ describe('OrbitDB Module', () => {
                     reviewOverride = { popr: { vendor_did: didId } }
                     await applyOperation(idx, {
                         op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
-                        didId, // Retrocompatibility
                         multihash: genMultihash(1)
                     })
                     await applyOperation(idx, {
                         op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
-                        subjectDidId: didId,
                         multihash: genMultihash(2)
                     })
                     expect((await idx.getReviewsAboutDID(didId)).map(x => x.multihash)).to.deep.equal([
@@ -220,6 +219,37 @@ describe('OrbitDB Module', () => {
                         genMultihash(1)
                     ])
                     expect(await idx.getReviewsWrittenByDID(didId)).to.deep.equal([])
+                })
+
+                function getRating(x) { return { min: 1, max: 5, value: x } }
+                const skipForInMemory = item.name === 'InMemory' ? it.skip : it.only
+
+                skipForInMemory('computes reputation score about subject DID', async () => {
+                    const didId = 'did:chlu:abc'
+                    reviewOverride = { popr: { vendor_did: didId }, rating_details: getRating(1) }
+                    await applyOperation(idx, {
+                        op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
+                        subjectDidId: didId,
+                        multihash: genMultihash(1)
+                    })
+                    reviewOverride = { popr: { vendor_did: didId }, rating_details: getRating(1) }
+                    await applyOperation(idx, {
+                        op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
+                        subjectDidId: didId,
+                        multihash: genMultihash(2)
+                    })
+                    reviewOverride = { subject: { did: didId }, previous_version_multihash: genMultihash(2), history: [
+                        { multihash: genMultihash(2) }
+                    ], rating_details: getRating(5) }
+                    await applyOperation(idx, {
+                        op: ChluInMemoryIndex.operations.ADD_REVIEW_RECORD,
+                        subjectDidId: didId,
+                        multihash: genMultihash(3)
+                    })
+                    expect(await idx.getReputationScore(didId)).to.deep.equal({
+                        average_score: 3,
+                        count: 2
+                    })
                 })
 
                 it('returns reviews written by author DID', async () => {

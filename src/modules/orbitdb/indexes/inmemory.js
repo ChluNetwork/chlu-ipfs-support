@@ -133,6 +133,11 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
             .map(multihash => ({ multihash }))
     }
 
+    _getReputationScore() {
+        // The InMemory Index cannot do this.
+        return null
+    }
+
 }
 
 function slice(array, offset, limit) {
