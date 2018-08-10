@@ -223,4 +223,23 @@ describe('ReviewRecord storing and publishing', () => {
         expect(chluIpfs.room.broadcastUntil.args[1][0].bitcoinNetwork).to.be.null
     });
 
+    // Skipping this due to functionality being disabled
+    it.skip('sets the last review record multihash into new reviews and updates it after storing the review', async () => {
+        const fakeReviewRecord = await getFakeReviewRecord();
+        const lastReviewRecordMultihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVPZ';
+        chluIpfs.lastReviewRecordMultihash = lastReviewRecordMultihash.slice(0); // make a copy
+        const fakeStore = {};
+        chluIpfs.ipfsUtils = ipfsUtilsStub(fakeStore);
+        chluIpfs.orbitDb.putReviewRecordAndWaitForReplication = sinon.stub().resolves();
+        chluIpfs.reviewRecords.waitForRemotePin = sinon.stub().resolves();
+        chluIpfs.crypto.generateKeyPair();
+        const multihash = await chluIpfs.storeReviewRecord(fakeReviewRecord, {
+            validate: false,
+            bitcoinTransactionHash: 'fake'
+        });
+        const reviewRecord = chluIpfs.protobuf.ReviewRecord.decode(chluIpfs.ipfsUtils.storeDAGNode.args[0][0].data);
+        expect(reviewRecord.last_reviewrecord_multihash).to.deep.equal(lastReviewRecordMultihash);
+        expect(chluIpfs.lastReviewRecordMultihash).to.deep.equal(multihash);
+    });
+
 });
