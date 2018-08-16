@@ -52,7 +52,8 @@ class ChluSQLIndex extends ChluAbstractIndex {
         })
         this.chluIpfs.logger.debug('ChluDB SQL Index: Syncing => ...')
         await this.sequelize.sync()
-        this.chluIpfs.logger.debug('ChluDB SQL Index: Syncing => OK, READY')
+        this.chluIpfs.logger.debug('ChluDB SQL Index: Syncing => OK')
+        if (this.options.clearOnStart) await this.clear()
     }
 
     async clear() {
@@ -176,10 +177,11 @@ class ChluSQLIndex extends ChluAbstractIndex {
             const metadata = Object.assign({
                 bitcoinTransactionHash: entity.bitcoinTransactionHash
             }, entity.data.metadata)
-            return formatReviewRecords([entity]).map(x => {
+            const array = formatReviewRecords([entity]).map(x => {
                 x.metadata = metadata
                 return x
             })
+            return array[0]
         }
         return { metadata: null, multihash } 
     }
@@ -295,7 +297,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
 function formatReviewRecords(list) {
     return list.map(v => ({
         multihash: get(v, 'data.multihash', null),
-        reviewRecord: get(v, 'latestVersionData', get(v, 'data', null)),
+        reviewRecord: get(v, 'latestVersionData', null) || get(v, 'data', null),
         reviewRecordOriginal: get(v, 'data', null)
     }))
 }

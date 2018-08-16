@@ -59,6 +59,7 @@ class ChluAbstractIndex {
                                     subjectDidId
                                 });
                             }
+                            this.chluIpfs.events.emit('discover/reviewrecord', item.payload.multihash);
                         } catch (error) {
                             this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
                             console.log(error)
@@ -69,6 +70,7 @@ class ChluAbstractIndex {
                             if (this.enableWrites) {
                                 await this.putDID(publicDidDocument, item.payload.multihash)
                             }
+                            this.chluIpfs.events.emit('discover/did', publicDidDocument.id);
                         } catch (error) {
                             this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
                             console.log(error)

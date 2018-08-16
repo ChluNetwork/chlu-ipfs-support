@@ -24,10 +24,13 @@ class ReviewRecords {
         [...this.watched].forEach(async item => {
             try {
                 const { multihash, validate } = item;
-                const update = await this.chluIpfs.orbitDb.getLatestReviewRecordUpdate(multihash);
+                const result = await this.chluIpfs.orbitDb.getLatestReviewRecordUpdate(multihash);
+                const update = result.multihash
+                let reviewRecord = get(result, 'reviewRecord', null)
                 if (update && update !== multihash) {
-                    const reviewRecord = await this.readReviewRecord(multihash, { validate });
-                    // TODO: validate update!!
+                    if (!reviewRecord) {
+                        reviewRecord = await this.readReviewRecord(multihash, { validate });
+                    }
                     const i = findIndex(this.watched, o => o.multihash === multihash);
                     this.watched.splice(i, 1, Object.assign(this.watched[i], {
                         multihash: update
@@ -149,7 +152,10 @@ class ReviewRecords {
         }
         reviewRecord.history = await this.getHistory(reviewRecord)
         reviewRecord.history = await Promise.all(
-            reviewRecord.history.map(async rr => await this.resolveReviewRecord(rr, useCache))
+            reviewRecord.history.map(async h => {
+                h.reviewRecord = await this.resolveReviewRecord(h.reviewRecord, useCache)
+                return h
+            })
         )
         if (reviewRecord.popr) {
             reviewRecord.popr = await this.resolvePoPR(reviewRecord.popr, useCache)
@@ -191,11 +197,7 @@ class ReviewRecords {
     }
 
     isVerifiable(reviewRecord) {
-        return (
-            !isEmpty(reviewRecord.customer_address)
-            && !isEmpty(reviewRecord.currency_symbol)
-            && !isEmpty(reviewRecord.popr)
-        )
+        return Boolean(get(reviewRecord, 'verifiable', false))
     }
 
     async prepareReviewRecord(reviewRecord, bitcoinTransactionHash = null, validate = true, signAsCustomer = true, signAsIssuer = true) {
