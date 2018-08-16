@@ -114,7 +114,6 @@ class DB {
     }
 
     async getDID(didId, waitUntilPresent = false) {
-        // TODO: move sig checking to orbit-db updateIndex
         let result = null, firstTry = true
         this.chluIpfs.logger.info(`getDID (OrbitDB) ${didId} => ...`)
         while(!get(result, 'multihash') && (firstTry || waitUntilPresent)) {

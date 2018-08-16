@@ -123,11 +123,11 @@ class ChluIPFS {
         this.ipfsUtils = new IPFSUtils(this);
         this.orbitDb = new DB(this, options.OrbitDBIndex || options.OrbitDBIndexName, options.OrbitDBIndexOptions);
         this.pinning = new Pinning(this);
-        this.room = new Room(this);
+        this.room = new Room(this, options.ignoreOwnMessages);
         this.reviewRecords = new ReviewRecords(this);
         this.validator = new Validator(this);
         this.persistence = new Persistence(this);
-        this.didIpfsHelper = new DIDIPFSHelper(this);
+        this.didIpfsHelper = new DIDIPFSHelper(this, options.did);
         this.crypto = new Crypto(this);
         this.bitcoin = new Bitcoin(this, {
             apiKey: options.blockCypherApiKey,

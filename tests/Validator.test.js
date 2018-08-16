@@ -155,7 +155,10 @@ describe('Validator Module', () => {
         reviewRecord3.rating = 3;
         reviewRecord3.previous_version_multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP2';
         reviewRecord3.multihash = 'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP3';
-        reviewRecord3.history = [reviewRecord2, reviewRecord]
+        reviewRecord3.history = [
+            { multihash: reviewRecord2.multihash, reviewRecord: reviewRecord2 },
+            { multihash: reviewRecord.multihash, reviewRecord }
+        ]
         let map = {
             'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP1': reviewRecord,
             'QmQ6vGTgqjec2thBj5skqfPUZcsSuPAbPS7XvkqaYNQVP2': reviewRecord2

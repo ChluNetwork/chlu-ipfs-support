@@ -116,14 +116,17 @@ class Validator {
         });
         const history = reviewRecord.history || []
         if (history.length > 0) {
-            const reviewRecords = [reviewRecord].concat(history);
-            const validations = reviewRecords.map(async (reviewRecord, i) => {
+            const reviewRecords = [{ reviewRecord }].concat(history);
+            const validations = reviewRecords.map(async (data, i) => {
+                const reviewRecord = data.reviewRecord
                 if (!this.chluIpfs.reviewRecords.isVerifiable(reviewRecord)) {
                     throw new Error('Cannot update an unverified review')
                 }
-                await this.validateReviewRecord(reviewRecord, v);
+                if (i > 0) {
+                    await this.validateReviewRecord(reviewRecord, v);
+                }
                 if (i !== reviewRecords.length-1) {
-                    this.validatePrevious(reviewRecord, reviewRecords[i+1]);
+                    this.validatePrevious(reviewRecord, reviewRecords[i+1].reviewRecord);
                 }
             });
             await Promise.all(validations);
@@ -237,9 +240,9 @@ class Validator {
 
     validatePrevious(reviewRecord, previousVersion) {
         // Check that the PoPR was not changed
-        const poprEqual = isEqual(reviewRecord.popr, previousVersion.popr);
+        const poprEqual = reviewRecord.popr.hash === previousVersion.popr.hash
         if (!poprEqual) {
-            throw new Error('PoPR was changed');
+            throw new Error('PoPR hash was changed when updating the review');
         }
         // Check other fields
         assertFieldsEqual(previousVersion, reviewRecord, [

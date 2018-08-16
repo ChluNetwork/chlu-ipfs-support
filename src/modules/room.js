@@ -3,11 +3,12 @@ const constants = require('../constants');
 
 class Room {
 
-    constructor(chluIpfs) {
+    constructor(chluIpfs, ignoreOwnMessages = true) {
         this.chluIpfs = chluIpfs;
         this.subscription = null;
         this.topic = null;
         this.peers = [];
+        this.ignoreOwnMessages = ignoreOwnMessages
     }
 
     async start() {
@@ -133,7 +134,7 @@ class Room {
     async handleMessage(message) {
         try {
             const myId = await this.chluIpfs.ipfsUtils.id();
-            if (message.from !== myId) {
+            if (!this.ignoreOwnMessages || message.from !== myId) {
                 const str = message.data.toString();
                 this.chluIpfs.logger.debug('Handling PubSub message from ' + message.from + ': ' + str);
                 const obj = parseMessage(message);

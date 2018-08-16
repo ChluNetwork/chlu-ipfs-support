@@ -8,7 +8,7 @@ class ChluDIDIPFSHelper {
         return typeof didId === 'string' && didId.indexOf('did:') === 0
     }
 
-    constructor(chluIpfs) {
+    constructor(chluIpfs, did = null) {
         this.chluIpfs = chluIpfs 
         // ChluDID instance
         this.chluDID = new ChluDID()
@@ -16,6 +16,7 @@ class ChluDIDIPFSHelper {
         // used for hardcoded DIDs in tests
         // and will also be used for stuff like official Chlu trusted DIDs
         this.wellKnownDIDs = {}
+        this.didToImport = did
         this.didId = null
         this.publicDidDocument = null
         this.privateKeyBase58 = null
@@ -23,9 +24,11 @@ class ChluDIDIPFSHelper {
 
     async start() {
         if (!this.isPresent()) {
-            // Generate a DID & Publish
-            await this.generate();
-            await this.chluIpfs.persistence.persistData();
+            if (this.didToImport) {
+                await this.import(this.didToImport)
+            } else {
+                await this.generate();
+            }
         }
     }
 
