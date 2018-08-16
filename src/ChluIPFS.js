@@ -10,7 +10,6 @@ const Persistence = require('./modules/persistence');
 const DIDIPFSHelper = require('./modules/didIpfsHelper');
 const Crypto = require('./modules/crypto');
 const Bitcoin = require('./modules/bitcoin');
-const Vendor = require('./modules/vendor');
 const storageUtils = require('./utils/storage');
 const EventEmitter = require('events');
 const constants = require('./constants');
@@ -134,7 +133,6 @@ class ChluIPFS {
             apiKey: options.blockCypherApiKey,
             network: options.bitcoinNetwork
         });
-        this.vendor = new Vendor(this)
         this.ready = false;
         this.starting = false;
         // Retrocompatibility. TODO: Remove this once not needed anymore
@@ -147,6 +145,7 @@ class ChluIPFS {
      * configurations.
      * 
      * @returns {Promise} resolves when fully ready
+     * @memberof ChluIPFS
      */
     async start(){
         this.starting = true;
@@ -178,6 +177,7 @@ class ChluIPFS {
      * before exiting from a Node.js process
      * 
      * @returns {Promise} resolves when fully stopped
+     * @memberof ChluIPFS
      */
     async stop() {
         this.events.emit('chlu-ipfs/stopping');
@@ -189,6 +189,11 @@ class ChluIPFS {
         this.events.emit('chlu-ipfs/stopped');
     }
 
+    /**
+     * If the node is starting, waits until it's ready for use
+     *
+     * @memberof ChluIPFS
+     */
     async waitUntilReady() {
         if (!this.ready) {
             if (this.starting) {
@@ -208,6 +213,7 @@ class ChluIPFS {
      * 
      * @param {string} multihash
      * @returns {Promise} resolves when the pinning process has completed
+     * @memberof ChluIPFS
      */
     async pin(multihash){
         // TODO: tests for this (it was broken)
@@ -237,6 +243,7 @@ class ChluIPFS {
      * @param {Object} options optional additional preferences
      * @param {boolean} options.validate whether to check for validity (default true). Throws if the review record is invalid
      * @param {Function} options.checkForUpdates default false, if true will emit 'updated ReviewRecords' events when this RR is updated
+     * @memberof ChluIPFS
      * requested review record
      */
     async readReviewRecord(multihash, options = {}) {
@@ -256,6 +263,7 @@ class ChluIPFS {
      * @param {boolean} options.publish default true, when false the RR is not shared with the Chlu network
      * and not advertised to other nodes
      * @param {string} options.bitcoinTransactionHash set this to the transaction hash of the bitcoin transaction if applicable
+     * @memberof ChluIPFS
      */
     async storeReviewRecord(reviewRecord, options = {}) {
         await this.waitUntilReady();
@@ -332,35 +340,59 @@ class ChluIPFS {
         return await this.didIpfsHelper.import(did, publish, waitForReplication)
     }
 
+    /**
+     * Get reviews written by a DID
+     *
+     * @param {string} didId
+     * @param {integer} offset
+     * @param {integer} limit
+     * @returns {Array}
+     * @memberof ChluIPFS
+     */
     async getReviewsWrittenByDID(didId, offset, limit) {
         await this.waitUntilReady()
         return await this.orbitDb.getReviewsWrittenByDID(didId, offset, limit)
     }
 
+    /**
+     * Get reviews written about a DID
+     *
+     * @param {string} didId
+     * @param {integer} offset
+     * @param {integer} limit
+     * @returns {Array}
+     * @memberof ChluIPFS
+     */
     async getReviewsAboutDID(didId, offset, limit) {
         await this.waitUntilReady()
         return await this.orbitDb.getReviewsAboutDID(didId, offset, limit)
     }
 
+    /**
+     * Get all reviews
+     *
+     * @param {string} didId
+     * @param {integer} offset
+     * @param {integer} limit
+     * @returns {Array}
+     * @memberof ChluIPFS
+     */
     async getReviewList(offset, limit) {
         await this.waitUntilReady()
         return await this.orbitDb.getReviewRecordList(offset, limit)
     }
 
+    /**
+     * Get the Public DID Document for a DID
+     *
+     * @param {*} didId
+     * @param {boolean} [waitUntilPresent=false]
+     * @returns
+     * @memberof ChluIPFS
+     */
     async getDID(didId, waitUntilPresent = false) {
         await this.waitUntilReady()
         return await this.didIpfsHelper.getDID(didId, waitUntilPresent)
-    }
-
-    /**
-     * Register to a Chlu Marketplace using your DID. The process is non-interactive.
-     *
-     * @param {string} url URL to a reachable service that implements the Chlu Marketplace HTTP API
-     * @memberof ChluIPFS
-     */
-    async registerToMarketplace(url) {
-        await this.waitUntilReady()
-        return await this.vendor.registerToMarketplace(url)
     }
 
 }
