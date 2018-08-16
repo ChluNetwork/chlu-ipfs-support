@@ -11,6 +11,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
     }
 
     async start() {
+        await super.start()
         this.chluIpfs.logger.debug('ChluDB SQL Index: starting ...')
         const options = defaults(this.options || {}, {
             host: 'localhost',
@@ -84,7 +85,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
     }
 
     async _addReviewRecord({ multihash, reviewRecord: data, bitcoinTransactionHash }) {
-        // TODO: implementation
+        // TODO: investigate wether this process should be a DB transaction
         if (multihash !== data.multihash) throw new Error('Multihash mismatch')
         const { alreadyExisting } = await this._saveReviewRecord(data, bitcoinTransactionHash)
         if (!alreadyExisting) {

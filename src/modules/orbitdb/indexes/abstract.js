@@ -9,6 +9,8 @@ class ChluAbstractIndex {
         if (this._version !== version) {
             throw new Error('Incompatible version');
         }
+        this.enableValidations = true
+        this.enableWrites = true
     }
 
     async getAndValidateReviewRecordContent(multihash, bitcoinTransactionHash) {
@@ -36,35 +38,41 @@ class ChluAbstractIndex {
      * Called by OrbitDB to update the index 
      */
     async updateIndex(oplog) {
-        for (const item of oplog.values.slice()) {
-            // Skip operations from a different chlu store version
-            // TODO: handle errors
-            if (item.payload.version === this._version) {
-                // TODO: check update validity, RR validity if possible
-                if (item.payload.op === operations.ADD_REVIEW_RECORD) {
-                    try {
-                        const reviewRecord = await this.getAndValidateReviewRecordContent(item.payload.multihash)
-                        // TODO retry if validation failed 
-                        const subjectDidId = get(reviewRecord, 'popr.vendor_did', get(reviewRecord, 'subject.did', null)) || null // force empty string to null
-                        const authorDidId = get(reviewRecord, 'customer_signature.creator', null)
-                        await this.addReviewRecord({
-                            multihash: item.payload.multihash,
-                            reviewRecord,
-                            bitcoinTransactionHash: item.payload.bitcoinTransactionHash || null,
-                            authorDidId,
-                            subjectDidId
-                        });
-                    } catch (error) {
-                        this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
-                        console.log(error)
-                    }
-                } else if (item.payload.op === operations.PUT_DID) {
-                    try {
-                        const publicDidDocument = await this.getAndValidatePublicDIDDocument(item.payload.multihash, item.payload.signature)
-                        await this.putDID(publicDidDocument, item.payload.multihash)
-                    } catch (error) {
-                        this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
-                        console.log(error)
+        if (this.enableValidations || this.enableWrites) {
+            for (const item of oplog.values.slice()) {
+                // Skip operations from a different chlu store version
+                // TODO: handle errors
+                if (item.payload.version === this._version) {
+                    // TODO: check update validity, RR validity if possible
+                    if (item.payload.op === operations.ADD_REVIEW_RECORD) {
+                        try {
+                            const reviewRecord = await this.getAndValidateReviewRecordContent(item.payload.multihash)
+                            // TODO retry if validation failed 
+                            if (this.enableWrites) {
+                                const subjectDidId = get(reviewRecord, 'popr.vendor_did', get(reviewRecord, 'subject.did', null)) || null // force empty string to null
+                                const authorDidId = get(reviewRecord, 'customer_signature.creator', null)
+                                await this.addReviewRecord({
+                                    multihash: item.payload.multihash,
+                                    reviewRecord,
+                                    bitcoinTransactionHash: item.payload.bitcoinTransactionHash || null,
+                                    authorDidId,
+                                    subjectDidId
+                                });
+                            }
+                        } catch (error) {
+                            this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
+                            console.log(error)
+                        }
+                    } else if (item.payload.op === operations.PUT_DID) {
+                        try {
+                            const publicDidDocument = await this.getAndValidatePublicDIDDocument(item.payload.multihash, item.payload.signature)
+                            if (this.enableWrites) {
+                                await this.putDID(publicDidDocument, item.payload.multihash)
+                            }
+                        } catch (error) {
+                            this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
+                            console.log(error)
+                        }
                     }
                 }
             }
@@ -72,7 +80,9 @@ class ChluAbstractIndex {
     }
 
     async start() {
-        this.chluIpfs.logger.warn('ChluDB Abstract Index started. This Index will throw on any operation!')
+        this.enableWrites = get(this.options, 'enableWrites', true)
+        this.enableValidations = get(this.options, 'enableValidations', true)
+        this.chluIpfs.logger.debug(`Setting up OrbitDB Index Options: enableWrites=${this.enableWrites} enableValidations=${this.enableValidations}`)
     }
 
     async stop() {

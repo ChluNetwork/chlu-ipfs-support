@@ -12,6 +12,7 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
     }
 
     async start() {
+        await super.start()
         this.chluIpfs.logger.debug('ChluDB InMemory Index ready')
     }
 
