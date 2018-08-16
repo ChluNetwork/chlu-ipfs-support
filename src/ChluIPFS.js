@@ -10,7 +10,6 @@ const Persistence = require('./modules/persistence');
 const DIDIPFSHelper = require('./modules/didIpfsHelper');
 const Crypto = require('./modules/crypto');
 const Bitcoin = require('./modules/bitcoin');
-const Vendor = require('./modules/vendor');
 const storageUtils = require('./utils/storage');
 const EventEmitter = require('events');
 const constants = require('./constants');
@@ -134,7 +133,6 @@ class ChluIPFS {
             apiKey: options.blockCypherApiKey,
             network: options.bitcoinNetwork
         });
-        this.vendor = new Vendor(this)
         this.ready = false;
         this.starting = false;
         // Retrocompatibility. TODO: Remove this once not needed anymore
@@ -395,29 +393,6 @@ class ChluIPFS {
     async getDID(didId, waitUntilPresent = false) {
         await this.waitUntilReady()
         return await this.didIpfsHelper.getDID(didId, waitUntilPresent)
-    }
-
-    /**
-     * Register to a Chlu Marketplace using your DID. The process is non-interactive.
-     *
-     * @param {string} url URL to a reachable service that implements the Chlu Marketplace HTTP API
-     * @memberof ChluIPFS
-     */
-    async registerToMarketplace(url) {
-        await this.waitUntilReady()
-        return await this.vendor.registerToMarketplace(url)
-    }
-
-    /**
-     * Update your vendor profile in a Chlu Marketplace using your DID
-     *
-     * @param {string} url URL to a reachable service that implements the Chlu Marketplace HTTP API
-     * @param {object} profile your new profile
-     * @memberof ChluIPFS
-     */
-    async updateVendorProfile(url, profile) {
-        await this.waitUntilReady()
-        return await this.vendor.updateProfile(url, profile)
     }
 
 }
