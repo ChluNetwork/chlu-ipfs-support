@@ -12,6 +12,7 @@ class ChluNOOPIndex extends ChluAbstractIndex {
     }
 
     async start() {
+        await super.start()
         this.chluIpfs.logger.warn('ChluDB NOOP Index started. This Index will silently do nothing!')
     }
 
