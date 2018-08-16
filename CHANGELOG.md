@@ -1,9 +1,12 @@
 # Chlu IPFS Changelog
 
-## v0.2.0 (WIP)
+## v0.2.0 "ChluDB"
 
 - properly validate DID submissions and Reviews coming out of OrbitDB
-- ... more to come!
+- added support for SQL Database as a backend for OrbitDB: supports SQLite or PostgreSQL
+- added ability to disable writes to the ChluDB for users that run multiple Chlu services and only want the collector to write to the DB
+- sped up reads when using the SQL ChluDB: if the implementation chosen "caches" additional informations, it won't have to be refetched and revalidated again
+- IPFS read operations will now time out if they take too long instead of getting stuck forever
 
 ## v0.1.1 (Latest Release)
 
