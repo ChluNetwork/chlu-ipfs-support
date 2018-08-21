@@ -41,6 +41,7 @@ class ChluDIDIPFSHelper {
 
     async import(did, publish = true, waitForReplication = false) {
         this.chluIpfs.logger.debug(`Importing DID ${did.publicDidDocument.id}, publish: ${publish ? 'yes' : 'no'}`)
+        // TODO: check that the ID is the same and don't import, be idempotent
         this.publicDidDocument = did.publicDidDocument
         this.didId = this.publicDidDocument.id
         this.privateKeyBase58 = did.privateKeyBase58
