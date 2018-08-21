@@ -38,7 +38,7 @@
     "commander": "^2.15.1",
     "debounce-async": "^0.0.1",
     "elliptic": "^6.4.0",
-    "ipfs": "~0.31.0",
+    "ipfs": "~0.31.7",
     "ipfs-api": "^22.3.0",
     "lodash": "^4.17.5",
     "lru-cache": "^4.1.2",
