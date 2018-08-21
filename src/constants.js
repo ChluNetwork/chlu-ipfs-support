@@ -30,6 +30,10 @@ module.exports = {
                 }
             }
         },
+        preload: {
+            // Disable this as the preload servers aren't reachable with the default configuration
+            enabled: false
+        },
         // ipfs-api
         host: 'localhost',
         port: 5001,
