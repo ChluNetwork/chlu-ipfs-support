@@ -114,9 +114,9 @@ class IPFS {
         let done = false, timeoutId = null
         const dagNode = await new Promise((resolve, reject) => {
             if (timeout > 0) timeoutId = setTimeout(() => {
-                if (!done) reject(new Error(`IPFS Read timed out (${timeout} ms)`))
+                if (!done) reject(new Error(`IPFS Read timed out (${timeout} ms) for ${multihash}`))
             }, timeout)
-            this.chluIpfs.ipfs.object.get(utils.multihashToBuffer(multihash)).then(resolve)
+            this.chluIpfs.ipfs.object.get(utils.multihashToBuffer(multihash), { preload: false }).then(resolve)
         })
         if (timeoutId) clearTimeout(timeoutId)
         done = true
@@ -141,7 +141,7 @@ class IPFS {
     async storeDAGNode(dagNode) {
         // TODO: before (IPFS 0.28.2), we were doing object.put(dagNode). This breaks with a 'links is immutable' error (IPFS 0.31.0)
         // doing object.put(dagNode.toJSON().data) is the same thing, but I wonder why the old way does not work anymore
-        const newDagNode = await this.chluIpfs.ipfs.object.put(dagNode.toJSON().data);
+        const newDagNode = await this.chluIpfs.ipfs.object.put(dagNode.toJSON().data, { preload: false });
         if (newDagNode.toJSON().multihash !== dagNode.toJSON().multihash) {
             throw new Error('Multihash mismatch');
         }
@@ -153,7 +153,7 @@ class IPFS {
         if (typeof data === 'string') buf = Buffer.from(data);
         else if (Buffer.isBuffer(data)) buf = data;
         if (!Buffer.isBuffer(buf)) throw new Error('Could not convert data into buffer');
-        const dagNode = await this.chluIpfs.ipfs.object.put(buf);
+        const dagNode = await this.chluIpfs.ipfs.object.put(buf, { preload: false });
         return utils.getDAGNodeMultihash(dagNode);
     }
 
