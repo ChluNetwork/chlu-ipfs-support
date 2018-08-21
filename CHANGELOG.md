@@ -1,5 +1,10 @@
 # Chlu IPFS Changelog
 
+## v0.2.1
+
+- slightly improve error handling and logging
+- disable IPFS preloading
+
 ## v0.2.0 "ChluDB"
 
 - properly validate DID submissions and Reviews coming out of OrbitDB
