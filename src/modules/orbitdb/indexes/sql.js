@@ -33,7 +33,7 @@ class ChluSQLIndex extends ChluAbstractIndex {
         this.sequelize = new Sequelize(Object.assign({}, options, {
             operatorsAliases: false // important security setting
         }))
-        const destination = options.dialect === 'sqlite' ? options.storage : options.host
+        const destination = options.dialect === 'sqlite' ? options.storage : `${options.host}${options.port ? ':' + options.port : ''}`
         this.chluIpfs.logger.debug(`ChluDB SQL Index: connection to ${options.dialect} at ${destination} => ...`)
         await this.sequelize.authenticate() // this tests the connection
         this.chluIpfs.logger.debug(`ChluDB SQL Index: connection to ${options.dialect} at ${destination} => OK`)
