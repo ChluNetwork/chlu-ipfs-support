@@ -41,13 +41,12 @@ class ChluAbstractIndex {
         if (this.enableValidations || this.enableWrites) {
             for (const item of oplog.values.slice()) {
                 // Skip operations from a different chlu store version
-                // TODO: handle errors
-                if (item.payload.version === this._version) {
-                    // TODO: check update validity, RR validity if possible
-                    if (item.payload.op === operations.ADD_REVIEW_RECORD) {
-                        try {
+                // TODO: handle errors in single place
+                try {
+                    if (item.payload.version === this._version) {
+                        if (item.payload.op === operations.ADD_REVIEW_RECORD) {
                             const reviewRecord = await this.getAndValidateReviewRecordContent(item.payload.multihash)
-                            // TODO retry if validation failed 
+                            // TODO: retry if validation failed 
                             if (this.enableWrites) {
                                 const subjectDidId = get(reviewRecord, 'popr.vendor_did', get(reviewRecord, 'subject.did', null)) || null // force empty string to null
                                 const authorDidId = get(reviewRecord, 'customer_signature.creator', null)
@@ -60,22 +59,23 @@ class ChluAbstractIndex {
                                 });
                             }
                             this.chluIpfs.events.emit('discover/reviewrecord', item.payload.multihash);
-                        } catch (error) {
-                            this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
-                            console.log(error)
-                        }
-                    } else if (item.payload.op === operations.PUT_DID) {
-                        try {
+                        } else if (item.payload.op === operations.PUT_DID) {
                             const publicDidDocument = await this.getAndValidatePublicDIDDocument(item.payload.multihash, item.payload.signature)
                             if (this.enableWrites) {
                                 await this.putDID(publicDidDocument, item.payload.multihash)
                             }
                             this.chluIpfs.events.emit('discover/did', publicDidDocument.id);
-                        } catch (error) {
-                            this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
-                            console.log(error)
                         }
                     }
+                } catch (error) {
+                    try {
+                        this.chluIpfs.logger.error(`Error while updating ChluDB Index: ${error.message}`)
+                        this.chluIpfs.logger.error(`Problematic Entry Multihash: ${get(item, 'hash', null)}`)
+                        this.chluIpfs.logger.error(`Problematic Entry Value:\n${JSON.stringify(item)}`)
+                    } catch (error){
+                        this.chluIpfs.logger.error('Problematic Entry value could not be stringified')
+                    }
+                    console.log(error)
                 }
             }
         }
