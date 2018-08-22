@@ -180,7 +180,8 @@ class ChluDIDIPFSHelper {
         } else {
             this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}: signature was valid`)
         }
-        const existingMultihash = await this.chluIpfs.orbitDb.getDID(publicDidDocument.id, false)
+        // TODO: write test for this
+        const { multihash: existingMultihash } = await this.chluIpfs.orbitDb.getDID(publicDidDocument.id, false)
         if (!existingMultihash || existingMultihash !== multihash) {
             this.chluIpfs.logger.debug(`Publishing DID ${publicDidDocument.id}: publish required, writing to OrbitDB...`)
             if (waitForReplication) {
