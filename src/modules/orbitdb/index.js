@@ -89,11 +89,11 @@ class DB {
         await this.db.addReviewRecord(multihash, txId, bitcoinNetwork);
     }
 
-    async putReviewRecordAndWaitForReplication(...args) {
+    async putReviewRecordAndWaitForReplication(multihash, ...args) {
         this.chluIpfs.logger.debug('Preparing to wait for remote OrbitDB Replication before Write');
         await new Promise((resolve, reject) => {
-            this.chluIpfs.events.once(constants.eventTypes.replicated + '_' + this.getAddress(), () => resolve());
-            this.putReviewRecord(...args).catch(reject);
+            this.chluIpfs.events.once(constants.eventTypes.pinned + '_' + multihash, () => resolve());
+            this.putReviewRecord(multihash, ...args).catch(reject);
         });
         this.chluIpfs.logger.debug('Remote replication event received: OrbitDB Write operation Done');
     }
@@ -104,11 +104,11 @@ class DB {
         return await this.db.putDID( didDocumentMultihash, signature)
     }
 
-    async putDIDAndWaitForReplication(...args) {
+    async putDIDAndWaitForReplication(didDocumentMultihash, ...args) {
         this.chluIpfs.logger.debug('Preparing to wait for remote OrbitDB Replication before Write');
         await new Promise((resolve, reject) => {
-            this.chluIpfs.events.once(constants.eventTypes.replicated + '_' + this.getAddress(), () => resolve());
-            this.putDID(...args).catch(reject);
+            this.chluIpfs.events.once(constants.eventTypes.pinned + '_' + didDocumentMultihash, () => resolve());
+            this.putDID(didDocumentMultihash, ...args).catch(reject);
         });
         this.chluIpfs.logger.debug('Remote replication event received: OrbitDB Write operation Done');
     }
@@ -170,15 +170,16 @@ class DB {
             this.chluIpfs.logger.debug('OrbitDB Event: Replicate ' + address);
             this.chluIpfs.events.emit('db/replicate', address);
         });
-        db.events.on('replicate.progress', (address, hash, entry, progress) => {
+        db.events.on('replicate.progress', (address, hash, entry, progress, have) => {
             this.chluIpfs.logger.debug('OrbitDB Event: Replicate Progress ' + progress + ' for address ' + address);
-            this.chluIpfs.events.emit('db/replicate/progress', address, hash, entry, progress);
+            this.chluIpfs.events.emit('db/replicate/progress', address, hash, entry, progress, have);
         });
         db.events.on('ready', () => this.chluIpfs.logger.debug('OrbitDB Event: Ready'));
         db.events.on('write', () => this.chluIpfs.logger.debug('OrbitDB Event: Write'));
         db.events.on('load', () => this.chluIpfs.logger.debug('OrbitDB Event: Load'));
         db.events.on('load.progress', (address, hash, entry, progress, total) => {
             this.chluIpfs.logger.debug('OrbitDB Event: Load Progress ' + progress + '/' + total + ' for address ' + address);
+            this.chluIpfs.events.emit('db/load/progress', address, hash, entry, progress, total);
         });
     }
 
