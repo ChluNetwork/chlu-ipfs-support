@@ -157,6 +157,11 @@ class ReviewRecords {
                 return h
             })
         )
+        if (reviewRecord.history.length > 0) {
+            reviewRecord.originalMultihash = reviewRecord.history[reviewRecord.history.length-1].multihash
+        } else {
+            reviewRecord.originalMultihash = reviewRecord.multihash
+        }
         if (reviewRecord.popr) {
             reviewRecord.popr = await this.resolvePoPR(reviewRecord.popr, useCache)
         }

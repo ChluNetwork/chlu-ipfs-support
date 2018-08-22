@@ -311,7 +311,7 @@ describe('Validator Module', () => {
         } catch (err) {
             error = err;
         }
-        expect(error.message).to.equal('Mismatching transaction multihash');
+        expect(error.message).to.match(/^Mismatching transaction multihash/);
         // Check amount
         wrongReviewRecord = Object.assign({}, reviewRecord, {
             amount: 1234
@@ -322,7 +322,7 @@ describe('Validator Module', () => {
         } catch (err) {
             error = err;
         }
-        expect(error.message).to.equal('Review Record amount is not matching transaction amount');
+        expect(error.message).to.match(/^Review Record amount \(\d+\) is not matching transaction amount \(\d+\)$/);
         // Check vendor address
         wrongReviewRecord = Object.assign({}, reviewRecord, {
             vendor_address: 'abc'

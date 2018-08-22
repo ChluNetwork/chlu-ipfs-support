@@ -197,11 +197,12 @@ class Validator {
         if (!txInfo.isChlu) {
             throw new Error(transactionHash + ' is not a Chlu transaction');
         }
-        if (rr.multihash !== txInfo.multihash) {
-            throw new Error('Mismatching transaction multihash');
+        const originalMultihash = rr.originalMultihash || rr.multihash
+        if (originalMultihash !== txInfo.multihash) {
+            throw new Error(`Mismatching transaction multihash: expected ${originalMultihash} but found ${txInfo.multihash}`);
         }
         if (rr.amount !== txInfo.spentSatoshi) {
-            throw new Error('Review Record amount is not matching transaction amount');
+            throw new Error(`Review Record amount (${rr.amount}) is not matching transaction amount (${txInfo.spentSatoshi})`);
         }
         if (txInfo.outputs.length !== 1) {
             throw new Error('Transactions that send bitcoin to multiple addresses are not supported yet');
