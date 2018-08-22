@@ -1,6 +1,6 @@
 {
   "name": "chlu-ipfs-support",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "library providing IPFS integration for Chlu",
   "main": "src/index.js",
   "engines": {
