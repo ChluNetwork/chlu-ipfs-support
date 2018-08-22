@@ -1,5 +1,12 @@
 # Chlu IPFS Changelog
 
+## v0.2.2
+
+- improved discover events, they now pass additional detailed data
+- fix publish of DIDs always happening even if the DID was already published
+- improve transaction validation process and errors
+- waiting for replication when publishing a review record or DID now waits for a Remote Pin event
+
 ## v0.2.1
 
 - slightly improve error handling and logging
