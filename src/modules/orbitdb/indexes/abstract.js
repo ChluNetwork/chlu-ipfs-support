@@ -58,13 +58,13 @@ class ChluAbstractIndex {
                                     subjectDidId
                                 });
                             }
-                            this.chluIpfs.events.emit('discover/reviewrecord', item.payload.multihash);
+                            this.chluIpfs.events.emit('discover/reviewrecord', item.payload.multihash, reviewRecord);
                         } else if (item.payload.op === operations.PUT_DID) {
                             const publicDidDocument = await this.getAndValidatePublicDIDDocument(item.payload.multihash, item.payload.signature)
                             if (this.enableWrites) {
                                 await this.putDID(publicDidDocument, item.payload.multihash)
                             }
-                            this.chluIpfs.events.emit('discover/did', publicDidDocument.id);
+                            this.chluIpfs.events.emit('discover/did', publicDidDocument.id, item.payload.multihash, publicDidDocument);
                         }
                     }
                 } catch (error) {
