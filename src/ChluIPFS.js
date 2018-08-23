@@ -207,17 +207,27 @@ class ChluIPFS {
     }
 
     /**
-     * Recursively Pin arbitrary multihashes. Falls back to a
-     * shallow (non recursive) fetch with a warning if the underlying
-     * IPFS node does not support pinning
+     * Recursively Pin arbitrary multihashes
      * 
      * @param {string} multihash
+     * @param {boolean} broadcast set to false to disable broadcasting to other Chlu nodes about the operation 
      * @returns {Promise} resolves when the pinning process has completed
      * @memberof ChluIPFS
      */
-    async pin(multihash){
+    async pin(multihash, broadcast = true){
         // TODO: tests for this (it was broken)
-        return await this.instance.pinning.pin(multihash);
+        return await this.instance.pinning.pin(multihash, broadcast);
+    }
+
+    /**
+     * Check if the given multihash is pinned in the local IPFS node
+     * 
+     * @param {string} multihash
+     * @returns {Promise} resolves to true if the content was pinned
+     * @memberof ChluIPFS
+     */
+    async isPinned(multihash) {
+        return await this.instance.pinning.isPinned(multihash)
     }
 
     /**
