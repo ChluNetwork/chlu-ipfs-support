@@ -16,7 +16,9 @@ class Room {
         if (!this.subscription) {
             this.topic = this.chluIpfs.network ? ('chlu-' + this.chluIpfs.network) : 'chlu';
             this.subscription = msg => this.handleMessage(msg);
-            await this.chluIpfs.ipfs.pubsub.subscribe(this.topic, this.subscription);
+            await this.chluIpfs.ipfs.pubsub.subscribe(this.topic, this.subscription, {
+                discover: true // Use DHT (if available) to find other Chlu peers
+            });
             this.chluIpfs.logger.debug('Subscribed to pubsub topic: ' + this.topic);
             this.listenToPubSubEvents();
             await this.updatePeers();
