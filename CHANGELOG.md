@@ -1,5 +1,10 @@
 # Chlu IPFS Changelog
 
+## v0.2.3
+
+- added `isPinned` API, which can tell if content is already pinned
+- added `broadcast` parameter to `pin` API, defaults to true. Set to false to disable broadcasting messages about the pin
+
 ## v0.2.2
 
 - improved discover events, they now pass additional detailed data
