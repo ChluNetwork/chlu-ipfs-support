@@ -1,5 +1,9 @@
 # Chlu IPFS Changelog
 
+## v0.2.5
+
+- fixed bug introduced in previous release
+
 ## v0.2.4
 
 - changed default timeout for publishing to be 60 seconds with retries every 5 seconds
