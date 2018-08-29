@@ -129,7 +129,7 @@ describe('ReviewRecord storing and publishing', () => {
         } catch (error) {
             errorMessage = error.message;
         }
-        expect(errorMessage).to.equal('Expected a different multihash');
+        expect(errorMessage).to.equal('Expected a different multihash (storing)');
         errorMessage = null;
         try {
             await chluIpfs.storeReviewRecord(reviewRecord, { publish: false, expectedMultihash: multihash });

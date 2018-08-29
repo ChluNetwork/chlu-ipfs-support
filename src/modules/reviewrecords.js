@@ -266,36 +266,46 @@ class ReviewRecords {
         rr = prepared.reviewRecord;
         const dagNode = prepared.dagNode;
         const multihash = getDAGNodeMultihash(dagNode);
-        if (expectedMultihash) {
-            if (expectedMultihash !== multihash) {
-                throw new Error('Expected a different multihash');
-            }
+        if (expectedMultihash && expectedMultihash !== multihash) {
+            throw new Error('Expected a different multihash (storing)');
         }
         this.chluIpfs.events.emit('reviewrecord/stored', { multihash, reviewRecord: rr });
-        if (publish) await this.publishReviewRecord(dagNode, previousVersionMultihash, multihash, rr, verified ? bitcoinTransactionHash : null);
+        if (publish) await this.publishReviewRecord(dagNode, rr, {
+            bitcoinTransactionHash: verified ? bitcoinTransactionHash : null
+        });
         return multihash
     }
 
-    async publishReviewRecord(dagNode, previousVersionMultihash, expectedMultihash, reviewRecord, txId) {
-        this.chluIpfs.logger.debug('Publishing review record to Chlu');
+    async publishReviewRecord(dagNode, reviewRecord, options = {}) {
+        const {
+            bitcoinTransactionHash = null,
+            expectedMultihash = null,
+            timeoutOptions = undefined // don't use null here
+        } = options
+        const previousVersionMultihash = reviewRecord.previous_version_multihash
+        const dagNodeMultihash = getDAGNodeMultihash(dagNode)
+        if (expectedMultihash && dagNodeMultihash !== expectedMultihash) {
+            throw new Error('Expected a diffent multihash (publish: dagNode)');
+        }
+        this.chluIpfs.logger.debug(`Publishing review record ${dagNodeMultihash} to Chlu`);
         // Make sure DID is published
         await this.chluIpfs.didIpfsHelper.publish(null, false)
         // Broadcast request for pin, then wait for response
         const multihash = await this.chluIpfs.ipfsUtils.storeDAGNode(dagNode); // store to IPFS
         if (expectedMultihash && multihash !== expectedMultihash) {
-            throw new Error('Multihash mismatch when publishing');
+            throw new Error('Expected a diffent multihash (publish: storing in IPFS)');
         }
         this.chluIpfs.logger.debug('Stored review record ' + multihash + ' in IPFS');
         this.chluIpfs.logger.debug('Running Publish tasks for ' + multihash);
         // TODO: what if didId ends up null?
         await Promise.all([
-            // Wait for it to be remotely pinned
-            this.waitForRemotePin(multihash, txId),
-            // Write to OrbitDB and wait for replication
-            this.writeToOrbitDB(multihash, txId)
+            // Wait for it to be remotely pinned (this operation can time out)
+            this.waitForRemotePin(multihash, bitcoinTransactionHash, timeoutOptions),
+            // Write to OrbitDB and wait for replication (this operation never times out)
+            this.writeToOrbitDB(multihash, bitcoinTransactionHash)
         ]);
         // Operation succeeded: set this as the last review record published
-        this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: executing post-publish tasks');
+        this.chluIpfs.logger.debug(`Publish of ${multihash} succeded: executing post-publish tasks`);
         this.chluIpfs.lastReviewRecordMultihash = multihash;
         await this.chluIpfs.persistence.persistData();
         this.chluIpfs.events.emit('reviewrecord/published', multihash);
@@ -303,16 +313,20 @@ class ReviewRecords {
         this.chluIpfs.logger.debug('Publish of ' + multihash + ' succeded: post-publish tasks executed');
     }
 
-    async waitForRemotePin(multihash, bitcoinTransactionHash) {
+    async waitForRemotePin(multihash, bitcoinTransactionHash, options = {}) {
+        // This operation can timeout
         await this.chluIpfs.room.broadcastUntil({
             type: constants.eventTypes.wroteReviewRecord,
             bitcoinTransactionHash,
             bitcoinNetwork: bitcoinTransactionHash ? this.chluIpfs.bitcoin.getNetwork() : null,
             multihash
-        }, constants.eventTypes.pinned + '_' + multihash);
+        },
+        constants.eventTypes.pinned + '_' + multihash,
+        options);
     }
 
     async writeToOrbitDB(multihash, txId = null) {
+        // This operation does not time out
         await this.chluIpfs.orbitDb.putReviewRecordAndWaitForReplication(
             multihash,
             txId,
