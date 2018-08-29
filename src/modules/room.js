@@ -88,7 +88,7 @@ class Room {
         };
         // function that schedules the next resend
         const retrier = async reject => {
-            if (tried === 0 || (retry && maxTries > 0 && maxTries > tried)) {
+            if (tried === 0 || (retry && (maxTries <= 0 || tried < maxTries))) {
                 tried++;
                 const nextTryIn = retryAfter * tried;
                 if (!done) {
