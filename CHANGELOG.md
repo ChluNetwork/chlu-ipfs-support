@@ -1,5 +1,10 @@
 # Chlu IPFS Changelog
 
+## v0.2.4
+
+- changed default timeout for publishing to be 60 seconds with retries every 5 seconds
+- allowed custom timeout parameters to be passed when publishing a review record
+
 ## v0.2.3
 
 - added `isPinned` API, which can tell if content is already pinned
