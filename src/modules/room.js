@@ -66,9 +66,9 @@ class Room {
     async broadcastUntil(msg, expected, options = {}) {
         let {
             retry = true,
-            retryAfter = 5000,
-            maxTries = 2,
-            timeout = 14000
+            retryAfter = 5000, // rebroadcast every 5 secs
+            maxTries = 0, // allow any number until timeout is reached
+            timeout = 60000 // allow 1 minute
         } = options;
         let timeoutRef = null;
         let globalTimeoutRef = null;
@@ -88,15 +88,17 @@ class Room {
         };
         // function that schedules the next resend
         const retrier = async reject => {
-            if (tried === 0 || (retry && maxTries > tried)) {
+            if (tried === 0 || (retry && maxTries > 0 && maxTries > tried)) {
                 tried++;
                 const nextTryIn = retryAfter * tried;
                 if (!done) {
                     try {
                         await broadcaster();
-                        timeoutRef = setTimeout(() => {
-                            if (!done) retrier(reject);
-                        }, nextTryIn);
+                        if (nextTryIn > 0) {
+                            timeoutRef = setTimeout(() => {
+                                if (!done) retrier(reject);
+                            }, nextTryIn);
+                        }
                     } catch (error) {
                         reject(error);
                     }
