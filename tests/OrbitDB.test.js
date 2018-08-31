@@ -215,11 +215,12 @@ describe('OrbitDB Module', () => {
                         subjectDidId: didId,
                         multihash: genMultihash(2)
                     })
-                    expect((await idx.getReviewsAboutDID(didId)).map(x => x.multihash)).to.deep.equal([
+                    const result = await idx.getReviewsAboutDID(didId)
+                    expect(result.rows.map(x => x.multihash)).to.deep.equal([
                         genMultihash(2),
                         genMultihash(1)
                     ])
-                    expect(await idx.getReviewsWrittenByDID(didId)).to.deep.equal([])
+                    expect(await idx.getReviewsWrittenByDID(didId)).to.deep.equal({ count: 0, rows: [] })
                 })
 
                 it('returns reviews written by author DID', async () => {
@@ -235,11 +236,12 @@ describe('OrbitDB Module', () => {
                         authorDidId: didId,
                         multihash: genMultihash(2)
                     })
-                    expect((await idx.getReviewsWrittenByDID(didId)).map(x => x.multihash)).to.deep.equal([
+                    const result = await idx.getReviewsWrittenByDID(didId)
+                    expect(result.rows.map(x => x.multihash)).to.deep.equal([
                         genMultihash(2),
                         genMultihash(1)
                     ])
-                    expect(await idx.getReviewsAboutDID(didId)).to.deep.equal([])
+                    expect(await idx.getReviewsAboutDID(didId)).to.deep.equal({ count: 0, rows: [] })
                 })
             })
         })

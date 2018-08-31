@@ -262,9 +262,9 @@ class ChluSQLIndex extends ChluAbstractIndex {
     }
 
     async _getReviewsAboutDID(didId, offset, limit) {
-        const list = await this.ReviewRecord.findAll({
-            offset: offset > 0 ? offset : undefined,
-            limit: limit > 0 ? limit : undefined,
+        const result = await this.ReviewRecord.findAndCountAll({
+            offset: offset > 0 ? parseInt(offset) : undefined,
+            limit: limit > 0 ? parseInt(limit) : undefined,
             order: [ ['createdAt', 'DESC'] ],
             where: {
                 chluNetwork: this.chluIpfs.network,
@@ -275,13 +275,16 @@ class ChluSQLIndex extends ChluAbstractIndex {
                 ]
             }
         }) 
-        return formatReviewRecords(list)
+        return {
+            rows: formatReviewRecords(result.rows),
+            count: result.count
+        }
     }
 
     async _getReviewsWrittenByDID(didId, offset, limit) {
-        const list = await this.ReviewRecord.findAll({
-            offset: offset > 0 ? offset : undefined,
-            limit: limit > 0 ? limit : undefined,
+        const result = await this.ReviewRecord.findAndCountAll({
+            offset: offset > 0 ? parseInt(offset) : undefined,
+            limit: limit > 0 ? parseInt(limit) : undefined,
             order: [ ['createdAt', 'DESC'] ],
             where: {
                 chluNetwork: this.chluIpfs.network,
@@ -289,7 +292,10 @@ class ChluSQLIndex extends ChluAbstractIndex {
                 'data.customer_signature.creator': didId
             }
         }) 
-        return formatReviewRecords(list)
+        return {
+            rows: formatReviewRecords(result.rows),
+            count: result.count
+        }
     }
 
 }

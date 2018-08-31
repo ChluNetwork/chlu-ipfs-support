@@ -125,13 +125,17 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
     }
 
     _getReviewsAboutDID(didId, offset, limit) {
-        return slice(this._index.did.reviewsAboutDid[didId], offset, limit)
+        const list = this._index.did.reviewsAboutDid[didId] || []
+        const rows = slice(list, offset, limit)
             .map(multihash => ({ multihash }))
+        return { rows, count: list.length }
     }
 
     _getReviewsWrittenByDID(didId, offset, limit) {
-        return slice(this._index.did.reviewsWrittenByDid[didId], offset, limit)
+        const list = this._index.did.reviewsWrittenByDid[didId] || []
+        const rows = slice(list, offset, limit)
             .map(multihash => ({ multihash }))
+        return { rows, count: list.length }
     }
 
 }
