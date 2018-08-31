@@ -1,5 +1,10 @@
 # Chlu IPFS Changelog
 
+## v0.3.0
+
+- getReviewsWrittenByDID and getReviewsAboutDID now return `{ count, rows }` instead of just the rows array
+- fixed limit and offset not being passed to Chlu OrbitDB Index
+
 ## v0.2.5
 
 - fixed bug introduced in previous release
