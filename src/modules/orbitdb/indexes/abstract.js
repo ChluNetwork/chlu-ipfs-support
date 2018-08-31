@@ -168,12 +168,12 @@ class ChluAbstractIndex {
 
     // DID and Reviews
 
-    async getReviewsAboutDID(didId) {
-        return await this._getReviewsAboutDID(didId)
+    async getReviewsAboutDID(didId, offset, limit) {
+        return await this._getReviewsAboutDID(didId, offset, limit)
     }
 
-    async getReviewsWrittenByDID(didId) {
-        return await this._getReviewsWrittenByDID(didId)
+    async getReviewsWrittenByDID(didId, offset, limit) {
+        return await this._getReviewsWrittenByDID(didId, offset, limit)
     }
 
     async _getReviewsAboutDID() {
