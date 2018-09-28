@@ -31,7 +31,7 @@ describe('Validator Module', () => {
                 }
             })
         };
-        chluIpfs.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
+        chluIpfs.bitcoin.BitcoinAPIClient = btcUtils.BitcoinAPIClientMock;
         chluIpfs.didIpfsHelper.publish = sinon.stub().resolves()
         await chluIpfs.bitcoin.start();
         await chluIpfs.didIpfsHelper.start();

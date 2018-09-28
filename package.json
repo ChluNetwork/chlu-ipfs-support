@@ -31,7 +31,6 @@
   "homepage": "https://github.com/ChluNetwork/chlu-ipfs-support/blob/master/README.md",
   "dependencies": {
     "axios": "^0.18.0",
-    "blockcypher": "ChluNetwork/node-client",
     "brorand": "^1.1.0",
     "chlu-did": "ChluNetwork/chlu-did#semver:~0.1.0",
     "chlu-wallet-support-js": "ChluNetwork/chlu-wallet-support-js#semver:~0.1.1",

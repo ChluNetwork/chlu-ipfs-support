@@ -1,14 +1,35 @@
-const Blockcypher = require('blockcypher');
 const getOpReturn = require('chlu-wallet-support-js/lib/get_opreturn').default;
 const { isValidMultihash } = require('../utils/ipfs');
 const { flatten } = require('lodash');
+const axios = require('axios')
 
 const networks = ['test3', 'main'];
+
+class BitcoinAPIClient {
+    constructor(network = 'test3', apiKey = null) {
+        this.network = network
+        this.apiKey = apiKey
+    }
+
+    async getChain() {
+        const response = await axios.get(`https://api.blockcypher.com/v1/btc/${this.network}`, {
+            params: this.apiKey ? { token: this.apiKey } : undefined
+        })
+        return response.data
+    }
+
+    async getTX(txId) {
+        const response = await axios.get(`https://api.blockcypher.com/v1/btc/${this.network}/txs/${txId}`, {
+            params: this.apiKey ? { token: this.apiKey } : undefined
+        })
+        return response.data
+    }
+}
 
 class Bitcoin {
     constructor(chluIpfs, options = {}) {
         this.chluIpfs = chluIpfs;
-        this.Blockcypher = Blockcypher;
+        this.BitcoinAPIClient = BitcoinAPIClient;
         this.options = {
             network: options.network || 'test3',
             apiKey: options.apiKey || null,
@@ -24,7 +45,7 @@ class Bitcoin {
             }
             try {
                 if (!this.api) {
-                    this.api = new this.Blockcypher('btc', this.options.network, this.options.apiKey);
+                    this.api = new this.BitcoinAPIClient(this.options.network, this.options.apiKey);
                 }
                 // Verify that it works
                 const chain = await this.getChain(false);
@@ -41,7 +62,7 @@ class Bitcoin {
     }
 
     async stop() {
-        this.api = undefined;
+        this.ready = false
     }
 
     async getTransactionInfo(txId) {
@@ -85,17 +106,13 @@ class Bitcoin {
 
     async getTransaction(txId) {
         this.chluIpfs.logger.debug('Fetching TX From Blockcypher: ' + txId);
-        const response = await new Promise((resolve, reject) => {
-            this.api.getTX(txId, null, this.handleBlockcypherResponse(resolve, reject));
-        });
+        const response = await this.api.getTX(txId)
         this.chluIpfs.logger.debug('Blockcypher returned the TX ' + txId + ' successfully');
-        return response;
+        return response
     }
 
-    async getChain(checkAvailable = true) {
-        return await new Promise((resolve, reject) => {
-            this.api.getChain(this.handleBlockcypherResponse(resolve, reject, checkAvailable));
-        });
+    async getChain() {
+        return await this.api.getChain()
     }
 
     isAvailable() {
@@ -106,25 +123,6 @@ class Bitcoin {
         return this.options.network;
     }
 
-    handleBlockcypherResponse(resolve, reject, checkAvailable = true) {
-        if (!checkAvailable || this.isAvailable()) {
-            return (err, data) => {
-                if (err) {
-                    reject(err);
-                } else if (data) {
-                    if (data.error) {
-                        reject(data.error);
-                    } else {
-                        resolve(data);
-                    }
-                } else {
-                    reject('Invalid response from BlockCypher');
-                }
-            };
-        } else {
-            reject('Blockchain access not available');
-        }
-    }
 }
 
 module.exports = Object.assign(Bitcoin, { networks });

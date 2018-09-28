@@ -2,12 +2,12 @@ const sinon = require('sinon');
 const { cloneDeep } = require('lodash');
 const exampleTransaction = require('./chlu_transaction_example.json');
 
-class BlockcypherMock {
+class BitcoinAPIClientMock {
     constructor(...args) {
         this.restore();
         this.args = args;
-        this.getChain = sinon.stub().yields(null, { name: 'BTC.test3' });
-        this.getTX = sinon.stub().yields(null, this.tx);
+        this.getChain = sinon.stub().resolves({ name: 'BTC.test3' });
+        this.getTX = sinon.stub().resolves(this.tx);
     }
 
     returnMatchingTXForRR(rr) {
@@ -26,6 +26,6 @@ class BlockcypherMock {
 }
 
 module.exports = {
-    BlockcypherMock,
+    BitcoinAPIClientMock,
     exampleTransaction
 };

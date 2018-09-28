@@ -21,7 +21,7 @@ describe('Bitcoin Module', () => {
             blockCypherApiKey
         });
         // mock blockcypher
-        chluIpfs.bitcoin.Blockcypher = btcUtils.BlockcypherMock;
+        chluIpfs.bitcoin.BitcoinAPIClient = btcUtils.BitcoinAPIClientMock;
     });
     
     it('passes options correctly', async () => {
@@ -32,7 +32,7 @@ describe('Bitcoin Module', () => {
         });
         await chluIpfs.bitcoin.start();
         expect(chluIpfs.bitcoin.api.args).to.deep.equal([
-            'btc', bitcoinNetwork, blockCypherApiKey
+            bitcoinNetwork, blockCypherApiKey
         ]);
     });
 
