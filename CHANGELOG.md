@@ -1,5 +1,9 @@
 # Chlu IPFS Changelog
 
+## v0.3.1
+
+- removed Blockcypher API Client and replaced it with custom functions
+
 ## v0.3.0
 
 - getReviewsWrittenByDID and getReviewsAboutDID now return `{ count, rows }` instead of just the rows array
