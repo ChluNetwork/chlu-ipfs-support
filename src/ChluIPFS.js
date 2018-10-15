@@ -110,6 +110,9 @@ class ChluIPFS {
             // finally options passed by the caller
             options.ipfs || {}
         );
+        // Validator configuration
+        const allowedUnverifiedReviewIssuers = constants.validator.allowedUnverifiedReviewIssuers
+            .concat(options.allowedUnverifiedReviewIssuers || [])
         // Set up OrbitDB Directory/Path
         this.orbitDbDirectory = options.orbitDbDirectory || IPFSUtils.getDefaultOrbitDBPath(this.directory);
         // Set up Chlu bootstrap nodes
@@ -125,7 +128,7 @@ class ChluIPFS {
         this.pinning = new Pinning(this);
         this.room = new Room(this, options.ignoreOwnMessages);
         this.reviewRecords = new ReviewRecords(this);
-        this.validator = new Validator(this);
+        this.validator = new Validator(this, allowedUnverifiedReviewIssuers);
         this.persistence = new Persistence(this);
         this.didIpfsHelper = new DIDIPFSHelper(this, options.did);
         this.crypto = new Crypto(this);

@@ -50,7 +50,7 @@ module.exports = {
             // We can't listen for connections in the browser
         ],
         rendezvous: [
-            // Helps browser connectivity, until circuit relay can replace this
+            // Helps browser connectivity, until circuit relay + DHT can replace this
             '/dns4/ren.chlu.io/tcp/443/wss/p2p-websocket-star'
         ]
     },
@@ -81,5 +81,11 @@ module.exports = {
     },
     orbitDb: {
         storeType: 'chlu'
+    },
+    validator: {
+        allowedUnverifiedReviewIssuers: [
+            // Chlu Publish API Server at https://publish.chlu.io
+            'did:chlu:HyJ5MBzj3ccpejbcZToEKRwxgu9hcMA28j8SoH1135Gi'
+        ]
     }
 };

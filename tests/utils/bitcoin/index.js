@@ -8,6 +8,7 @@ class BitcoinAPIClientMock {
         this.args = args;
         this.getChain = sinon.stub().resolves({ name: 'BTC.test3' });
         this.getTX = sinon.stub().resolves(this.tx);
+        // TODO: getTX always returns a Deep Clone instead of a ref to this.tx
     }
 
     returnMatchingTXForRR(rr) {

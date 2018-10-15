@@ -20,7 +20,8 @@ describe('ReviewRecord storing and publishing', () => {
             logger: logger('Customer'),
             cache: {
                 enabled: false
-            }
+            },
+            allowedUnverifiedReviewIssuers: ['*']
         });
         chluIpfs.waitUntilReady = sinon.stub().resolves();
         chluIpfs.orbitDb.db = { address: { toString: () => 'example' } };

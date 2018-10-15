@@ -18,7 +18,8 @@ describe('Validator Module', () => {
         chluIpfs = new ChluIPFS({
             enablePersistence: false,
             cache: { enabled: false },
-            logger: logger('Customer')
+            logger: logger('Customer'),
+            allowedUnverifiedReviewIssuers: ['*']
         });
         sinon.spy(chluIpfs.cache, 'cacheValidity');
         sinon.spy(chluIpfs.cache, 'cacheMarketplaceDIDID');
@@ -118,7 +119,7 @@ describe('Validator Module', () => {
         expect(chluIpfs.validator.validateReviewRecord.called).to.be.false;
     });
 
-    it('validates the internal multihash correctly', async () => {
+    it('validates the internal multihash', async () => {
         chluIpfs.validator.validateVersion = sinon.stub().resolves();
         chluIpfs.validator.validateRRCustomerSignature = sinon.stub().resolves();
         chluIpfs.validator.validateRRIssuerSignature = sinon.stub().resolves();
@@ -140,6 +141,40 @@ describe('Validator Module', () => {
         }
         expect(error.message.slice(0, 'Mismatching hash'.length)).to.equal('Mismatching hash');
         expect(chluIpfs.validator.validateMultihash.called).to.be.true;
+    });
+
+    it('validates the unverified review issuer', async () => {
+        chluIpfs.validator.validateVersion = sinon.stub().resolves();
+        chluIpfs.validator.validateRRCustomerSignature = sinon.stub().resolves();
+        chluIpfs.validator.validateRRIssuerSignature = sinon.stub().resolves();
+        chluIpfs.validator.validatePoPRSignaturesAndKeys = sinon.stub().resolves();
+        chluIpfs.validator.validateHistory = sinon.stub().resolves();
+        chluIpfs.validator.validateBitcoinTransaction = sinon.stub().resolves();
+        chluIpfs.validator.validateMultihash = sinon.stub().resolves()
+        sinon.spy(chluIpfs.validator, 'validateUnverifiedReviewIssuer');
+        let reviewRecord = await getFakeReviewRecord()
+        reviewRecord = makeResolved(makeUnverified(await chluIpfs.reviewRecords.hashReviewRecord(reviewRecord)))
+        const did = reviewRecord.issuer_signature.creator
+        chluIpfs.validator.allowedUnverifiedReviewIssuers = [did]
+        // Test success case
+        await chluIpfs.validator.validateReviewRecord(reviewRecord);
+        expect(chluIpfs.validator.validateUnverifiedReviewIssuer.called).to.be.true;
+        chluIpfs.validator.validateUnverifiedReviewIssuer.resetHistory();
+        // Test error case
+        reviewRecord.issuer_signature.creator = 'did:chlu:somebodyelse';
+        let error;
+        try {
+            await chluIpfs.validator.validateReviewRecord(reviewRecord);
+        } catch (err) {
+            error = err;
+        }
+        expect(error.message).to.equal(`This Unverified Review has been issued by an untrusted DID (${reviewRecord.issuer_signature.creator})`)
+        expect(chluIpfs.validator.validateUnverifiedReviewIssuer.called).to.be.true;
+        // Test "anyone is allowed" case 
+        chluIpfs.validator.allowedUnverifiedReviewIssuers = ['*']
+        chluIpfs.validator.validateUnverifiedReviewIssuer.resetHistory();
+        await chluIpfs.validator.validateReviewRecord(reviewRecord);
+        expect(chluIpfs.validator.validateUnverifiedReviewIssuer.called).to.be.true;
     });
 
     it('validates Verified Review ancestors and fetches payment information from DB', async () => {

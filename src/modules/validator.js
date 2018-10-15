@@ -2,7 +2,7 @@ const { cloneDeep, isEqual, get } = require('lodash');
 
 class Validator {
 
-    constructor(chluIpfs) {
+    constructor(chluIpfs, allowedUnverifiedReviewIssuers = []) {
         this.chluIpfs = chluIpfs;
         this.defaultVerifiedReviewValidationSettings = {
             useCache: true,
@@ -26,6 +26,7 @@ class Validator {
             bitcoinTransactionHash: null,
             forceTransactionValidation: false
         };
+        this.allowedUnverifiedReviewIssuers = allowedUnverifiedReviewIssuers
     }
 
     async validateReviewRecord(reviewRecord, validations = null) {
@@ -63,6 +64,7 @@ class Validator {
                 if (rr.verifiable && !isUpdate && (v.forceTransactionValidation || bitcoinTransactionHash)) {
                     await this.validateBitcoinTransaction(rr, bitcoinTransactionHash, v.useCache);
                 }
+                if (!rr.verifiable) await this.validateUnverifiedReviewIssuer(rr)
                 if (rr.multihash && v.useCache) this.chluIpfs.cache.cacheValidity(rr.multihash);
             }
             this.chluIpfs.logger.debug(`Validated review record ${multihash || '(?)'} => OK`);
@@ -168,6 +170,15 @@ class Validator {
         } else {
             return true;
         }
+    }
+
+    validateUnverifiedReviewIssuer(rr) {
+        if (this.allowedUnverifiedReviewIssuers.indexOf('*') >= 0) return true // any issuer is ok
+        const issuer = rr.issuer_signature.creator
+        if (this.allowedUnverifiedReviewIssuers.indexOf(issuer) < 0) {
+            throw new Error(`This Unverified Review has been issued by an untrusted DID (${issuer})`)
+        }
+        return true
     }
 
     async validateBitcoinTransaction(rr, transactionHash = null, useCache = true) {
