@@ -1,5 +1,10 @@
 # Chlu IPFS Changelog
 
+## v0.3.2
+
+- added configurable list of allowed issuers for Unverified Reviews
+- default list contains Chlu's API Publish Server's DID only
+
 ## v0.3.1
 
 - removed Blockcypher API Client and replaced it with custom functions
