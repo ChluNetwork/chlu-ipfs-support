@@ -298,6 +298,35 @@ class ChluSQLIndex extends ChluAbstractIndex {
         }
     }
 
+    async _getReputationScore(didId) {
+        const result = await this.ReviewRecord.findAll({
+            attributes: [
+                [this.sequelize.fn('AVERAGE', this.sequelize.col('data.rating_details.value')), 'rating_average'],
+                [this.sequelize.fn('COUNT'), 'rating_count'],
+            ],
+            where: {
+                // Only take out reviews about the didId
+                [Sequelize.Op.or]: [
+                    { 'data.popr.vendor_did': didId },
+                    { 'data.subject.did': didId },
+                ],
+                // that also have a rating between 1 and 5 included
+                'data.rating_details.min': 1,
+                'data.rating_details.max': 5,
+                'data.rating_details.value': {
+                    [Sequelize.Op.gte]: 1,
+                    [Sequelize.Op.lte]: 5
+                },
+                // don't consider records not about the latest version of a review
+                'latestVersionData': null
+            }
+        })
+        return {
+            rating_average: get(result[0], 'rating_average', null),
+            rating_count: get(result[0], 'rating_count', 0),
+        }
+    }
+
 }
 
 function formatReviewRecords(list) {

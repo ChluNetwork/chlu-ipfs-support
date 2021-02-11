@@ -138,6 +138,11 @@ class ChluInMemoryIndex extends ChluAbstractIndex {
         return { rows, count: list.length }
     }
 
+    _getReputationScore() {
+        // The InMemory Index cannot do this.
+        return null
+    }
+
 }
 
 function slice(array, offset, limit) {

@@ -176,12 +176,20 @@ class ChluAbstractIndex {
         return await this._getReviewsWrittenByDID(didId, offset, limit)
     }
 
+    async getReputationScore(didId) {
+        return await this._getReputationScore(didId)
+    }
+
     async _getReviewsAboutDID() {
         notImplemented();
     }
 
     async _getReviewsWrittenByDID() {
         notImplemented();
+    }
+
+    async _getReputationScore() {
+        notImplemented()
     }
 
 }
